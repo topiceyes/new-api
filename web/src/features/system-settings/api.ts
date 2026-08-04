@@ -20,6 +20,7 @@ import { api } from '@/lib/api'
 
 import type {
   ConfirmPaymentComplianceResponse,
+  DingTalkLeaveCheckResponse,
   FetchUpstreamRatiosRequest,
   LogCleanupTask,
   SystemOptionsResponse,
@@ -38,6 +39,13 @@ export async function getSystemOptions() {
 
 export async function updateSystemOption(request: UpdateOptionRequest) {
   const res = await api.put<UpdateOptionResponse>('/api/option/', request)
+  return res.data
+}
+
+export async function runDingTalkLeaveCheck() {
+  const res = await api.post<DingTalkLeaveCheckResponse>(
+    '/api/dingtalk/leave-check/run'
+  )
   return res.data
 }
 

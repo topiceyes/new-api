@@ -54,6 +54,7 @@ import {
   buildOAuthCallbackUrl,
   resolveOAuthSiteUrl,
 } from './oauth-callback-url'
+import { DingTalkPatrolBlock } from './dingtalk-patrol'
 
 /**
  * react-hook-form 7 treats dotted `name` strings as nested paths. To keep
@@ -85,6 +86,10 @@ const oauthSchema = z.object({
     app_key: z.string(),
     app_secret: z.string(),
     corp_id: z.string(),
+    patrol_enabled: z.boolean(),
+    patrol_mode: z.enum(['daily', 'interval']),
+    patrol_hour: z.number().int().min(0).max(23),
+    patrol_interval_hours: z.number().int().min(1).max(24),
   }),
   TelegramOAuthEnabled: z.boolean(),
   TelegramBotToken: z.string(),
@@ -100,6 +105,8 @@ const oauthSchema = z.object({
 })
 
 type OAuthFormValues = z.infer<typeof oauthSchema>
+
+export type { OAuthFormValues }
 
 type FlatOAuthDefaults = {
   GitHubOAuthEnabled: boolean
@@ -120,6 +127,10 @@ type FlatOAuthDefaults = {
   'dingtalk.app_key': string
   'dingtalk.app_secret': string
   'dingtalk.corp_id': string
+  'dingtalk.patrol_enabled': boolean
+  'dingtalk.patrol_mode': 'daily' | 'interval'
+  'dingtalk.patrol_hour': number
+  'dingtalk.patrol_interval_hours': number
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string
@@ -209,6 +220,10 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     app_key: defaults['dingtalk.app_key'] ?? '',
     app_secret: defaults['dingtalk.app_secret'] ?? '',
     corp_id: defaults['dingtalk.corp_id'] ?? '',
+    patrol_enabled: defaults['dingtalk.patrol_enabled'],
+    patrol_mode: defaults['dingtalk.patrol_mode'] ?? 'daily',
+    patrol_hour: defaults['dingtalk.patrol_hour'] ?? 3,
+    patrol_interval_hours: defaults['dingtalk.patrol_interval_hours'] ?? 24,
   },
   TelegramOAuthEnabled: defaults.TelegramOAuthEnabled,
   TelegramBotToken: defaults.TelegramBotToken ?? '',
@@ -242,6 +257,10 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   'dingtalk.app_key': values.dingtalk.app_key,
   'dingtalk.app_secret': values.dingtalk.app_secret,
   'dingtalk.corp_id': values.dingtalk.corp_id,
+  'dingtalk.patrol_enabled': values.dingtalk.patrol_enabled,
+  'dingtalk.patrol_mode': values.dingtalk.patrol_mode,
+  'dingtalk.patrol_hour': values.dingtalk.patrol_hour,
+  'dingtalk.patrol_interval_hours': values.dingtalk.patrol_interval_hours,
   TelegramOAuthEnabled: values.TelegramOAuthEnabled,
   TelegramBotToken: values.TelegramBotToken,
   TelegramBotName: values.TelegramBotName,
@@ -1236,6 +1255,8 @@ export function OAuthSection(props: OAuthSectionProps) {
                     </FormItem>
                   )}
                 />
+
+                <DingTalkPatrolBlock form={form} />
               </TabsContent>
             </Tabs>
           </SettingsForm>

@@ -68,6 +68,11 @@ const AUTH_SECTIONS = [
           'dingtalk.app_key': settings['dingtalk.app_key'],
           'dingtalk.app_secret': settings['dingtalk.app_secret'],
           'dingtalk.corp_id': settings['dingtalk.corp_id'],
+          'dingtalk.patrol_enabled': settings['dingtalk.patrol_enabled'],
+          'dingtalk.patrol_mode': settings['dingtalk.patrol_mode'],
+          'dingtalk.patrol_hour': settings['dingtalk.patrol_hour'],
+          'dingtalk.patrol_interval_hours':
+            settings['dingtalk.patrol_interval_hours'],
           TelegramOAuthEnabled: settings.TelegramOAuthEnabled,
           TelegramBotToken: settings.TelegramBotToken,
           TelegramBotName: settings.TelegramBotName,
