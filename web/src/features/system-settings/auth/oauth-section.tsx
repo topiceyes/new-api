@@ -80,6 +80,12 @@ const oauthSchema = z.object({
     token_endpoint: z.string(),
     user_info_endpoint: z.string(),
   }),
+  dingtalk: z.object({
+    enabled: z.boolean(),
+    app_key: z.string(),
+    app_secret: z.string(),
+    corp_id: z.string(),
+  }),
   TelegramOAuthEnabled: z.boolean(),
   TelegramBotToken: z.string(),
   TelegramBotName: z.string(),
@@ -110,6 +116,10 @@ type FlatOAuthDefaults = {
   'oidc.authorization_endpoint': string
   'oidc.token_endpoint': string
   'oidc.user_info_endpoint': string
+  'dingtalk.enabled': boolean
+  'dingtalk.app_key': string
+  'dingtalk.app_secret': string
+  'dingtalk.corp_id': string
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string
@@ -194,6 +204,12 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     token_endpoint: defaults['oidc.token_endpoint'] ?? '',
     user_info_endpoint: defaults['oidc.user_info_endpoint'] ?? '',
   },
+  dingtalk: {
+    enabled: defaults['dingtalk.enabled'],
+    app_key: defaults['dingtalk.app_key'] ?? '',
+    app_secret: defaults['dingtalk.app_secret'] ?? '',
+    corp_id: defaults['dingtalk.corp_id'] ?? '',
+  },
   TelegramOAuthEnabled: defaults.TelegramOAuthEnabled,
   TelegramBotToken: defaults.TelegramBotToken ?? '',
   TelegramBotName: defaults.TelegramBotName ?? '',
@@ -222,6 +238,10 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   'oidc.authorization_endpoint': values.oidc.authorization_endpoint,
   'oidc.token_endpoint': values.oidc.token_endpoint,
   'oidc.user_info_endpoint': values.oidc.user_info_endpoint,
+  'dingtalk.enabled': values.dingtalk.enabled,
+  'dingtalk.app_key': values.dingtalk.app_key,
+  'dingtalk.app_secret': values.dingtalk.app_secret,
+  'dingtalk.corp_id': values.dingtalk.corp_id,
   TelegramOAuthEnabled: values.TelegramOAuthEnabled,
   TelegramBotToken: values.TelegramBotToken,
   TelegramBotName: values.TelegramBotName,
@@ -263,6 +283,11 @@ export function OAuthSection(props: OAuthSectionProps) {
   const linuxDOCallbackUrl = buildOAuthCallbackUrl(
     props.serverAddress,
     'linuxdo',
+    t('Site URL')
+  )
+  const dingtalkCallbackUrl = buildOAuthCallbackUrl(
+    props.serverAddress,
+    'dingtalk',
     t('Site URL')
   )
 
@@ -378,13 +403,14 @@ export function OAuthSection(props: OAuthSectionProps) {
             <FormDirtyIndicator isDirty={form.formState.isDirty} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className='grid w-full grid-cols-6'>
+              <TabsList className='grid w-full grid-cols-7'>
                 <TabsTrigger value='github'>{t('GitHub')}</TabsTrigger>
                 <TabsTrigger value='discord'>{t('Discord')}</TabsTrigger>
                 <TabsTrigger value='oidc'>{t('OIDC')}</TabsTrigger>
                 <TabsTrigger value='telegram'>{t('Telegram')}</TabsTrigger>
                 <TabsTrigger value='linuxdo'>{t('LinuxDO')}</TabsTrigger>
                 <TabsTrigger value='wechat'>{t('WeChat')}</TabsTrigger>
+                <TabsTrigger value='dingtalk'>{t('DingTalk')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value='github' className={oauthTabContentClassName}>
@@ -1081,6 +1107,121 @@ export function OAuthSection(props: OAuthSectionProps) {
                       <FormControl>
                         <Input
                           placeholder={t('https://example.com/qr-code.png')}
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </TabsContent>
+
+              <TabsContent value='dingtalk' className={oauthTabContentClassName}>
+                <OAuthSetupGuide
+                  title={t('Setup guide')}
+                  description={t(
+                    'Set these values in the DingTalk developer console before enabling login.'
+                  )}
+                  rows={[
+                    {
+                      label: t('Homepage URL'),
+                      value: siteUrl,
+                      copyLabel: t('Copy homepage URL'),
+                    },
+                    {
+                      label: t('Authorization callback URL'),
+                      value: dingtalkCallbackUrl,
+                      copyLabel: t('Copy callback URL'),
+                    },
+                  ]}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='dingtalk.enabled'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Enable DingTalk OAuth')}</FormLabel>
+                        <FormDescription>
+                          {t('Allow users to sign in with DingTalk')}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='dingtalk.app_key'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('AppKey')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={t('Your DingTalk AppKey')}
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='dingtalk.app_secret'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('AppSecret')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='password'
+                          placeholder={t('Your DingTalk AppSecret')}
+                          autoComplete='new-password'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='dingtalk.corp_id'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('CorpId')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={t('Your DingTalk CorpId')}
                           autoComplete='off'
                           value={field.value ?? ''}
                           onChange={(event) =>

@@ -128,6 +128,10 @@ func main() {
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 
+	// DingTalk leave check: daily audit that disables accounts and API tokens
+	// of users that left the DingTalk organization.
+	service.StartDingTalkLeaveCheckTask()
+
 	// Report this process as a system instance so the System Info page can show
 	// all currently alive nodes in multi-instance deployments.
 	service.StartSystemInstanceReporter()

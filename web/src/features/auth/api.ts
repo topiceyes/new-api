@@ -131,6 +131,21 @@ export async function sendPasswordResetEmail(
 // OAuth
 // ----------------------------------------------------------------------------
 
+// Get DingTalk enterprise authorization URL (requires backend app access token)
+export async function fetchDingTalkAuthUrl(
+  redirectUri: string,
+  state: string
+): Promise<string> {
+  const res = await api.post('/api/oauth/dingtalk/auth-url', {
+    redirect_uri: redirectUri,
+    state,
+  })
+  if (res.data?.success && typeof res.data.data?.url === 'string') {
+    return res.data.data.url
+  }
+  throw new Error(res.data?.message || 'Failed to get DingTalk auth URL')
+}
+
 // Start GitHub OAuth flow
 export async function githubOAuthStart(clientId: string, state: string) {
   const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&state=${state}&scope=user:email`

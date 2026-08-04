@@ -333,7 +333,11 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	// Set up new user
 	user.Username = provider.GetProviderPrefix() + strconv.Itoa(model.GetMaxUserId()+1)
 
-	if oauthUser.Username != "" {
+	// DingTalk usernames are unionIds; always use the provider prefix + incrementing
+	// number so admin-facing usernames are readable and consistent.
+	if _, ok := provider.(*oauth.DingTalkProvider); ok {
+		user.Username = provider.GetProviderPrefix() + strconv.Itoa(model.GetMaxUserId()+1)
+	} else if oauthUser.Username != "" {
 		if exists, err := model.CheckUserExistOrDeleted(oauthUser.Username, ""); err == nil && !exists {
 			// 防止索引退化
 			if len(oauthUser.Username) <= model.UserNameMaxLength {
@@ -411,6 +415,7 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 				"linux_do_id": user.LinuxDOId,
 				"wechat_id":   user.WeChatId,
 				"telegram_id": user.TelegramId,
+				"dingtalk_id": user.DingTalkId,
 			}).Error; err != nil {
 				return err
 			}
