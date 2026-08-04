@@ -1,0 +1,12 @@
+{
+  "Allow users to sign in with DingTalk": "Allow users to sign in with DingTalk",
+  "AppKey": "AppKey",
+  "AppSecret": "AppSecret",
+  "Continue with DingTalk": "Continue with DingTalk",
+  "CorpId": "CorpId",
+  "DingTalk": "DingTalk",
+  "Enable DingTalk OAuth": "Enable DingTalk OAuth",
+  "Failed to start DingTalk login": "Failed to start DingTalk login",
+  "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
+  "Your DingTalk OAuth Client Secret": "Your DingTalk OAuth Client Secret"
+}

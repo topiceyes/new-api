@@ -39,6 +39,20 @@ export type UpdateOptionResponse = {
   message: string
 }
 
+export type DingTalkPatrolMode = 'daily' | 'interval'
+
+export type DingTalkLeaveCheckResult = {
+  checked: number
+  disabled: number
+  unknown: number
+}
+
+export type DingTalkLeaveCheckResponse = {
+  success: boolean
+  message: string
+  data?: DingTalkLeaveCheckResult
+}
+
 export type ConfirmPaymentComplianceResponse = {
   success: boolean
   message: string
@@ -147,6 +161,10 @@ export type AuthSettings = {
   'dingtalk.app_key': string
   'dingtalk.app_secret': string
   'dingtalk.corp_id': string
+  'dingtalk.patrol_enabled': boolean
+  'dingtalk.patrol_mode': DingTalkPatrolMode
+  'dingtalk.patrol_hour': number
+  'dingtalk.patrol_interval_hours': number
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string
