@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -17,10 +18,10 @@ import (
 )
 
 const (
-	dingTalkLeaveCheckTickInterval = 1 * time.Hour
-	// First tick at or after this local hour performs the day's audit; later
-	// ticks on the same day are skipped via the date marker.
-	dingTalkLeaveCheckEarliestHour = 3
+	// The tick only evaluates the schedule against live settings, so a short
+	// interval keeps configuration changes effective within a minute without
+	// any restart.
+	dingTalkLeaveCheckTickInterval = 1 * time.Minute
 	// Gap between membership queries to stay well under DingTalk rate limits.
 	dingTalkLeaveCheckRequestGap = 200 * time.Millisecond
 )
@@ -28,8 +29,22 @@ const (
 var (
 	dingTalkLeaveCheckOnce    sync.Once
 	dingTalkLeaveCheckRunning atomic.Bool
-	// YYYYMMDD of the last successful audit; the task runs at most once per day.
+	// YYYYMMDD of the last completed audit; daily mode runs at most once per day.
 	dingTalkLeaveCheckLastDay atomic.Int64
+	// Unix seconds of the last completed audit; anchors the interval mode.
+	dingTalkPatrolLastRun atomic.Int64
+)
+
+// DingTalkLeaveCheckResult summarizes one patrol run.
+type DingTalkLeaveCheckResult struct {
+	Checked  int `json:"checked"`
+	Disabled int `json:"disabled"`
+	Unknown  int `json:"unknown"`
+}
+
+var (
+	ErrDingTalkLeaveCheckRunning       = errors.New("dingtalk leave check is already running")
+	ErrDingTalkLeaveCheckNotConfigured = errors.New("dingtalk app credentials are not configured")
 )
 
 func StartDingTalkLeaveCheckTask() {
@@ -38,7 +53,7 @@ func StartDingTalkLeaveCheckTask() {
 			return
 		}
 		gopool.Go(func() {
-			logger.LogInfo(context.Background(), fmt.Sprintf("dingtalk leave check task started: tick=%s, run_hour=%d", dingTalkLeaveCheckTickInterval, dingTalkLeaveCheckEarliestHour))
+			logger.LogInfo(context.Background(), fmt.Sprintf("dingtalk leave check task started: tick=%s, schedule configurable via dingtalk.patrol_* options", dingTalkLeaveCheckTickInterval))
 			ticker := time.NewTicker(dingTalkLeaveCheckTickInterval)
 			defer ticker.Stop()
 
@@ -50,59 +65,116 @@ func StartDingTalkLeaveCheckTask() {
 	})
 }
 
+// shouldRunDingTalkPatrol decides whether a patrol run is due. It is pure so
+// the schedule semantics can be tested directly. Unknown modes never run:
+// direct database tampering cannot bypass option validation this way.
+func shouldRunDingTalkPatrol(settings *system_setting.DingTalkSettings, now time.Time, lastRunDay int64, lastRun time.Time) bool {
+	switch settings.PatrolMode {
+	case system_setting.DingTalkPatrolModeDaily:
+		// Catch-up semantics: if the process was down at the configured
+		// hour, the day's audit runs as soon as it is back and the hour
+		// gate passes.
+		return now.Hour() >= settings.PatrolHour && lastRunDay != dingTalkPatrolDayMarker(now)
+	case system_setting.DingTalkPatrolModeInterval:
+		interval := time.Duration(settings.PatrolIntervalHours) * time.Hour
+		if interval <= 0 {
+			return false
+		}
+		return lastRun.IsZero() || now.Sub(lastRun) >= interval
+	default:
+		return false
+	}
+}
+
+func dingTalkPatrolDayMarker(t time.Time) int64 {
+	return int64(t.Year())*10000 + int64(t.Month())*100 + int64(t.Day())
+}
+
+// markDingTalkPatrolCompleted records a finished run so the scheduler does
+// not immediately repeat it. Both markers are updated regardless of mode so
+// a later mode switch anchors on the real last completion.
+func markDingTalkPatrolCompleted(now time.Time) {
+	dingTalkLeaveCheckLastDay.Store(dingTalkPatrolDayMarker(now))
+	dingTalkPatrolLastRun.Store(now.Unix())
+}
+
+func patrolLastRunTime() time.Time {
+	if ts := dingTalkPatrolLastRun.Load(); ts > 0 {
+		return time.Unix(ts, 0)
+	}
+	return time.Time{}
+}
+
 func runDingTalkLeaveCheckIfDue() {
-	now := time.Now()
-	if now.Hour() < dingTalkLeaveCheckEarliestHour {
+	settings := system_setting.GetDingTalkSettings()
+	if !settings.PatrolEnabled || settings.AppKey == "" || settings.AppSecret == "" {
 		return
 	}
-	today := int64(now.Year())*10000 + int64(now.Month())*100 + int64(now.Day())
-	if dingTalkLeaveCheckLastDay.Load() == today {
+	if !shouldRunDingTalkPatrol(settings, time.Now(), dingTalkLeaveCheckLastDay.Load(), patrolLastRunTime()) {
 		return
 	}
 	if !dingTalkLeaveCheckRunning.CompareAndSwap(false, true) {
 		return
 	}
 	defer dingTalkLeaveCheckRunning.Store(false)
-	if dingTalkLeaveCheckLastDay.Load() == today {
-		return
-	}
 
 	ctx := context.Background()
-	if err := runDingTalkLeaveCheck(ctx); err != nil {
+	if _, err := runDingTalkLeaveCheck(ctx); err != nil {
 		logger.LogWarn(ctx, fmt.Sprintf("dingtalk leave check task failed: %v", err))
-		// Do not advance the date marker on failure: retry on the next tick.
+		// Do not advance the markers on failure: retry on the next tick.
+		// A failed run only costs a cheap database query; DingTalk API
+		// errors per user are swallowed as "unknown" and do not fail the run.
 		return
 	}
-	dingTalkLeaveCheckLastDay.Store(today)
+	markDingTalkPatrolCompleted(time.Now())
 }
 
-func runDingTalkLeaveCheck(ctx context.Context) error {
+// RunDingTalkLeaveCheckNow performs one patrol run immediately, regardless
+// of the configured schedule (an explicit admin action). It shares the
+// running lock with the scheduler, so concurrent scheduled runs are
+// impossible on the same node. A successful manual run advances the
+// schedule markers, consuming the day's/interval's slot.
+func RunDingTalkLeaveCheckNow(ctx context.Context) (*DingTalkLeaveCheckResult, error) {
+	if !dingTalkLeaveCheckRunning.CompareAndSwap(false, true) {
+		return nil, ErrDingTalkLeaveCheckRunning
+	}
+	defer dingTalkLeaveCheckRunning.Store(false)
+
+	result, err := runDingTalkLeaveCheck(ctx)
+	if err != nil {
+		return nil, err
+	}
+	markDingTalkPatrolCompleted(time.Now())
+	return result, nil
+}
+
+// runDingTalkLeaveCheck executes one full audit. It is gated only on the app
+// credentials (not on the login switch or PatrolEnabled) so both the
+// scheduler and the manual trigger can share it.
+func runDingTalkLeaveCheck(ctx context.Context) (*DingTalkLeaveCheckResult, error) {
 	settings := system_setting.GetDingTalkSettings()
-	if !settings.Enabled || settings.AppKey == "" || settings.AppSecret == "" {
-		return nil
+	if settings.AppKey == "" || settings.AppSecret == "" {
+		return nil, ErrDingTalkLeaveCheckNotConfigured
 	}
 	provider, ok := oauth.GetProvider("dingtalk").(*oauth.DingTalkProvider)
 	if !ok {
-		return nil
+		return nil, fmt.Errorf("dingtalk oauth provider not registered")
 	}
 
 	users, err := model.GetEnabledDingTalkUsers()
 	if err != nil {
-		return fmt.Errorf("query dingtalk-bound users: %w", err)
-	}
-	if len(users) == 0 {
-		return nil
+		return nil, fmt.Errorf("query dingtalk-bound users: %w", err)
 	}
 
-	checked, disabled, unknown := 0, 0, 0
+	result := &DingTalkLeaveCheckResult{}
 	for _, user := range users {
 		active, err := provider.CheckUserActive(ctx, user.DingTalkId)
 		time.Sleep(dingTalkLeaveCheckRequestGap)
-		checked++
+		result.Checked++
 		if err != nil {
 			// Unknown state (network failure, missing permission, unexpected
 			// errcode): never disable, record and retry on the next run.
-			unknown++
+			result.Unknown++
 			logger.LogWarn(ctx, fmt.Sprintf("dingtalk leave check: user %d (unionId=%s) state unknown: %v", user.Id, user.DingTalkId, err))
 			continue
 		}
@@ -113,11 +185,11 @@ func runDingTalkLeaveCheck(ctx context.Context) error {
 			logger.LogError(ctx, fmt.Sprintf("dingtalk leave check: failed to disable departed user %d: %v", user.Id, err))
 			continue
 		}
-		disabled++
+		result.Disabled++
 		common.SysLog(fmt.Sprintf("dingtalk leave check: user %d (username=%s) left the DingTalk organization, account and tokens disabled", user.Id, user.Username))
 	}
-	common.SysLog(fmt.Sprintf("dingtalk leave check finished: checked=%d, disabled=%d, unknown=%d", checked, disabled, unknown))
-	return nil
+	common.SysLog(fmt.Sprintf("dingtalk leave check finished: checked=%d, disabled=%d, unknown=%d", result.Checked, result.Disabled, result.Unknown))
+	return result, nil
 }
 
 // disableDepartedDingTalkUser disables a user confirmed to have left the

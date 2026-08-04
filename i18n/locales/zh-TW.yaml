@@ -256,6 +256,11 @@ oauth.user_info_empty: "{{.Provider}} 獲取使用者資訊為空，請檢查設
 oauth.trust_level_low: "Linux DO 信任等級未達到管理員設定的最低信任等級"
 oauth.user_left_organization: "該釘釘帳號已不在企業組織內，無法登入"
 
+# 釘釘離職巡檢
+dingtalk.patrol_not_configured: "尚未配置釘釘 AppKey 和 AppSecret"
+dingtalk.patrol_already_running: "離職巡檢正在執行中，請稍後再試"
+dingtalk.patrol_failed: "離職巡檢執行失敗，請稍後重試"
+
 # Model layer error messages
 redeem.failed: "兌換失敗，請稍後重試"
 user.create_default_token_error: "建立預設令牌失敗"

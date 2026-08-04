@@ -302,6 +302,13 @@ const (
 	MsgOAuthUserLeftOrg     = "oauth.user_left_organization"
 )
 
+// DingTalk departed-employee patrol messages
+const (
+	MsgDingTalkPatrolNotConfigured  = "dingtalk.patrol_not_configured"
+	MsgDingTalkPatrolAlreadyRunning = "dingtalk.patrol_already_running"
+	MsgDingTalkPatrolFailed         = "dingtalk.patrol_failed"
+)
+
 // Model layer error messages (for translation in controller)
 const (
 	MsgRedeemFailed          = "redeem.failed"

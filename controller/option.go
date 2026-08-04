@@ -178,6 +178,41 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "dingtalk.patrol_enabled":
+		if option.Value == "true" {
+			dingtalkSettings := system_setting.GetDingTalkSettings()
+			if dingtalkSettings.AppKey == "" || dingtalkSettings.AppSecret == "" {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "无法启用钉钉离职巡检，请先填入钉钉 AppKey 以及 AppSecret！",
+				})
+				return
+			}
+		}
+	case "dingtalk.patrol_mode":
+		if option.Value != system_setting.DingTalkPatrolModeDaily && option.Value != system_setting.DingTalkPatrolModeInterval {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "钉钉离职巡检模式只能是 daily（每天定点）或 interval（固定间隔）！",
+			})
+			return
+		}
+	case "dingtalk.patrol_hour":
+		if hour, err := strconv.Atoi(option.Value.(string)); err != nil || hour < 0 || hour > 23 {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "钉钉离职巡检时间必须是 0-23 之间的整数！",
+			})
+			return
+		}
+	case "dingtalk.patrol_interval_hours":
+		if hours, err := strconv.Atoi(option.Value.(string)); err != nil || hours < 1 || hours > 24 {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "钉钉离职巡检间隔必须是 1-24 之间的整数！",
+			})
+			return
+		}
 	case "LinuxDOOAuthEnabled":
 		if option.Value == "true" && common.LinuxDOClientId == "" {
 			c.JSON(http.StatusOK, gin.H{
