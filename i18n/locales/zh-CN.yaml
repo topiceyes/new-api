@@ -256,6 +256,11 @@ oauth.user_info_empty: "{{.Provider}} 获取用户信息为空，请检查设置
 oauth.trust_level_low: "Linux DO 信任等级未达到管理员设置的最低信任等级"
 oauth.user_left_organization: "该钉钉账号已不在企业组织内，无法登录"
 
+# 钉钉离职巡检
+dingtalk.patrol_not_configured: "尚未配置钉钉 AppKey 和 AppSecret"
+dingtalk.patrol_already_running: "离职巡检正在执行中，请稍后再试"
+dingtalk.patrol_failed: "离职巡检执行失败，请稍后重试"
+
 # Model layer error messages
 redeem.failed: "兑换失败，请稍后重试"
 user.create_default_token_error: "创建默认令牌失败"

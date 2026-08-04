@@ -255,6 +255,11 @@ oauth.user_info_empty: "{{.Provider}} returned empty user info, please check set
 oauth.trust_level_low: "Linux DO trust level does not meet the minimum required by administrator"
 oauth.user_left_organization: "This DingTalk account is no longer in the organization and cannot sign in"
 
+# DingTalk departed-employee patrol
+dingtalk.patrol_not_configured: "DingTalk AppKey and AppSecret are not configured yet"
+dingtalk.patrol_already_running: "A departure check is already running, please try again later"
+dingtalk.patrol_failed: "Departure check failed, please try again later"
+
 # Model layer error messages
 redeem.failed: "Redemption failed, please try again later"
 user.create_default_token_error: "Failed to create default token"
