@@ -103,6 +103,7 @@ type User struct {
 	InviterId        int                        `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
 	DeletedAt        gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId        string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
+	DingTalkId       string                     `json:"dingtalk_id" gorm:"column:dingtalk_id;index"`
 	Setting          string                     `json:"setting" gorm:"type:text;column:setting"`
 	Remark           string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
 	StripeCustomer   string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
@@ -824,6 +825,7 @@ func (user *User) ClearBinding(bindingType string) error {
 		"wechat":   "wechat_id",
 		"telegram": "telegram_id",
 		"linuxdo":  "linux_do_id",
+		"dingtalk": "dingtalk_id",
 	}
 
 	column, ok := bindingColumnMap[bindingType]
@@ -1408,6 +1410,30 @@ func (user *User) FillUserByLinuxDOId() error {
 	}
 	err := DB.Where("linux_do_id = ?", user.LinuxDOId).First(user).Error
 	return err
+}
+
+func (user *User) FillUserByDingTalkId() error {
+	if user.DingTalkId == "" {
+		return errors.New("dingtalk id is empty")
+	}
+	err := DB.Where("dingtalk_id = ?", user.DingTalkId).First(user).Error
+	return err
+}
+
+func IsDingTalkIdAlreadyTaken(dingTalkId string) bool {
+	return DB.Unscoped().Where("dingtalk_id = ?", dingTalkId).Find(&User{}).RowsAffected == 1
+}
+
+// GetEnabledDingTalkUsers returns all enabled, non-root users that hold a
+// DingTalk binding. The daily leave audit checks each one against the DingTalk
+// address book to detect employees that left the organization.
+func GetEnabledDingTalkUsers() ([]*User, error) {
+	var users []*User
+	err := DB.Where("dingtalk_id != '' AND status = ? AND role < ?",
+		common.UserStatusEnabled, common.RoleRootUser).
+		Order("id ASC").
+		Find(&users).Error
+	return users, err
 }
 
 func RootUserExists() bool {

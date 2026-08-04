@@ -143,6 +143,10 @@ export type AuthSettings = {
   'oidc.authorization_endpoint': string
   'oidc.token_endpoint': string
   'oidc.user_info_endpoint': string
+  'dingtalk.enabled': boolean
+  'dingtalk.app_key': string
+  'dingtalk.app_secret': string
+  'dingtalk.corp_id': string
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string

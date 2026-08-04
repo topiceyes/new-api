@@ -531,6 +531,18 @@ func InvalidateUserTokensCache(userId int) error {
 	return invalidateTokensCache(tokens)
 }
 
+// DisableAllEnabledTokensByUserId disables every enabled API token owned by a
+// user and invalidates their relay caches. Tokens are disabled, never
+// deleted, so the action stays reversible and auditable.
+func DisableAllEnabledTokensByUserId(userId int) error {
+	if err := DB.Model(&Token{}).
+		Where("user_id = ? AND status = ?", userId, common.TokenStatusEnabled).
+		Update("status", common.TokenStatusDisabled).Error; err != nil {
+		return err
+	}
+	return InvalidateUserTokensCache(userId)
+}
+
 func invalidateTokensCache(tokens []Token) error {
 	if !common.RedisEnabled {
 		return nil

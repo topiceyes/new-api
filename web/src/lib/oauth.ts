@@ -66,3 +66,20 @@ export function buildOIDCOAuthUrl(
 export function buildLinuxDOOAuthUrl(clientId: string, state: string): string {
   return `https://connect.linux.do/oauth2/authorize?response_type=code&client_id=${clientId}&state=${state}`
 }
+
+/**
+ * Build DingTalk OAuth URL
+ */
+export function buildDingTalkOAuthUrl(clientId: string, state: string): string {
+  const url = new URL('https://login.dingtalk.com/oauth2/auth')
+  url.searchParams.set('client_id', clientId)
+  url.searchParams.set(
+    'redirect_uri',
+    `${window.location.origin}/oauth/dingtalk`
+  )
+  url.searchParams.set('response_type', 'code')
+  url.searchParams.set('scope', 'openid')
+  url.searchParams.set('state', state)
+  url.searchParams.set('prompt', 'consent')
+  return url.toString()
+}

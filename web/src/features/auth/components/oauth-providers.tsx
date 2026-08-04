@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import {
   IconDiscord,
+  IconDocker,
   IconGithub,
   IconLinuxDo,
   IconTelegram,
@@ -67,6 +68,7 @@ export function OAuthProviders({
     handleDiscordLogin,
     handleOIDCLogin,
     handleLinuxDOLogin,
+    handleDingTalkLogin,
     handleTelegramLogin,
     handleCustomOAuthLogin,
     isTelegramDialogOpen,
@@ -123,6 +125,15 @@ export function OAuthProviders({
       label: t('Continue with LinuxDO'),
       onClick: handleLinuxDOLogin,
       icon: <IconLinuxDo className='h-4 w-4' />,
+    })
+  }
+
+  if (status?.dingtalk_oauth) {
+    providerButtons.push({
+      key: 'dingtalk',
+      label: t('Continue with DingTalk'),
+      onClick: handleDingTalkLogin,
+      icon: <IconDocker className='h-4 w-4' />,
     })
   }
 
