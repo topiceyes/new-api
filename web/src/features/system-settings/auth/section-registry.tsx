@@ -73,6 +73,14 @@ const AUTH_SECTIONS = [
           'dingtalk.patrol_hour': settings['dingtalk.patrol_hour'],
           'dingtalk.patrol_interval_hours':
             settings['dingtalk.patrol_interval_hours'],
+          'feishu.enabled': settings['feishu.enabled'],
+          'feishu.app_id': settings['feishu.app_id'],
+          'feishu.app_secret': settings['feishu.app_secret'],
+          'feishu.patrol_enabled': settings['feishu.patrol_enabled'],
+          'feishu.patrol_mode': settings['feishu.patrol_mode'],
+          'feishu.patrol_hour': settings['feishu.patrol_hour'],
+          'feishu.patrol_interval_hours':
+            settings['feishu.patrol_interval_hours'],
           TelegramOAuthEnabled: settings.TelegramOAuthEnabled,
           TelegramBotToken: settings.TelegramBotToken,
           TelegramBotName: settings.TelegramBotName,

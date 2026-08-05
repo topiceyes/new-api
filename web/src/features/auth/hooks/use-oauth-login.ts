@@ -22,14 +22,14 @@ import { toast } from 'sonner'
 
 import { clearAuthentication, isAuthBundle } from '@/lib/api'
 
-import { createOAuthFlow, logout, telegramLogin } from '../api'
+import { createOAuthFlow, fetchDingTalkAuthUrl, logout, telegramLogin } from '../api'
 import {
   buildGitHubOAuthUrl,
   buildDiscordOAuthUrl,
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
+  buildFeishuOAuthUrl,
 } from '../lib/oauth'
-import { fetchDingTalkAuthUrl } from '../api'
 import { pickTelegramAuthorization } from '../lib/telegram-login'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 import { useAuthRedirect } from './use-auth-redirect'
@@ -177,6 +177,22 @@ export function useOAuthLogin(
     }
   }
 
+  const handleFeishuLogin = async () => {
+    if (!status?.feishu_app_id) return
+
+    setIsLoading(true)
+    try {
+      await resetSession()
+      const state = await createOAuthFlow('feishu', 'login')
+      const url = buildFeishuOAuthUrl(status.feishu_app_id, state)
+      window.open(url, '_self')
+    } catch {
+      toast.error(t('Failed to start Feishu login'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleTelegramLogin = async () => {
     if (!status?.telegram_bot_name?.trim()) {
       toast.error(t('Login failed'))
@@ -260,6 +276,7 @@ export function useOAuthLogin(
     handleOIDCLogin,
     handleLinuxDOLogin,
     handleDingTalkLogin,
+    handleFeishuLogin,
     handleTelegramLogin,
     handleTelegramAuthorization,
     setIsTelegramDialogOpen,

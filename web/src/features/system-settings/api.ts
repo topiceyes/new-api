@@ -21,6 +21,7 @@ import { api } from '@/lib/api'
 import type {
   ConfirmPaymentComplianceResponse,
   DingTalkLeaveCheckResponse,
+  FeishuLeaveCheckResponse,
   FetchUpstreamRatiosRequest,
   LogCleanupTask,
   SystemOptionsResponse,
@@ -45,6 +46,13 @@ export async function updateSystemOption(request: UpdateOptionRequest) {
 export async function runDingTalkLeaveCheck() {
   const res = await api.post<DingTalkLeaveCheckResponse>(
     '/api/dingtalk/leave-check/run'
+  )
+  return res.data
+}
+
+export async function runFeishuLeaveCheck() {
+  const res = await api.post<FeishuLeaveCheckResponse>(
+    '/api/feishu/leave-check/run'
   )
   return res.data
 }
