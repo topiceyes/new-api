@@ -104,6 +104,7 @@ type User struct {
 	DeletedAt        gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId        string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
 	DingTalkId       string                     `json:"dingtalk_id" gorm:"column:dingtalk_id;index"`
+	FeishuId         string                     `json:"feishu_id" gorm:"column:feishu_id;index"`
 	Setting          string                     `json:"setting" gorm:"type:text;column:setting"`
 	Remark           string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
 	StripeCustomer   string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
@@ -1422,6 +1423,30 @@ func (user *User) FillUserByDingTalkId() error {
 
 func IsDingTalkIdAlreadyTaken(dingTalkId string) bool {
 	return DB.Unscoped().Where("dingtalk_id = ?", dingTalkId).Find(&User{}).RowsAffected == 1
+}
+
+func (user *User) FillUserByFeishuId() error {
+	if user.FeishuId == "" {
+		return errors.New("feishu id is empty")
+	}
+	err := DB.Where("feishu_id = ?", user.FeishuId).First(user).Error
+	return err
+}
+
+func IsFeishuIdAlreadyTaken(feishuId string) bool {
+	return DB.Unscoped().Where("feishu_id = ?", feishuId).Find(&User{}).RowsAffected == 1
+}
+
+// GetEnabledFeishuUsers returns all enabled, non-root users that hold a
+// Feishu binding. The leave patrol checks each one against the Feishu
+// contact API to detect employees that left the organization.
+func GetEnabledFeishuUsers() ([]*User, error) {
+	var users []*User
+	err := DB.Where("feishu_id != '' AND status = ? AND role < ?",
+		common.UserStatusEnabled, common.RoleRootUser).
+		Order("id ASC").
+		Find(&users).Error
+	return users, err
 }
 
 // GetEnabledDingTalkUsers returns all enabled, non-root users that hold a

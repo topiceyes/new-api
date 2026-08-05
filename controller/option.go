@@ -213,6 +213,41 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "feishu.patrol_enabled":
+		if option.Value == "true" {
+			feishuSettings := system_setting.GetFeishuSettings()
+			if feishuSettings.AppId == "" || feishuSettings.AppSecret == "" {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "无法启用飞书离职巡检，请先填入飞书 App ID 以及 App Secret！",
+				})
+				return
+			}
+		}
+	case "feishu.patrol_mode":
+		if option.Value != system_setting.FeishuPatrolModeDaily && option.Value != system_setting.FeishuPatrolModeInterval {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "飞书离职巡检模式只能是 daily（每天定点）或 interval（固定间隔）！",
+			})
+			return
+		}
+	case "feishu.patrol_hour":
+		if hour, err := strconv.Atoi(option.Value.(string)); err != nil || hour < 0 || hour > 23 {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "飞书离职巡检时间必须是 0-23 之间的整数！",
+			})
+			return
+		}
+	case "feishu.patrol_interval_hours":
+		if hours, err := strconv.Atoi(option.Value.(string)); err != nil || hours < 1 || hours > 24 {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "飞书离职巡检间隔必须是 1-24 之间的整数！",
+			})
+			return
+		}
 	case "LinuxDOOAuthEnabled":
 		if option.Value == "true" && common.LinuxDOClientId == "" {
 			c.JSON(http.StatusOK, gin.H{
