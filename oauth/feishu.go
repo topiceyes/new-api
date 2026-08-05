@@ -211,11 +211,23 @@ func (p *FeishuProvider) ExchangeToken(ctx context.Context, code string, c *gin.
 	}
 
 	settings := system_setting.GetFeishuSettings()
+	redirectUri := ""
+	if c != nil && c.Request != nil {
+		scheme := "http"
+		if c.Request.TLS != nil {
+			scheme = "https"
+		}
+		if proto := c.GetHeader("X-Forwarded-Proto"); proto != "" {
+			scheme = proto
+		}
+		redirectUri = scheme + "://" + c.Request.Host + "/oauth/feishu"
+	}
 	reqBody := map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     settings.AppId,
 		"client_secret": settings.AppSecret,
 		"code":          code,
+		"redirect_uri":  redirectUri,
 	}
 	bodyBytes, err := common.Marshal(reqBody)
 	if err != nil {
