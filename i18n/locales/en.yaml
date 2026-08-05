@@ -260,6 +260,12 @@ dingtalk.patrol_not_configured: "DingTalk AppKey and AppSecret are not configure
 dingtalk.patrol_already_running: "A departure check is already running, please try again later"
 dingtalk.patrol_failed: "Departure check failed, please try again later"
 
+# Feishu departed-employee patrol
+feishu.user_left_organization: "This Feishu account is no longer in the organization and cannot sign in"
+feishu.patrol_not_configured: "Feishu App ID and App Secret are not configured yet"
+feishu.patrol_already_running: "A departure check is already running, please try again later"
+feishu.patrol_failed: "Departure check failed, please try again later"
+
 # Model layer error messages
 redeem.failed: "Redemption failed, please try again later"
 user.create_default_token_error: "Failed to create default token"

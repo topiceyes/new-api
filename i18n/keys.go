@@ -309,6 +309,14 @@ const (
 	MsgDingTalkPatrolFailed         = "dingtalk.patrol_failed"
 )
 
+// Feishu departed-employee patrol messages
+const (
+	MsgFeishuUserLeftOrg           = "feishu.user_left_organization"
+	MsgFeishuPatrolNotConfigured   = "feishu.patrol_not_configured"
+	MsgFeishuPatrolAlreadyRunning  = "feishu.patrol_already_running"
+	MsgFeishuPatrolFailed          = "feishu.patrol_failed"
+)
+
 // Model layer error messages (for translation in controller)
 const (
 	MsgRedeemFailed          = "redeem.failed"

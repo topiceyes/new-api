@@ -337,6 +337,9 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	// number so admin-facing usernames are readable and consistent.
 	if _, ok := provider.(*oauth.DingTalkProvider); ok {
 		user.Username = provider.GetProviderPrefix() + strconv.Itoa(model.GetMaxUserId()+1)
+	} else if _, ok := provider.(*oauth.FeishuProvider); ok {
+		// Same for Feishu: union_id is not a human-usable login name.
+		user.Username = provider.GetProviderPrefix() + strconv.Itoa(model.GetMaxUserId()+1)
 	} else if oauthUser.Username != "" {
 		if exists, err := model.CheckUserExistOrDeleted(oauthUser.Username, ""); err == nil && !exists {
 			// 防止索引退化
@@ -416,6 +419,7 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 				"wechat_id":   user.WeChatId,
 				"telegram_id": user.TelegramId,
 				"dingtalk_id": user.DingTalkId,
+				"feishu_id":   user.FeishuId,
 			}).Error; err != nil {
 				return err
 			}

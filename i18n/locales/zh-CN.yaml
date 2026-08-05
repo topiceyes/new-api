@@ -261,6 +261,12 @@ dingtalk.patrol_not_configured: "尚未配置钉钉 AppKey 和 AppSecret"
 dingtalk.patrol_already_running: "离职巡检正在执行中，请稍后再试"
 dingtalk.patrol_failed: "离职巡检执行失败，请稍后重试"
 
+# 飞书离职巡检
+feishu.user_left_organization: "该飞书账号已不在企业组织内，无法登录"
+feishu.patrol_not_configured: "尚未配置飞书 App ID 和 App Secret"
+feishu.patrol_already_running: "离职巡检正在执行中，请稍后再试"
+feishu.patrol_failed: "离职巡检执行失败，请稍后重试"
+
 # Model layer error messages
 redeem.failed: "兑换失败，请稍后重试"
 user.create_default_token_error: "创建默认令牌失败"

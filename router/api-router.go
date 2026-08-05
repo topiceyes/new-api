@@ -292,6 +292,11 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			dingtalkRoute.POST("/leave-check/run", controller.RunDingTalkLeaveCheck)
 		}
+		feishuRoute := apiRouter.Group("/feishu")
+		feishuRoute.Use(middleware.RootAuth())
+		{
+			feishuRoute.POST("/leave-check/run", controller.RunFeishuLeaveCheck)
+		}
 		systemInfoRoute := apiRouter.Group("/system-info")
 		systemInfoRoute.Use(middleware.RootAuth())
 		{

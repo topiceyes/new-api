@@ -61,6 +61,8 @@ func GetStatus(c *gin.Context) {
 		"dingtalk_oauth":              system_setting.GetDingTalkSettings().Enabled,
 		"dingtalk_app_key":            system_setting.GetDingTalkSettings().AppKey,
 		"dingtalk_corp_id":            system_setting.GetDingTalkSettings().CorpId,
+		"feishu_oauth":                system_setting.GetFeishuSettings().Enabled,
+		"feishu_app_id":               system_setting.GetFeishuSettings().AppId,
 		"linuxdo_oauth":               common.LinuxDOOAuthEnabled,
 		"linuxdo_client_id":           common.LinuxDOClientId,
 		"linuxdo_minimum_trust_level": common.LinuxDOMinimumTrustLevel,

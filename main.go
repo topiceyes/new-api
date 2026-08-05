@@ -132,6 +132,10 @@ func main() {
 	// of users that left the DingTalk organization.
 	service.StartDingTalkLeaveCheckTask()
 
+	// Feishu leave check: same audit for users that left the Feishu
+	// organization, scheduled independently via feishu.patrol_* options.
+	service.StartFeishuLeaveCheckTask()
+
 	// Report this process as a system instance so the System Info page can show
 	// all currently alive nodes in multi-instance deployments.
 	service.StartSystemInstanceReporter()
