@@ -111,6 +111,8 @@ export interface SystemStatus {
     dingtalk_oauth?: boolean
     dingtalk_app_key?: string
     dingtalk_corp_id?: string
+    feishu_oauth?: boolean
+    feishu_app_id?: string
     passkey_login?: boolean
     wechat_login?: boolean
     wechat_qrcode?: string
@@ -158,6 +160,8 @@ export interface SystemStatus {
   telegram_bot_name?: string
   dingtalk_oauth?: boolean
   dingtalk_client_id?: string
+  feishu_oauth?: boolean
+  feishu_app_id?: string
   passkey_login?: boolean
   wechat_login?: boolean
   wechat_qrcode?: string
@@ -194,7 +198,7 @@ export interface SystemStatus {
 
 export interface OAuthProvider {
   name: string
-  type: 'github' | 'discord' | 'oidc' | 'linuxdo' | 'telegram' | 'wechat' | 'dingtalk'
+  type: 'github' | 'discord' | 'oidc' | 'linuxdo' | 'telegram' | 'wechat' | 'dingtalk' | 'feishu'
   enabled: boolean
   clientId?: string
   authEndpoint?: string

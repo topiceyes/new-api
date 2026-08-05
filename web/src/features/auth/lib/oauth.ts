@@ -24,6 +24,7 @@ export {
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
   buildDingTalkOAuthUrl,
+  buildFeishuOAuthUrl,
 } from '@/lib/oauth'
 
 // ============================================================================
@@ -94,6 +95,15 @@ export function getAvailableOAuthProviders(
     })
   }
 
+  if (status.feishu_oauth) {
+    providers.push({
+      name: 'Feishu',
+      type: 'feishu',
+      enabled: true,
+      clientId: status.feishu_app_id,
+    })
+  }
+
   return providers
 }
 
@@ -109,6 +119,7 @@ export function hasOAuthProviders(status: SystemStatus | null): boolean {
     status.linuxdo_oauth ||
     status.telegram_oauth ||
     status.dingtalk_oauth ||
+    status.feishu_oauth ||
     status.wechat_login
   )
 }

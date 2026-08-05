@@ -83,3 +83,19 @@ export function buildDingTalkOAuthUrl(clientId: string, state: string): string {
   url.searchParams.set('prompt', 'consent')
   return url.toString()
 }
+
+/**
+ * Build Feishu OAuth URL
+ */
+export function buildFeishuOAuthUrl(appId: string, state: string): string {
+  const url = new URL('https://accounts.feishu.cn/open-apis/authen/v1/authorize')
+  url.searchParams.set('client_id', appId)
+  url.searchParams.set(
+    'redirect_uri',
+    `${window.location.origin}/oauth/feishu`
+  )
+  url.searchParams.set('response_type', 'code')
+  url.searchParams.set('scope', 'contact:user.base:readonly')
+  url.searchParams.set('state', state)
+  return url.toString()
+}

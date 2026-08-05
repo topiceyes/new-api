@@ -5,8 +5,10 @@
   "Continue with DingTalk": "Continue with DingTalk",
   "CorpId": "CorpId",
   "DingTalk": "DingTalk",
+  "Feishu": "Feishu",
   "Enable DingTalk OAuth": "Enable DingTalk OAuth",
   "Failed to start DingTalk login": "Failed to start DingTalk login",
+  "App ID": "App ID",
   "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
   "Your DingTalk OAuth Client Secret": "Your DingTalk OAuth Client Secret"
 }

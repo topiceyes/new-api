@@ -53,6 +53,20 @@ export type DingTalkLeaveCheckResponse = {
   data?: DingTalkLeaveCheckResult
 }
 
+export type FeishuPatrolMode = 'daily' | 'interval'
+
+export type FeishuLeaveCheckResult = {
+  checked: number
+  disabled: number
+  unknown: number
+}
+
+export type FeishuLeaveCheckResponse = {
+  success: boolean
+  message: string
+  data?: FeishuLeaveCheckResult
+}
+
 export type ConfirmPaymentComplianceResponse = {
   success: boolean
   message: string
@@ -165,6 +179,13 @@ export type AuthSettings = {
   'dingtalk.patrol_mode': DingTalkPatrolMode
   'dingtalk.patrol_hour': number
   'dingtalk.patrol_interval_hours': number
+  'feishu.enabled': boolean
+  'feishu.app_id': string
+  'feishu.app_secret': string
+  'feishu.patrol_enabled': boolean
+  'feishu.patrol_mode': FeishuPatrolMode
+  'feishu.patrol_hour': number
+  'feishu.patrol_interval_hours': number
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string

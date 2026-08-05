@@ -55,6 +55,7 @@ import {
   resolveOAuthSiteUrl,
 } from './oauth-callback-url'
 import { DingTalkPatrolBlock } from './dingtalk-patrol'
+import { FeishuPatrolBlock } from './feishu-patrol'
 
 /**
  * react-hook-form 7 treats dotted `name` strings as nested paths. To keep
@@ -86,6 +87,15 @@ const oauthSchema = z.object({
     app_key: z.string(),
     app_secret: z.string(),
     corp_id: z.string(),
+    patrol_enabled: z.boolean(),
+    patrol_mode: z.enum(['daily', 'interval']),
+    patrol_hour: z.number().int().min(0).max(23),
+    patrol_interval_hours: z.number().int().min(1).max(24),
+  }),
+  feishu: z.object({
+    enabled: z.boolean(),
+    app_id: z.string(),
+    app_secret: z.string(),
     patrol_enabled: z.boolean(),
     patrol_mode: z.enum(['daily', 'interval']),
     patrol_hour: z.number().int().min(0).max(23),
@@ -131,6 +141,13 @@ type FlatOAuthDefaults = {
   'dingtalk.patrol_mode': 'daily' | 'interval'
   'dingtalk.patrol_hour': number
   'dingtalk.patrol_interval_hours': number
+  'feishu.enabled': boolean
+  'feishu.app_id': string
+  'feishu.app_secret': string
+  'feishu.patrol_enabled': boolean
+  'feishu.patrol_mode': 'daily' | 'interval'
+  'feishu.patrol_hour': number
+  'feishu.patrol_interval_hours': number
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string
@@ -225,6 +242,15 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     patrol_hour: defaults['dingtalk.patrol_hour'] ?? 3,
     patrol_interval_hours: defaults['dingtalk.patrol_interval_hours'] ?? 24,
   },
+  feishu: {
+    enabled: defaults['feishu.enabled'],
+    app_id: defaults['feishu.app_id'] ?? '',
+    app_secret: defaults['feishu.app_secret'] ?? '',
+    patrol_enabled: defaults['feishu.patrol_enabled'],
+    patrol_mode: defaults['feishu.patrol_mode'] ?? 'daily',
+    patrol_hour: defaults['feishu.patrol_hour'] ?? 3,
+    patrol_interval_hours: defaults['feishu.patrol_interval_hours'] ?? 24,
+  },
   TelegramOAuthEnabled: defaults.TelegramOAuthEnabled,
   TelegramBotToken: defaults.TelegramBotToken ?? '',
   TelegramBotName: defaults.TelegramBotName ?? '',
@@ -261,6 +287,13 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   'dingtalk.patrol_mode': values.dingtalk.patrol_mode,
   'dingtalk.patrol_hour': values.dingtalk.patrol_hour,
   'dingtalk.patrol_interval_hours': values.dingtalk.patrol_interval_hours,
+  'feishu.enabled': values.feishu.enabled,
+  'feishu.app_id': values.feishu.app_id,
+  'feishu.app_secret': values.feishu.app_secret,
+  'feishu.patrol_enabled': values.feishu.patrol_enabled,
+  'feishu.patrol_mode': values.feishu.patrol_mode,
+  'feishu.patrol_hour': values.feishu.patrol_hour,
+  'feishu.patrol_interval_hours': values.feishu.patrol_interval_hours,
   TelegramOAuthEnabled: values.TelegramOAuthEnabled,
   TelegramBotToken: values.TelegramBotToken,
   TelegramBotName: values.TelegramBotName,
@@ -307,6 +340,11 @@ export function OAuthSection(props: OAuthSectionProps) {
   const dingtalkCallbackUrl = buildOAuthCallbackUrl(
     props.serverAddress,
     'dingtalk',
+    t('Site URL')
+  )
+  const feishuCallbackUrl = buildOAuthCallbackUrl(
+    props.serverAddress,
+    'feishu',
     t('Site URL')
   )
 
@@ -422,7 +460,7 @@ export function OAuthSection(props: OAuthSectionProps) {
             <FormDirtyIndicator isDirty={form.formState.isDirty} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className='grid w-full grid-cols-7'>
+              <TabsList className='grid w-full grid-cols-8'>
                 <TabsTrigger value='github'>{t('GitHub')}</TabsTrigger>
                 <TabsTrigger value='discord'>{t('Discord')}</TabsTrigger>
                 <TabsTrigger value='oidc'>{t('OIDC')}</TabsTrigger>
@@ -430,6 +468,7 @@ export function OAuthSection(props: OAuthSectionProps) {
                 <TabsTrigger value='linuxdo'>{t('LinuxDO')}</TabsTrigger>
                 <TabsTrigger value='wechat'>{t('WeChat')}</TabsTrigger>
                 <TabsTrigger value='dingtalk'>{t('DingTalk')}</TabsTrigger>
+                <TabsTrigger value='feishu'>{t('Feishu')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value='github' className={oauthTabContentClassName}>
@@ -1257,6 +1296,99 @@ export function OAuthSection(props: OAuthSectionProps) {
                 />
 
                 <DingTalkPatrolBlock form={form} />
+              </TabsContent>
+
+              <TabsContent value='feishu' className={oauthTabContentClassName}>
+                <OAuthSetupGuide
+                  title={t('Setup guide')}
+                  description={t(
+                    'Set these values in the Feishu developer console before enabling login.'
+                  )}
+                  rows={[
+                    {
+                      label: t('Homepage URL'),
+                      value: siteUrl,
+                      copyLabel: t('Copy homepage URL'),
+                    },
+                    {
+                      label: t('Authorization callback URL'),
+                      value: feishuCallbackUrl,
+                      copyLabel: t('Copy callback URL'),
+                    },
+                  ]}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='feishu.enabled'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Enable Feishu OAuth')}</FormLabel>
+                        <FormDescription>
+                          {t('Allow users to sign in with Feishu')}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='feishu.app_id'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('App ID')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={t('Your Feishu App ID')}
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='feishu.app_secret'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('App Secret')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='password'
+                          placeholder={t('Your Feishu App Secret')}
+                          autoComplete='new-password'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FeishuPatrolBlock form={form} />
               </TabsContent>
             </Tabs>
           </SettingsForm>

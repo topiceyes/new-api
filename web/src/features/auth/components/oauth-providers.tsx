@@ -69,6 +69,7 @@ export function OAuthProviders({
     handleOIDCLogin,
     handleLinuxDOLogin,
     handleDingTalkLogin,
+    handleFeishuLogin,
     handleTelegramLogin,
     handleCustomOAuthLogin,
     isTelegramDialogOpen,
@@ -133,6 +134,15 @@ export function OAuthProviders({
       key: 'dingtalk',
       label: t('Continue with DingTalk'),
       onClick: handleDingTalkLogin,
+      icon: <IconDocker className='h-4 w-4' />,
+    })
+  }
+
+  if (status?.feishu_oauth) {
+    providerButtons.push({
+      key: 'feishu',
+      label: t('Continue with Feishu'),
+      onClick: handleFeishuLogin,
       icon: <IconDocker className='h-4 w-4' />,
     })
   }
