@@ -178,6 +178,25 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "dingtalk.enabled":
+		// Enterprise IM logins are mutually exclusive: an organization runs
+		// exactly one of DingTalk / Feishu, so enabling both would only
+		// confuse users about which button to click.
+		if option.Value == "true" && system_setting.GetFeishuSettings().Enabled {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "无法同时启用钉钉和飞书登录，请先关闭飞书 OAuth！",
+			})
+			return
+		}
+	case "feishu.enabled":
+		if option.Value == "true" && system_setting.GetDingTalkSettings().Enabled {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "无法同时启用飞书和钉钉登录，请先关闭钉钉 OAuth！",
+			})
+			return
+		}
 	case "dingtalk.patrol_enabled":
 		if option.Value == "true" {
 			dingtalkSettings := system_setting.GetDingTalkSettings()
