@@ -58,6 +58,7 @@ export const channelSchema = z.object({
   priority: z.number().nullish(),
   auto_ban: z.number().nullish(),
   other_info: z.string().default(''),
+  schedule: z.string().nullish(),
   tag: z.string().nullish(),
   setting: z.string().nullish(),
   param_override: z.string().nullish(),

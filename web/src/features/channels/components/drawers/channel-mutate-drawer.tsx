@@ -189,6 +189,7 @@ import {
   ChannelBasicSection,
   ChannelEditorLoadingState,
   ChannelModelsSection,
+  ChannelScheduleSection,
 } from './sections'
 
 type ChannelMutateDrawerProps = {
@@ -4757,6 +4758,7 @@ export function ChannelMutateDrawer({
                             </fieldset>
                           </div>
                         )}
+                        <ChannelScheduleSection />
                       </ChannelAdvancedSection>
                     </div>
                   </div>

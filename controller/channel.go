@@ -481,6 +481,17 @@ func validateChannel(channel *model.Channel, isAdd bool) error {
 		return fmt.Errorf("渠道额外设置[channel setting] 格式错误：%s", err.Error())
 	}
 
+	// 校验定时开关配置
+	if channel.Schedule != nil && *channel.Schedule != "" {
+		sch, err := dto.ParseChannelSchedule(*channel.Schedule)
+		if err != nil {
+			return fmt.Errorf("定时开关[schedule] 格式错误：%s", err.Error())
+		}
+		if err := sch.Validate(); err != nil {
+			return fmt.Errorf("定时开关[schedule] 格式错误：%s", err.Error())
+		}
+	}
+
 	if channel.Type == constant.ChannelTypeNewAPI && strings.TrimSpace(channel.GetBaseURL()) == "" {
 		return fmt.Errorf("New API channel base URL cannot be empty")
 	}

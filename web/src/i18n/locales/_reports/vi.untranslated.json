@@ -1,5 +1,7 @@
 {
   "Allow users to sign in with DingTalk": "Allow users to sign in with DingTalk",
   "Continue with DingTalk": "Continue with DingTalk",
-  "Failed to start DingTalk login": "Failed to start DingTalk login"
+  "Failed to start DingTalk login": "Failed to start DingTalk login",
+  "Start and end time cannot be equal": "Start and end time cannot be equal",
+  "Channel runs only inside the configured windows; outside them it is auto-disabled. Overnight windows like 22:00-02:00 belong to the start day.": "Channel runs only inside the configured windows; outside them it is auto-disabled. Overnight windows like 22:00-02:00 belong to the start day."
 }
