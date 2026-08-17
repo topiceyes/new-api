@@ -193,6 +193,31 @@ function addRequiredIssue(
   })
 }
 
+// ============================================================================
+// Schedule
+// ============================================================================
+
+const scheduleWindowSchema = z
+  .object({
+    days: z.array(z.number().int().min(0).max(6)),
+    start: z.string().regex(/^\d{2}:\d{2}$/),
+    end: z.string().regex(/^\d{2}:\d{2}$/),
+  })
+  .refine((w) => w.start !== w.end, {
+    message: 'Start and end time cannot be equal',
+  })
+
+const SCHEDULE_DEFAULT_TIMEZONE = 'Asia/Shanghai'
+
+function getBrowserTimezone(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    return tz || SCHEDULE_DEFAULT_TIMEZONE
+  } catch {
+    return SCHEDULE_DEFAULT_TIMEZONE
+  }
+}
+
 export const channelFormSchema = z
   .object({
     name: z.string().min(1, ERROR_MESSAGES.REQUIRED_NAME),
@@ -279,6 +304,10 @@ export const channelFormSchema = z
     upstream_model_update_check_enabled: z.boolean().optional(),
     upstream_model_update_auto_sync_enabled: z.boolean().optional(),
     upstream_model_update_ignored_models: z.string().optional(),
+    // Schedule (stored as JSON string on Channel.schedule)
+    schedule_enabled: z.boolean().optional(),
+    schedule_timezone: z.string().optional(),
+    schedule_windows: z.array(scheduleWindowSchema).optional(),
   })
   .superRefine((data, ctx) => {
     if (
@@ -450,6 +479,9 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   upstream_model_update_check_enabled: false,
   upstream_model_update_auto_sync_enabled: false,
   upstream_model_update_ignored_models: '',
+  schedule_enabled: false,
+  schedule_timezone: getBrowserTimezone(),
+  schedule_windows: [],
   advanced_custom: '',
 }
 
@@ -550,6 +582,35 @@ export function transformChannelToFormDefaults(
     }
   }
 
+  // Parse schedule from channel.schedule JSON
+  let scheduleEnabled = false
+  let scheduleTimezone = getBrowserTimezone()
+  let scheduleWindows: Array<{
+    days: number[]
+    start: string
+    end: string
+  }> = []
+
+  if (channel.schedule) {
+    try {
+      const parsed = JSON.parse(channel.schedule)
+      scheduleEnabled = parsed.enabled === true
+      scheduleTimezone = parsed.timezone || getBrowserTimezone()
+      scheduleWindows = Array.isArray(parsed.windows)
+        ? parsed.windows.map(
+            (w: { days?: number[]; start?: string; end?: string }) => ({
+              days: Array.isArray(w.days) ? w.days : [],
+              start: w.start || '00:30',
+              end: w.end || '08:30',
+            })
+          )
+        : []
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to parse channel schedule:', error)
+    }
+  }
+
   return {
     name: channel.name || '',
     type: channel.type,
@@ -595,6 +656,9 @@ export function transformChannelToFormDefaults(
     upstream_model_update_auto_sync_enabled: upstreamModelUpdateAutoSyncEnabled,
     upstream_model_update_ignored_models: upstreamModelUpdateIgnoredModels,
     advanced_custom: advancedCustom,
+    schedule_enabled: scheduleEnabled,
+    schedule_timezone: scheduleTimezone,
+    schedule_windows: scheduleWindows,
   }
 }
 
@@ -766,6 +830,23 @@ function normalizeBaseUrl(value: string | undefined): string {
 }
 
 /**
+ * Build the schedule JSON string from form schedule fields.
+ * Returns null when scheduling is disabled or no windows are defined.
+ */
+export function buildScheduleJSON(
+  formData: ChannelFormValues
+): string | null {
+  if (!formData.schedule_enabled || !formData.schedule_windows?.length) {
+    return null
+  }
+  return JSON.stringify({
+    enabled: true,
+    timezone: formData.schedule_timezone || getBrowserTimezone(),
+    windows: formData.schedule_windows,
+  })
+}
+
+/**
  * Transform form data to API payload for creating channel
  */
 export function transformFormDataToCreatePayload(formData: ChannelFormValues): {
@@ -798,6 +879,7 @@ export function transformFormDataToCreatePayload(formData: ChannelFormValues): {
     header_override: formData.header_override || null,
     settings: buildSettingsJSON(formData),
     other: formData.other || '',
+    schedule: buildScheduleJSON(formData),
   }
 
   // Clean up empty strings to null for optional fields
@@ -869,6 +951,8 @@ export function transformFormDataToUpdatePayload(
   payload.status_code_mapping = formData.status_code_mapping || ''
   payload.param_override = formData.param_override || ''
   payload.header_override = formData.header_override || ''
+  // Set schedule AFTER the cleanup loop so explicit '' isn't clobbered
+  payload.schedule = buildScheduleJSON(formData) ?? ''
 
   return payload
 }

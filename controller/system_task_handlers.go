@@ -22,6 +22,7 @@ func RegisterScheduledSystemTasks() {
 	service.RegisterSystemTaskHandler(modelUpdateHandler{})
 	service.RegisterSystemTaskHandler(midjourneyPollHandler{})
 	service.RegisterSystemTaskHandler(asyncTaskPollHandler{})
+	service.RegisterSystemTaskHandler(channelScheduleHandler{})
 }
 
 // channelTestHandler runs the scheduled "test all channels" job. Enablement and
@@ -160,4 +161,24 @@ func finishSystemTaskHandler(task *model.SystemTask, runnerID string, status mod
 	if err := model.FinishSystemTask(task.TaskID, runnerID, status, result, errorMessage); err != nil {
 		common.SysLog(fmt.Sprintf("system task %s failed to persist result: %v", task.TaskID, err))
 	}
+}
+
+// channelScheduleHandler runs the scheduled channel enable/disable reconcile
+// job. It iterates channels with a non-empty schedule and flips each between
+// enabled (status=1) and manually-disabled (status=2 with a "scheduled_off"
+// reason) so cost-control windows stay enforced. Multi-instance execution is
+// deduped by the per-type DB lease; the scheduler creates one task row per
+// Interval() so the run history stays auditable in the system-tasks panel.
+type channelScheduleHandler struct{}
+
+func (channelScheduleHandler) Type() string { return model.SystemTaskTypeChannelSchedule }
+func (channelScheduleHandler) Enabled() bool { return true }
+func (channelScheduleHandler) Interval() time.Duration {
+	return 30 * time.Second
+}
+func (channelScheduleHandler) NewPayload() any { return nil }
+
+func (channelScheduleHandler) Run(ctx context.Context, task *model.SystemTask, runnerID string) {
+	summary := service.RunChannelScheduleOnce(ctx)
+	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, summary, nil)
 }
