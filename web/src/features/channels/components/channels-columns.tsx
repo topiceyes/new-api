@@ -36,6 +36,7 @@ import { BadgeListCell } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { ProviderBadge } from '@/components/provider-badge'
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
+import { Badge } from '@/components/ui/badge'
 import { TableId } from '@/components/table-id'
 import { TruncatedText } from '@/components/truncated-text'
 import { Button } from '@/components/ui/button'
@@ -997,6 +998,59 @@ export function useChannelsColumns(
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+              )
+            }
+          }
+
+          // Scheduled-off: show extra Scheduled badge with reason tooltip
+          if (status === 2) {
+            let statusReason = ''
+            let statusTime = ''
+            try {
+              const otherInfo = channel.other_info
+                ? JSON.parse(channel.other_info)
+                : null
+              if (otherInfo) {
+                statusReason = otherInfo.status_reason || ''
+                statusTime = otherInfo.status_time
+                  ? formatTimestampToDate(otherInfo.status_time)
+                  : ''
+              }
+            } catch {
+              /* empty */
+            }
+
+            if (statusReason.startsWith('scheduled_off')) {
+              return (
+                <div className='flex items-center gap-1'>
+                  <StatusBadge
+                    label={label}
+                    variant={config.variant}
+                    size='sm'
+                    copyable={false}
+                  />
+                  <TooltipProvider delay={100}>
+                    <Tooltip>
+                      <TooltipTrigger render={<span />}>
+                        <Badge variant='outline' className='shrink-0'>
+                          {t('Scheduled')}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side='top' className='max-w-xs'>
+                        <div className='space-y-1 text-xs'>
+                          <div>
+                            {t('Reason:')} {statusReason}
+                          </div>
+                          {statusTime && (
+                            <div>
+                              {t('Time:')} {statusTime}
+                            </div>
+                          )}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               )
             }
           }

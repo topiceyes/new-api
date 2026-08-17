@@ -50,6 +50,7 @@ type Channel struct {
 	ParamOverride     *string `json:"param_override" gorm:"type:text"`
 	HeaderOverride    *string `json:"header_override" gorm:"type:text"`
 	Remark            *string `json:"remark" gorm:"type:varchar(255)" validate:"max=255"`
+	Schedule          *string `json:"schedule" gorm:"type:text"` // 定时开关配置，详见 dto.ChannelSchedule
 	// add after v0.8.5
 	ChannelInfo ChannelInfo `json:"channel_info" gorm:"type:json"`
 
@@ -1035,6 +1036,38 @@ func (channel *Channel) SetOtherSettings(setting dto.ChannelOtherSettings) {
 		return
 	}
 	channel.OtherSettings = string(settingBytes)
+}
+
+// ChannelScheduleOffReasonPrefix 定时禁用写入 status_reason 的前缀，用于区分人工禁用与定时禁用。
+const ChannelScheduleOffReasonPrefix = "scheduled_off"
+
+// GetSchedule 解析渠道定时开关配置，未配置或解析失败返回 nil。
+func (channel *Channel) GetSchedule() *dto.ChannelSchedule {
+	if channel.Schedule == nil || *channel.Schedule == "" {
+		return nil
+	}
+	sch, err := dto.ParseChannelSchedule(*channel.Schedule)
+	if err != nil {
+		common.SysLog(fmt.Sprintf("failed to parse schedule: channel_id=%d, error=%v", channel.Id, err))
+		return nil
+	}
+	return sch
+}
+
+// IsScheduledOff 判断渠道当前是否处于"定时禁用"状态（status=2 且 reason 带 scheduled_off 前缀）。
+func (channel *Channel) IsScheduledOff() bool {
+	if channel.Status != common.ChannelStatusManuallyDisabled {
+		return false
+	}
+	reason, _ := channel.GetOtherInfo()["status_reason"].(string)
+	return strings.HasPrefix(reason, ChannelScheduleOffReasonPrefix)
+}
+
+// GetChannelsWithEnabledSchedules 返回所有配置了非空 schedule 的渠道。enabled 标志在 Go 内解析后判断。
+func GetChannelsWithEnabledSchedules() ([]*Channel, error) {
+	var channels []*Channel
+	err := DB.Where("schedule IS NOT NULL AND schedule != ''").Find(&channels).Error
+	return channels, err
 }
 
 func (channel *Channel) GetParamOverride() map[string]interface{} {
