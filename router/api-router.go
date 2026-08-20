@@ -184,6 +184,19 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionAdminRoute.DELETE("/user_subscriptions/:id", controller.AdminDeleteUserSubscription)
 		}
 
+		// Plan usage monitor (admin) — 上游 token plan 套餐用量监控,与渠道解耦
+		planMonitorAdminRoute := apiRouter.Group("/plan_monitor/admin")
+		planMonitorAdminRoute.Use(middleware.AdminAuth())
+		{
+			planMonitorAdminRoute.GET("/plans", controller.AdminListPlanMonitors)
+			planMonitorAdminRoute.POST("/plans", controller.AdminCreatePlanMonitor)
+			planMonitorAdminRoute.PUT("/plans/:id", controller.AdminUpdatePlanMonitor)
+			planMonitorAdminRoute.DELETE("/plans/:id", controller.AdminDeletePlanMonitor)
+			planMonitorAdminRoute.PATCH("/plans/:id/status", controller.AdminUpdatePlanMonitorStatus)
+			planMonitorAdminRoute.POST("/plans/:id/refresh", controller.AdminRefreshPlanMonitor)
+			planMonitorAdminRoute.GET("/overview", controller.AdminGetPlanMonitorOverview)
+		}
+
 		// Subscription payment callbacks (no auth)
 		apiRouter.POST("/subscription/epay/notify", anonymousRequestBodyLimit, controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)
