@@ -20,12 +20,13 @@ import (
 const UserNameMaxLength = 20
 
 var userSortColumns = map[string]string{
-	"id":            "id",
-	"username":      "username",
-	"quota":         "quota",
-	"group":         "group",
-	"created_at":    "created_at",
-	"last_login_at": "last_login_at",
+	"id":              "id",
+	"username":        "username",
+	"quota":           "quota",
+	"group":           "group",
+	"created_at":      "created_at",
+	"last_login_at":   "last_login_at",
+	"last_request_at": "last_request_at",
 }
 
 type UserSortOptions struct {
@@ -110,6 +111,7 @@ type User struct {
 	StripeCustomer   string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
 	CreatedAt        int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
 	LastLoginAt      int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
+	LastRequestAt    int64                      `json:"last_request_at" gorm:"default:0;column:last_request_at"`
 	AuthVersion      int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
 	AdminPermissions map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }
@@ -801,6 +803,7 @@ func (user *User) UpdateWithTx(tx *gorm.DB, updatePassword bool) error {
 		"quota",
 		"used_quota",
 		"request_count",
+		"last_request_at",
 		"aff_count",
 		"aff_quota",
 		"aff_history",
@@ -1372,8 +1375,9 @@ func UpdateUserUsedQuota(id int, quota int) {
 func updateUserUsedQuotaAndRequestCount(id int, quota int, count int) {
 	err := DB.Model(&User{}).Where("id = ?", id).Updates(
 		map[string]interface{}{
-			"used_quota":    gorm.Expr("used_quota + ?", quota),
-			"request_count": gorm.Expr("request_count + ?", count),
+			"used_quota":      gorm.Expr("used_quota + ?", quota),
+			"request_count":   gorm.Expr("request_count + ?", count),
+			"last_request_at": common.GetTimestamp(),
 		},
 	).Error
 	if err != nil {
@@ -1392,13 +1396,17 @@ func updateUserQuotaUsedQuotaAndRequestCount(id int, quota int, usedQuota int, r
 		return
 	}
 
-	err := DB.Model(&User{}).Where("id = ?", id).Updates(
-		map[string]interface{}{
-			"quota":         gorm.Expr("quota + ?", quota),
-			"used_quota":    gorm.Expr("used_quota + ?", usedQuota),
-			"request_count": gorm.Expr("request_count + ?", requestCount),
-		},
-	).Error
+	updates := map[string]interface{}{
+		"quota":         gorm.Expr("quota + ?", quota),
+		"used_quota":    gorm.Expr("used_quota + ?", usedQuota),
+		"request_count": gorm.Expr("request_count + ?", requestCount),
+	}
+	// 仅在确实有请求计费时刷新最后活动时间,退款等纯额度调整不算活动
+	if requestCount > 0 {
+		updates["last_request_at"] = common.GetTimestamp()
+	}
+
+	err := DB.Model(&User{}).Where("id = ?", id).Updates(updates).Error
 	if err != nil {
 		common.SysLog("failed to batch update user quota, used quota and request count: " + err.Error())
 	}

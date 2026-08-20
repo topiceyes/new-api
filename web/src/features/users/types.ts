@@ -57,6 +57,7 @@ export const userSchema = z.object({
   created_at: z.number().optional(),
   updated_at: z.number().optional(),
   last_login_at: z.number().optional(),
+  last_request_at: z.number().optional(),
   DeletedAt: z.any().nullable().optional(),
   remark: z.string().optional(),
   admin_permissions: z
@@ -85,6 +86,7 @@ export type UserSortBy =
   | 'group'
   | 'created_at'
   | 'last_login_at'
+  | 'last_request_at'
 
 export type UserSortOrder = 'asc' | 'desc'
 

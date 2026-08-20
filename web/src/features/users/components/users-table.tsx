@@ -53,6 +53,7 @@ const USER_SORTABLE_COLUMNS = new Set<UserSortBy>([
   'group',
   'created_at',
   'last_login_at',
+  'last_request_at',
 ])
 
 function isDisabledUserRow(user: User) {

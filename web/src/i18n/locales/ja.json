@@ -2502,6 +2502,7 @@
     "Last active {{time}} · Expires {{expires}}": "最終利用 {{time}} · 有効期限 {{expires}}",
     "Last check time": "最終チェック時刻",
     "Last detected addable models": "最後に検出された追加可能モデル",
+    "Last Activity": "最終アクティビティ",
     "Last Login": "最終ログイン",
     "Last Seen": "最終報告",
     "Last Tested": "最終テスト日時",

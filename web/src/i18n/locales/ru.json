@@ -2502,6 +2502,7 @@
     "Last active {{time}} · Expires {{expires}}": "Последняя активность: {{time}} · Истекает: {{expires}}",
     "Last check time": "Время последней проверки",
     "Last detected addable models": "Последние обнаруженные модели для добавления",
+    "Last Activity": "Последняя активность",
     "Last Login": "Последний вход",
     "Last Seen": "Последний сигнал",
     "Last Tested": "Последняя проверка",

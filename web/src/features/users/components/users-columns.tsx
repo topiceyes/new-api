@@ -30,7 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { formatQuota, formatTimestamp } from '@/lib/format'
+import { formatTimestamp } from '@/lib/format'
 
 import {
   USER_STATUS,
@@ -91,9 +91,9 @@ export function useUsersColumns(): ColumnDef<User>[] {
         const remark = row.original.remark
 
         return (
-          <div className='flex min-w-[160px] flex-col gap-1'>
+          <div className='flex min-w-[80px] flex-col gap-1'>
             <div className='flex items-center gap-2'>
-              <LongText className='max-w-[140px] font-medium'>
+              <LongText className='max-w-[70px] font-medium'>
                 {username}
               </LongText>
               {remark && (
@@ -101,7 +101,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
                   <TooltipTrigger
                     render={<StatusBadge variant='success' copyable={false} />}
                   >
-                    <LongText className='max-w-[80px]'>{remark}</LongText>
+                    <LongText className='max-w-[40px]'>{remark}</LongText>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className='text-xs'>{remark}</p>
@@ -110,7 +110,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
               )}
             </div>
             {displayName && displayName !== username && (
-              <LongText className='text-muted-foreground max-w-[180px] text-xs'>
+              <LongText className='text-muted-foreground max-w-[90px] text-xs'>
                 {displayName}
               </LongText>
             )}
@@ -118,7 +118,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
         )
       },
       enableHiding: false,
-      size: 220,
+      size: 110,
       meta: { mobileTitle: true },
     },
     {
@@ -168,8 +168,8 @@ export function useUsersColumns(): ColumnDef<User>[] {
         const user = row.original
         return <UserQuotaCell used={user.used_quota} remaining={user.quota} />
       },
-      size: 300,
-      minSize: 260,
+      size: 150,
+      minSize: 130,
       meta: { mobileOrder: 40 },
     },
     {
@@ -219,77 +219,17 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { mobileOrder: 20 },
     },
     {
-      id: 'invite_info',
-      header: t('Invite Info'),
+      accessorKey: 'last_request_at',
+      header: t('Last Activity'),
       cell: ({ row }) => {
-        const user = row.original
-        const affCount = user.aff_count || 0
-        const affHistoryQuota = user.aff_history_quota || 0
-        const inviterId = user.inviter_id || 0
-
+        const ts = row.getValue('last_request_at') as number | undefined
         return (
-          <div className='flex max-w-full min-w-0 flex-wrap items-center gap-1 overflow-hidden'>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <StatusBadge
-                    label={`${t('Invited')}: ${affCount}`}
-                    variant='neutral'
-                    copyable={false}
-                    className='cursor-help'
-                  />
-                }
-              />
-              <TooltipContent>
-                <p className='text-xs'>{t('Number of users invited')}</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <StatusBadge
-                    label={`${t('Revenue')}: ${formatQuota(affHistoryQuota)}`}
-                    variant='neutral'
-                    copyable={false}
-                    className='cursor-help'
-                  />
-                }
-              />
-              <TooltipContent>
-                <p className='text-xs'>{t('Total invitation revenue')}</p>
-              </TooltipContent>
-            </Tooltip>
-            {inviterId > 0 && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <StatusBadge
-                      label={`${t('Inviter')}: ${inviterId}`}
-                      variant='neutral'
-                      copyable={false}
-                      className='cursor-help'
-                    />
-                  }
-                />
-                <TooltipContent>
-                  <p className='text-xs'>
-                    {t('Invited by user ID')} {inviterId}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {inviterId === 0 && (
-              <StatusBadge
-                label={t('No Inviter')}
-                variant='neutral'
-                copyable={false}
-              />
-            )}
-          </div>
+          <span className='text-muted-foreground text-sm'>
+            {ts ? formatTimestamp(ts) : '-'}
+          </span>
         )
       },
-      size: 240,
-      enableSorting: false,
+      size: 180,
       meta: { mobileHidden: true },
     },
     {

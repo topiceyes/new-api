@@ -2502,6 +2502,7 @@
     "Last active {{time}} · Expires {{expires}}": "Dernière activité {{time}} · Expire le {{expires}}",
     "Last check time": "Dernière vérification",
     "Last detected addable models": "Derniers modèles ajoutables détectés",
+    "Last Activity": "Dernière activité",
     "Last Login": "Dernière connexion",
     "Last Seen": "Dernier signal",
     "Last Tested": "Dernier testé",

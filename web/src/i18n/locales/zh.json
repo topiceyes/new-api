@@ -2502,6 +2502,7 @@
     "Last active {{time}} · Expires {{expires}}": "最后活跃于 {{time}} · 到期时间 {{expires}}",
     "Last check time": "上次检测时间",
     "Last detected addable models": "上次检测到可加入模型",
+    "Last Activity": "最后活动",
     "Last Login": "最后登录",
     "Last Seen": "最后上报",
     "Last Tested": "上次测试",

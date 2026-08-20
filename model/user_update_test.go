@@ -398,3 +398,52 @@ func TestResetUserPasswordByEmailRequiresSingleActiveMatch(t *testing.T) {
 	err = ResetUserPasswordByEmail("missing@example.com", "NewPassword123")
 	require.True(t, errors.Is(err, ErrEmailNotFound))
 }
+
+func TestLastRequestAtUpdatedOnConsumeNotOnRefund(t *testing.T) {
+	setupUserUpdateTestState(t)
+	resetBatchUpdateTestState(t)
+
+	user := User{
+		Id:            20,
+		Username:      "last-request-user",
+		Password:      "password",
+		Status:        common.UserStatusEnabled,
+		LastRequestAt: 1000,
+	}
+	require.NoError(t, DB.Create(&user).Error)
+
+	// 直接路径:计费请求刷新最后活动时间
+	UpdateUserUsedQuotaAndRequestCount(user.Id, 100)
+	var got User
+	require.NoError(t, DB.Select("last_request_at").First(&got, user.Id).Error)
+	require.Greater(t, got.LastRequestAt, int64(1000))
+	directTs := got.LastRequestAt
+
+	// 退款/纯额度调整不算活动,不刷新
+	UpdateUserUsedQuota(user.Id, -50)
+	require.NoError(t, DB.Select("last_request_at").First(&got, user.Id).Error)
+	assert.Equal(t, directTs, got.LastRequestAt)
+
+	// 批量路径:flush 前不变,flush 后刷新
+	common.BatchUpdateEnabled = true
+	UpdateUserUsedQuotaAndRequestCount(user.Id, 200)
+	require.NoError(t, DB.Select("last_request_at").First(&got, user.Id).Error)
+	assert.Equal(t, directTs, got.LastRequestAt, "batch deltas must remain queued until flush")
+
+	batchUpdate()
+	require.NoError(t, DB.Select("last_request_at").First(&got, user.Id).Error)
+	assert.GreaterOrEqual(t, got.LastRequestAt, directTs)
+
+	// 批量路径下的纯额度调整(如退款)不刷新
+	afterConsumeTs := got.LastRequestAt
+	UpdateUserUsedQuota(user.Id, -100)
+	batchUpdate()
+	require.NoError(t, DB.Select("last_request_at").First(&got, user.Id).Error)
+	assert.Equal(t, afterConsumeTs, got.LastRequestAt)
+}
+
+func TestUserSortOptionsAcceptsLastRequestAt(t *testing.T) {
+	options := NewUserSortOptions("last_request_at", "asc")
+	assert.Equal(t, "last_request_at", options.SortBy)
+	assert.Equal(t, "asc", options.SortOrder)
+}

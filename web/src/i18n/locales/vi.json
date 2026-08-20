@@ -2502,6 +2502,7 @@
     "Last active {{time}} · Expires {{expires}}": "Hoạt động gần nhất {{time}} · Hết hạn {{expires}}",
     "Last check time": "Thời gian kiểm tra gần nhất",
     "Last detected addable models": "Mô hình có thể thêm được phát hiện gần nhất",
+    "Last Activity": "Hoạt động cuối",
     "Last Login": "Lần đăng nhập cuối",
     "Last Seen": "Lần cuối thấy",
     "Last Tested": "Được kiểm tra lần cuối",

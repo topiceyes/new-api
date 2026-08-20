@@ -2502,6 +2502,7 @@
     "Last active {{time}} · Expires {{expires}}": "Last active {{time}} · Expires {{expires}}",
     "Last check time": "Last check time",
     "Last detected addable models": "Last detected addable models",
+    "Last Activity": "Last Activity",
     "Last Login": "Last Login",
     "Last Seen": "Last Seen",
     "Last Tested": "Last Tested",
