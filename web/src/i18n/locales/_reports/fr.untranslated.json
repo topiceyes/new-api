@@ -2,6 +2,14 @@
   "Allow users to sign in with DingTalk": "Allow users to sign in with DingTalk",
   "Continue with DingTalk": "Continue with DingTalk",
   "Failed to start DingTalk login": "Failed to start DingTalk login",
-  "Start and end time cannot be equal": "Start and end time cannot be equal",
-  "Channel runs only inside the configured windows; outside them it is auto-disabled. Overnight windows like 22:00-02:00 belong to the start day.": "Channel runs only inside the configured windows; outside them it is auto-disabled. Overnight windows like 22:00-02:00 belong to the start day."
+  "Fill in the following info to monitor an upstream plan": "Fill in the following info to monitor an upstream plan",
+  "Leave empty to keep the current API key unchanged": "Leave empty to keep the current API key unchanged",
+  "Modify the existing plan monitor configuration": "Modify the existing plan monitor configuration",
+  "No usage data yet. It will appear after the first fetch.": "No usage data yet. It will appear after the first fetch.",
+  "Please enter API key": "Please enter API key",
+  "Please enter API URL": "Please enter API URL",
+  "Please enter plan name": "Please enter plan name",
+  "Please select a provider": "Please select a provider",
+  "Leave blank to use the default": "Leave blank to use the default",
+  "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
 }

@@ -65,7 +65,10 @@ function getTimezoneOptions(): string[] {
   return FALLBACK_TIMEZONES
 }
 
-export function ChannelScheduleSection() {
+export function ChannelScheduleSection(props: {
+  id?: string
+  className?: string
+}) {
   const { t } = useTranslation()
   const { control } = useFormContext<ChannelFormValues>()
   const { fields, append, remove, update } = useFieldArray({
@@ -75,7 +78,10 @@ export function ChannelScheduleSection() {
   const scheduleEnabled = useWatch({ control, name: 'schedule_enabled' })
 
   return (
-    <div className='border-border/60 rounded-lg border p-3'>
+    <div
+      id={props.id}
+      className={cn('border-border/60 rounded-lg border p-3', props.className)}
+    >
       <div className='flex items-center gap-3'>
         <IconBadge tone='info' size='md'>
           <Clock className='h-4 w-4' aria-hidden='true' />
