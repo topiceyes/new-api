@@ -245,7 +245,7 @@ export function ChannelScheduleSection(props: {
                 variant='outline'
                 size='sm'
                 onClick={() =>
-                  append({ days: [1, 2, 3, 4, 5], start: '00:30', end: '08:30' })
+                  append({ days: [1, 2, 3, 4, 5], start: '00:00', end: '08:30' })
                 }
                 className='w-full'
               >
