@@ -319,3 +319,8 @@ func (p *DingTalkProvider) SetProviderUserID(user *model.User, providerUserID st
 func (p *DingTalkProvider) GetProviderPrefix() string {
 	return "dingtalk_"
 }
+
+// ProviderUserIDColumn returns the users-table column storing this provider's user ID.
+func (p *DingTalkProvider) ProviderUserIDColumn() string {
+	return "dingtalk_id"
+}

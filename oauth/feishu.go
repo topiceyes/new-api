@@ -368,3 +368,8 @@ func (p *FeishuProvider) SetProviderUserID(user *model.User, providerUserID stri
 func (p *FeishuProvider) GetProviderPrefix() string {
 	return "feishu_"
 }
+
+// ProviderUserIDColumn returns the users-table column storing this provider's user ID.
+func (p *FeishuProvider) ProviderUserIDColumn() string {
+	return "feishu_id"
+}
