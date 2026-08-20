@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/planmonitor"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 )
 
@@ -23,6 +24,7 @@ func RegisterScheduledSystemTasks() {
 	service.RegisterSystemTaskHandler(midjourneyPollHandler{})
 	service.RegisterSystemTaskHandler(asyncTaskPollHandler{})
 	service.RegisterSystemTaskHandler(channelScheduleHandler{})
+	service.RegisterSystemTaskHandler(planMonitorHandler{})
 }
 
 // channelTestHandler runs the scheduled "test all channels" job. Enablement and
@@ -180,5 +182,24 @@ func (channelScheduleHandler) NewPayload() any { return nil }
 
 func (channelScheduleHandler) Run(ctx context.Context, task *model.SystemTask, runnerID string) {
 	summary := service.RunChannelScheduleOnce(ctx)
+	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, summary, nil)
+}
+
+// planMonitorHandler periodically pulls upstream token-plan usage (MiniMax etc.)
+// for every enabled plan that is due. Cadence is a fixed 60s tick; each plan's
+// own RefreshIntervalMin decides whether it is actually refetched this tick, so
+// the shortest configured interval does not force-refresh the rest. Multi-instance
+// execution is deduped by the per-type DB lease.
+type planMonitorHandler struct{}
+
+func (planMonitorHandler) Type() string { return model.SystemTaskTypePlanMonitor }
+func (planMonitorHandler) Enabled() bool { return true }
+func (planMonitorHandler) Interval() time.Duration {
+	return 60 * time.Second
+}
+func (planMonitorHandler) NewPayload() any { return nil }
+
+func (planMonitorHandler) Run(ctx context.Context, task *model.SystemTask, runnerID string) {
+	summary := planmonitor.RunFetchOnce(ctx)
 	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, summary, nil)
 }
