@@ -2,17 +2,8 @@
   "AppKey": "AppKey",
   "AppSecret": "AppSecret",
   "CorpId": "CorpId",
-  "Scheduled Switch": "Scheduled Switch",
-  "Enable scheduled switching": "Enable scheduled switching",
-  "Timezone": "Timezone",
-  "Schedule windows": "Schedule windows",
-  "Add window": "Add window",
-  "Every day": "Every day",
-  "Start time": "Start time",
-  "End time": "End time",
-  "Start and end time cannot be equal": "Start and end time cannot be equal",
-  "Scheduled": "Scheduled",
-  "Channel schedule switch": "Channel schedule switch",
-  "Channel runs only inside the configured windows; outside them it is auto-disabled. Overnight windows like 22:00-02:00 belong to the start day.": "Channel runs only inside the configured windows; outside them it is auto-disabled. Overnight windows like 22:00-02:00 belong to the start day.",
-  "App ID": "App ID"
+  "App ID": "App ID",
+  "Leave blank to use the default": "Leave blank to use the default",
+  "Smaller values appear first": "Smaller values appear first",
+  "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
 }

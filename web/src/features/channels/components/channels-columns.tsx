@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
+  Clock,
   ListOrdered,
   Shuffle,
   SlidersHorizontal,
@@ -105,6 +106,54 @@ function parseIonetMeta(otherInfo: string | null | undefined): null | {
     return null
   }
   return null
+}
+
+/**
+ * Whether the channel has the scheduled switch (定时开关) enabled.
+ * `schedule` stores JSON like {"enabled":true,"timezone":"...","windows":[...]}.
+ */
+function hasEnabledSchedule(channel: Channel): boolean {
+  const schedule = channel.schedule
+  if (!schedule) {
+    return false
+  }
+  try {
+    const parsed = JSON.parse(schedule)
+    return Boolean(parsed && parsed.enabled === true)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Clock icon shown next to the status badge when the channel's scheduled
+ * switch is enabled. Paired with the "Scheduled" badge (scheduled_off state)
+ * so both a configured schedule and a currently-scheduled-off channel read
+ * from the same visual cue.
+ */
+function ScheduleIcon({ channel }: { channel: Channel }) {
+  const { t } = useTranslation()
+  if (!hasEnabledSchedule(channel)) {
+    return null
+  }
+  return (
+    <TooltipProvider delay={100}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span className='text-info inline-flex shrink-0 items-center' />
+          }
+        >
+          <Clock className='h-3.5 w-3.5' aria-hidden='true' />
+        </TooltipTrigger>
+        <TooltipContent side='top'>
+          {t(
+            'Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.'
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
 }
 
 /**
@@ -1029,6 +1078,7 @@ export function useChannelsColumns(
                     size='sm'
                     copyable={false}
                   />
+                  <ScheduleIcon channel={channel} />
                   <TooltipProvider delay={100}>
                     <Tooltip>
                       <TooltipTrigger render={<span />}>
@@ -1053,6 +1103,22 @@ export function useChannelsColumns(
                 </div>
               )
             }
+          }
+
+          // Non-disabled rows with an enabled schedule: show the clock marker
+          // alongside the plain status badge.
+          if (hasEnabledSchedule(channel)) {
+            return (
+              <div className='flex items-center gap-1'>
+                <StatusBadge
+                  label={label}
+                  variant={config.variant}
+                  size='sm'
+                  copyable={false}
+                />
+                <ScheduleIcon channel={channel} />
+              </div>
+            )
           }
 
           return (

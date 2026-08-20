@@ -257,6 +257,7 @@ const CHANNEL_EDITOR_MAIN_SECTION_IDS = [
   CHANNEL_EDITOR_SECTION_IDS.advanced,
 ]
 const ADVANCED_SETTINGS_SECTION_IDS = {
+  scheduledSwitch: 'channel-section-advanced-scheduled-switch',
   routingStrategy: 'channel-section-advanced-routing-strategy',
   internalNotes: 'channel-section-advanced-internal-notes',
   overrideRules: 'channel-section-advanced-override-rules',
@@ -745,6 +746,7 @@ export function ChannelMutateDrawer({
   const currentTag = form.watch('tag')
   const currentRemark = form.watch('remark')
   const currentStatusCodeMapping = form.watch('status_code_mapping')
+  const currentScheduleEnabled = form.watch('schedule_enabled')
   const currentParamOverride = form.watch('param_override')
   const currentHeaderOverride = form.watch('header_override')
   const currentForceFormat = form.watch('force_format')
@@ -1055,6 +1057,7 @@ export function ChannelMutateDrawer({
     currentUpstreamModelUpdateIgnoredModels?.trim()
   )
   const advancedConfigured = Boolean(
+    currentScheduleEnabled ||
     routingStrategyConfigured ||
     internalNotesConfigured ||
     overrideRulesConfigured ||
@@ -1063,6 +1066,11 @@ export function ChannelMutateDrawer({
     upstreamModelDetectionConfigured
   )
   const advancedNavChildren: ChannelEditorNavChildItem[] = [
+    {
+      id: ADVANCED_SETTINGS_SECTION_IDS.scheduledSwitch,
+      title: t('Scheduled Switch'),
+      configured: currentScheduleEnabled === true,
+    },
     {
       id: ADVANCED_SETTINGS_SECTION_IDS.routingStrategy,
       title: t('Routing Strategy'),
@@ -3626,6 +3634,10 @@ export function ChannelMutateDrawer({
                         onOpenChange={handleAdvancedSettingsOpenChange}
                         summary={advancedSummary}
                       >
+                        <ChannelScheduleSection
+                          id={ADVANCED_SETTINGS_SECTION_IDS.scheduledSwitch}
+                          className='mb-4 scroll-mt-4'
+                        />
                         {/* ── Routing & Overrides ── */}
                         <div className={sideDrawerSectionClassName()}>
                           <CardHeading
@@ -4768,7 +4780,6 @@ export function ChannelMutateDrawer({
                             </fieldset>
                           </div>
                         )}
-                        <ChannelScheduleSection />
                       </ChannelAdvancedSection>
                     </div>
                   </div>
