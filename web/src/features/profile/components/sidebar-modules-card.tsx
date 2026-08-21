@@ -103,6 +103,11 @@ export function SidebarModulesCard() {
           title: t('Task Logs'),
           description: t('System task records'),
         },
+        {
+          key: 'plan_balance',
+          title: t('Plan Balance'),
+          description: t('Public plan quota overview'),
+        },
       ],
     },
     {

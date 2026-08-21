@@ -118,6 +118,12 @@ export function SidebarModulesSection({
         title: t('Task logs'),
         description: t('Background job tracker for queued work.'),
       },
+      plan_balance: {
+        title: t('Plan Balance'),
+        description: t(
+          'Show remaining quota of public upstream plans to users.'
+        ),
+      },
     },
     personal: {
       topup: {

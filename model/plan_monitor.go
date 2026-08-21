@@ -16,7 +16,9 @@ type PlanMonitor struct {
 	ApiKey             string `json:"api_key" gorm:"type:text"`               // 查询凭证,返回前端前脱敏
 	RefreshIntervalMin int    `json:"refresh_interval_min" gorm:"default:5"`  // 刷新间隔(分钟)
 	SortOrder          int    `json:"sort_order" gorm:"default:0"`            // 排序权重,越小越靠前(分组顺序取组内最小值)
-	Enabled            bool   `json:"enabled" gorm:"default:true"`
+	AlertThreshold     int    `json:"alert_threshold" gorm:"default:0"`       // 用量告警阈值(百分比),0=不告警
+	Enabled            bool   `json:"enabled"` // 是否启用监控(请求总会显式带值;不加 default tag,否则 Create 传 false 会被吞)
+	IsPublic           bool   `json:"is_public"` // 是否在用户端「套餐余量」页公开(零值 false 即默认不公开)
 	CreatedTime        int64  `json:"created_time" gorm:"bigint"`
 	UpdatedTime        int64  `json:"updated_time" gorm:"bigint"`
 	LastFetchTime      int64  `json:"last_fetch_time" gorm:"bigint"` // 最近一次成功拉取时间
@@ -48,9 +50,26 @@ type PlanMonitorUsage struct {
 	RemainingPercent float64 `json:"remaining_percent"`                                             // 剩余百分比(0-100)
 	PeriodEndTime    int64   `json:"period_end_time" gorm:"bigint"`                                 // 周期截止(重置)时间戳(秒)
 	FetchedAt        int64   `json:"fetched_at" gorm:"bigint"`                                      // 本次拉取时间
+	AlertSentAt      int64   `json:"alert_sent_at" gorm:"bigint"`                                   // 超阈值告警发送时间,0=未告警;用量回落后清零
 }
 
 func (PlanMonitorUsage) TableName() string { return "plan_monitor_usages" }
+
+// PlanMonitorUsageHistory 套餐用量历史,每次成功拉取追加一行,保留 30 天。
+type PlanMonitorUsageHistory struct {
+	Id               int64   `json:"id" gorm:"primary_key"`
+	PlanId           int64   `json:"plan_id" gorm:"index:idx_pmh_plan_period_fetch,priority:1"`
+	Period           string  `json:"period" gorm:"type:varchar(16);index:idx_pmh_plan_period_fetch,priority:2"`
+	FetchedAt        int64   `json:"fetched_at" gorm:"bigint;index:idx_pmh_plan_period_fetch,priority:3"`
+	UsedPercent      float64 `json:"used_percent"`
+	RemainingPercent float64 `json:"remaining_percent"`
+	PeriodEndTime    int64   `json:"period_end_time" gorm:"bigint"`
+}
+
+func (PlanMonitorUsageHistory) TableName() string { return "plan_monitor_usage_histories" }
+
+// planMonitorHistoryRetention 历史数据保留时长(30 天)
+const planMonitorHistoryRetention = 30 * 24 * time.Hour
 
 // 统计周期常量
 const (
@@ -78,7 +97,9 @@ func UpdatePlanMonitor(p *PlanMonitor) error {
 		"api_key":              p.ApiKey,
 		"refresh_interval_min": p.RefreshIntervalMin,
 		"sort_order":           p.SortOrder,
+		"alert_threshold":      p.AlertThreshold,
 		"enabled":              p.Enabled,
+		"is_public":            p.IsPublic,
 		"updated_time":         p.UpdatedTime,
 	}).Error
 }
@@ -102,9 +123,20 @@ func GetEnabledPlanMonitors() ([]*PlanMonitor, error) {
 	return plans, err
 }
 
+// GetPublicPlanMonitors 取用户端可见的套餐:已启用且标记公开。排序与 GetAllPlanMonitors 一致。
+func GetPublicPlanMonitors() ([]*PlanMonitor, error) {
+	var plans []*PlanMonitor
+	err := DB.Where("is_public = ? AND enabled = ?", true, true).
+		Order("sort_order asc, provider asc, id asc").Find(&plans).Error
+	return plans, err
+}
+
 func DeletePlanMonitor(id int64) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("plan_id = ?", id).Delete(&PlanMonitorUsage{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("plan_id = ?", id).Delete(&PlanMonitorUsageHistory{}).Error; err != nil {
 			return err
 		}
 		return tx.Where("id = ?", id).Delete(&PlanMonitor{}).Error
@@ -136,6 +168,47 @@ func UpsertPlanMonitorUsages(planId int64, usages []PlanMonitorUsage) error {
 		}
 		return tx.Create(&usages).Error
 	})
+}
+
+// SavePlanMonitorFetch 一次成功拉取的完整落库(事务):
+// 覆盖写各周期最新快照(AlertSentAt 由调用方按告警决策填好)、追加历史行、清理该套餐过期历史。
+// 快照是全删全插,调用方必须先读旧快照继承告警状态,否则告警去抖状态会丢。
+func SavePlanMonitorFetch(planId int64, usages []PlanMonitorUsage) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("plan_id = ?", planId).Delete(&PlanMonitorUsage{}).Error; err != nil {
+			return err
+		}
+		if len(usages) > 0 {
+			if err := tx.Create(&usages).Error; err != nil {
+				return err
+			}
+			histories := make([]PlanMonitorUsageHistory, 0, len(usages))
+			for _, u := range usages {
+				histories = append(histories, PlanMonitorUsageHistory{
+					PlanId:           planId,
+					Period:           u.Period,
+					FetchedAt:        u.FetchedAt,
+					UsedPercent:      u.UsedPercent,
+					RemainingPercent: u.RemainingPercent,
+					PeriodEndTime:    u.PeriodEndTime,
+				})
+			}
+			if err := tx.Create(&histories).Error; err != nil {
+				return err
+			}
+		}
+		cutoff := time.Now().Add(-planMonitorHistoryRetention).Unix()
+		return tx.Where("plan_id = ? AND fetched_at < ?", planId, cutoff).Delete(&PlanMonitorUsageHistory{}).Error
+	})
+}
+
+// GetPlanMonitorUsageHistory 取某套餐某周期 sinceTs 之后的历史行(按时间升序)。
+// 聚合(按小时等)在 service 层做,避免三种数据库的时间函数方言差异。
+func GetPlanMonitorUsageHistory(planId int64, period string, sinceTs int64) ([]PlanMonitorUsageHistory, error) {
+	var rows []PlanMonitorUsageHistory
+	err := DB.Where("plan_id = ? AND period = ? AND fetched_at >= ?", planId, period, sinceTs).
+		Order("fetched_at asc").Find(&rows).Error
+	return rows, err
 }
 
 // GetPlanMonitorUsages 取某套餐的全部周期快照。

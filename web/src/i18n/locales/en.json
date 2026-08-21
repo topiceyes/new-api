@@ -5411,6 +5411,20 @@
     "View Usage": "View Usage",
     "Leave blank to use the default": "Leave blank to use the default",
     "Smaller values appear first": "Smaller values appear first",
-    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.",
+    "Alert Threshold (%)": "Alert Threshold (%)",
+    "Alert threshold must be between 0 and 100": "Alert threshold must be between 0 and 100",
+    "Notify root user when used percentage reaches this threshold; 0 means disabled": "Notify root user when used percentage reaches this threshold; 0 means disabled",
+    "Usage Trend": "Usage Trend",
+    "Last 24 hours": "Last 24 hours",
+    "Last 7 days": "Last 7 days",
+    "Last 30 days": "Last 30 days",
+    "No history data yet. It will appear after a few refreshes.": "No history data yet. It will appear after a few refreshes.",
+    "Plan Balance": "Plan Balance",
+    "No public plans available yet.": "No public plans available yet.",
+    "Public": "Public",
+    "Show remaining quota of public upstream plans to users.": "Show remaining quota of public upstream plans to users.",
+    "Show remaining quota of this plan on the user-facing Plan Balance page": "Show remaining quota of this plan on the user-facing Plan Balance page",
+    "Public plan quota overview": "Public plan quota overview"
   }
 }

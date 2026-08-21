@@ -81,7 +81,9 @@ interface PlanMonitorFormValues {
   api_key: string
   refresh_interval_min: number
   sort_order: number
+  alert_threshold: number
   enabled: boolean
+  is_public: boolean
 }
 
 export function PlanMonitorMutateDrawer({
@@ -106,7 +108,13 @@ export function PlanMonitorMutateDrawer({
       .number()
       .min(1, t('Refresh interval must be greater than 0')),
     sort_order: z.coerce.number().int(),
+    alert_threshold: z.coerce
+      .number()
+      .int()
+      .min(0, t('Alert threshold must be between 0 and 100'))
+      .max(100, t('Alert threshold must be between 0 and 100')),
     enabled: z.boolean(),
+    is_public: z.boolean(),
   })
 
   const form = useForm<PlanMonitorFormValues>({
@@ -118,7 +126,9 @@ export function PlanMonitorMutateDrawer({
       api_key: '',
       refresh_interval_min: 5,
       sort_order: 0,
+      alert_threshold: 90,
       enabled: true,
+      is_public: false,
     },
   })
 
@@ -133,7 +143,9 @@ export function PlanMonitorMutateDrawer({
         api_key: '',
         refresh_interval_min: currentRow.refresh_interval_min || 5,
         sort_order: currentRow.sort_order || 0,
+        alert_threshold: currentRow.alert_threshold ?? 0,
         enabled: currentRow.enabled,
+        is_public: currentRow.is_public,
       })
     } else {
       form.reset({
@@ -143,7 +155,9 @@ export function PlanMonitorMutateDrawer({
         api_key: '',
         refresh_interval_min: 5,
         sort_order: 0,
+        alert_threshold: 90,
         enabled: true,
+        is_public: false,
       })
     }
 
@@ -164,7 +178,9 @@ export function PlanMonitorMutateDrawer({
         api_key: values.api_key,
         refresh_interval_min: Number(values.refresh_interval_min || 5),
         sort_order: Number(values.sort_order || 0),
+        alert_threshold: Number(values.alert_threshold || 0),
         enabled: values.enabled,
+        is_public: values.is_public,
       }
       const res =
         isEdit && currentRow?.id
@@ -175,6 +191,7 @@ export function PlanMonitorMutateDrawer({
         onOpenChange(false)
         queryClient.invalidateQueries({ queryKey: ['plan-monitor-plans'] })
         queryClient.invalidateQueries({ queryKey: ['plan-monitor-overview'] })
+        queryClient.invalidateQueries({ queryKey: ['plan-balance-overview'] })
       } else {
         toast.error(res.message || t('Operation failed'))
       }
@@ -377,12 +394,64 @@ export function PlanMonitorMutateDrawer({
 
               <FormField
                 control={form.control}
+                name='alert_threshold'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Alert Threshold (%)')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type='number'
+                        min={0}
+                        max={100}
+                        onChange={(e) =>
+                          field.onChange(
+                            Number.parseInt(e.target.value, 10) || 0
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Notify root user when used percentage reaches this threshold; 0 means disabled'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name='enabled'
                 render={({ field }) => (
                   <FormItem className={sideDrawerSwitchItemClassName()}>
                     <FormLabel className='!mt-0'>
                       {t('Enabled Status')}
                     </FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='is_public'
+                render={({ field }) => (
+                  <FormItem className={sideDrawerSwitchItemClassName()}>
+                    <div className='space-y-0.5'>
+                      <FormLabel className='!mt-0'>{t('Public')}</FormLabel>
+                      <FormDescription>
+                        {t(
+                          'Show remaining quota of this plan on the user-facing Plan Balance page'
+                        )}
+                      </FormDescription>
+                    </div>
                     <FormControl>
                       <Switch
                         checked={field.value}

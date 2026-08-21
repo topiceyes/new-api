@@ -294,6 +294,7 @@ func migrateDB() error {
 		&AuthzRole{},
 		&PlanMonitor{},
 		&PlanMonitorUsage{},
+		&PlanMonitorUsageHistory{},
 	)
 	if err != nil {
 		return err

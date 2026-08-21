@@ -5411,6 +5411,20 @@
     "View Usage": "View Usage",
     "Leave blank to use the default": "Leave blank to use the default",
     "Smaller values appear first": "Smaller values appear first",
-    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.",
+    "Alert Threshold (%)": "Ngưỡng cảnh báo (%)",
+    "Alert threshold must be between 0 and 100": "Ngưỡng cảnh báo phải nằm trong khoảng 0 đến 100",
+    "Notify root user when used percentage reaches this threshold; 0 means disabled": "Thông báo cho người dùng root khi phần trăm sử dụng đạt ngưỡng này; 0 nghĩa là tắt",
+    "Usage Trend": "Xu hướng sử dụng",
+    "Last 24 hours": "24 giờ qua",
+    "Last 7 days": "7 ngày qua",
+    "Last 30 days": "30 ngày qua",
+    "No history data yet. It will appear after a few refreshes.": "Chưa có dữ liệu lịch sử. Dữ liệu sẽ xuất hiện sau vài lần làm mới.",
+    "Plan Balance": "Số dư gói",
+    "No public plans available yet.": "Chưa có gói công khai nào.",
+    "Public": "Công khai",
+    "Show remaining quota of public upstream plans to users.": "Hiển thị hạn mức còn lại của các gói upstream công khai cho người dùng.",
+    "Show remaining quota of this plan on the user-facing Plan Balance page": "Hiển thị hạn mức còn lại của gói này trên trang Số dư gói dành cho người dùng",
+    "Public plan quota overview": "Tổng quan hạn mức gói công khai"
   }
 }

@@ -1,9 +1,5 @@
 {
   "AppKey": "AppKey",
   "AppSecret": "AppSecret",
-  "CorpId": "CorpId",
-  "App ID": "App ID",
-  "Leave blank to use the default": "Leave blank to use the default",
-  "Smaller values appear first": "Smaller values appear first",
-  "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+  "CorpId": "CorpId"
 }

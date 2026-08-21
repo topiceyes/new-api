@@ -5411,6 +5411,20 @@
     "View Usage": "View Usage",
     "Leave blank to use the default": "Leave blank to use the default",
     "Smaller values appear first": "Smaller values appear first",
-    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.",
+    "Alert Threshold (%)": "告警閾值 (%)",
+    "Alert threshold must be between 0 and 100": "告警閾值必須在 0 到 100 之間",
+    "Notify root user when used percentage reaches this threshold; 0 means disabled": "用量百分比達到該閾值時通知 root 使用者；0 表示關閉",
+    "Usage Trend": "用量趨勢",
+    "Last 24 hours": "最近 24 小時",
+    "Last 7 days": "最近 7 天",
+    "Last 30 days": "最近 30 天",
+    "No history data yet. It will appear after a few refreshes.": "暫無歷史資料，重新整理幾次後即可查看。",
+    "Plan Balance": "套餐餘量",
+    "No public plans available yet.": "暫無公開的套餐",
+    "Public": "公開",
+    "Show remaining quota of public upstream plans to users.": "向使用者展示公開上游套餐的剩餘額度",
+    "Show remaining quota of this plan on the user-facing Plan Balance page": "在使用者端「套餐餘量」頁展示該套餐的剩餘額度",
+    "Public plan quota overview": "公開套餐額度概覽"
   }
 }

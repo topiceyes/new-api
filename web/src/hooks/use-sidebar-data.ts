@@ -27,6 +27,7 @@ import {
   LayoutDashboard,
   ListTodo,
   MessageSquare,
+  PieChart,
   Radio,
   ServerCog,
   Settings,
@@ -75,6 +76,11 @@ export function useSidebarData(): SidebarData {
             title: t('Overview'),
             url: '/dashboard/overview',
             icon: Activity,
+          },
+          {
+            title: t('Plan Balance'),
+            url: '/plan-monitor/balance',
+            icon: PieChart,
           },
           {
             title: t('Dashboard'),

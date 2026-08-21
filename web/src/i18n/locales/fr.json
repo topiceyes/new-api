@@ -5411,6 +5411,20 @@
     "View Usage": "View Usage",
     "Leave blank to use the default": "Leave blank to use the default",
     "Smaller values appear first": "Smaller values appear first",
-    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.",
+    "Alert Threshold (%)": "Seuil d'alerte (%)",
+    "Alert threshold must be between 0 and 100": "Le seuil d'alerte doit être compris entre 0 et 100",
+    "Notify root user when used percentage reaches this threshold; 0 means disabled": "Notifier l'utilisateur root lorsque le pourcentage utilisé atteint ce seuil ; 0 désactive",
+    "Usage Trend": "Tendance d'utilisation",
+    "Last 24 hours": "Dernières 24 heures",
+    "Last 7 days": "7 derniers jours",
+    "Last 30 days": "30 derniers jours",
+    "No history data yet. It will appear after a few refreshes.": "Pas encore de données historiques. Elles apparaîtront après quelques actualisations.",
+    "Plan Balance": "Solde des forfaits",
+    "No public plans available yet.": "Aucun forfait public disponible pour le moment.",
+    "Public": "Public",
+    "Show remaining quota of public upstream plans to users.": "Afficher aux utilisateurs le quota restant des forfaits amont publics.",
+    "Show remaining quota of this plan on the user-facing Plan Balance page": "Afficher le quota restant de ce forfait sur la page Solde des forfaits côté utilisateur",
+    "Public plan quota overview": "Aperçu du quota des forfaits publics"
   }
 }

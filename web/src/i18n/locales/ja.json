@@ -5411,6 +5411,20 @@
     "View Usage": "View Usage",
     "Leave blank to use the default": "Leave blank to use the default",
     "Smaller values appear first": "Smaller values appear first",
-    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.",
+    "Alert Threshold (%)": "アラートしきい値 (%)",
+    "Alert threshold must be between 0 and 100": "アラートしきい値は 0 から 100 の間で指定してください",
+    "Notify root user when used percentage reaches this threshold; 0 means disabled": "使用割合がこのしきい値に達したら root ユーザーに通知；0 で無効",
+    "Usage Trend": "使用量の推移",
+    "Last 24 hours": "過去 24 時間",
+    "Last 7 days": "過去 7 日間",
+    "Last 30 days": "過去 30 日間",
+    "No history data yet. It will appear after a few refreshes.": "履歴データはまだありません。数回更新すると表示されます。",
+    "Plan Balance": "プラン残量",
+    "No public plans available yet.": "公開されているプランはまだありません。",
+    "Public": "公開",
+    "Show remaining quota of public upstream plans to users.": "公開されたアップストリームプランの残りクォータをユーザーに表示します。",
+    "Show remaining quota of this plan on the user-facing Plan Balance page": "ユーザー向け「プラン残量」ページでこのプランの残りクォータを表示します",
+    "Public plan quota overview": "公開プランのクォータ概要"
   }
 }

@@ -5411,6 +5411,20 @@
     "View Usage": "View Usage",
     "Leave blank to use the default": "Leave blank to use the default",
     "Smaller values appear first": "Smaller values appear first",
-    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+    "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.",
+    "Alert Threshold (%)": "Порог оповещения (%)",
+    "Alert threshold must be between 0 and 100": "Порог оповещения должен быть от 0 до 100",
+    "Notify root user when used percentage reaches this threshold; 0 means disabled": "Уведомить root-пользователя при достижении порога использования; 0 — отключено",
+    "Usage Trend": "Тренд использования",
+    "Last 24 hours": "Последние 24 часа",
+    "Last 7 days": "Последние 7 дней",
+    "Last 30 days": "Последние 30 дней",
+    "No history data yet. It will appear after a few refreshes.": "Исторических данных пока нет. Они появятся после нескольких обновлений.",
+    "Plan Balance": "Остаток пакета",
+    "No public plans available yet.": "Публичных пакетов пока нет.",
+    "Public": "Публичный",
+    "Show remaining quota of public upstream plans to users.": "Показывать пользователям оставшуюся квоту публичных вышестоящих пакетов.",
+    "Show remaining quota of this plan on the user-facing Plan Balance page": "Показывать оставшуюся квоту этого пакета на странице «Остаток пакета» для пользователей",
+    "Public plan quota overview": "Обзор квоты публичных пакетов"
   }
 }

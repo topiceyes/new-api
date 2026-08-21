@@ -35,7 +35,9 @@ export interface PlanMonitorPlan {
   api_key_masked: string
   refresh_interval_min: number
   sort_order: number // 排序权重,越小越靠前
+  alert_threshold: number // 用量告警阈值(百分比),0=不告警
   enabled: boolean
+  is_public: boolean // 是否在用户端「套餐余量」页公开
   created_time: number
   updated_time: number
   last_fetch_time: number
@@ -58,8 +60,35 @@ export interface PlanMonitorPayload {
   api_key: string // 编辑时留空表示不修改
   refresh_interval_min: number
   sort_order: number
+  alert_threshold: number
   enabled: boolean
+  is_public: boolean
 }
+
+// 用户端「套餐余量」裁剪后的 DTO —— 不含 key/url/阈值/错误等管理字段。
+export interface PlanBalanceItem {
+  id: number
+  provider: string
+  plan_name: string
+  usages: PlanMonitorUsageView[]
+}
+
+export interface PlanBalanceGroup {
+  provider: string
+  plans: PlanBalanceItem[]
+}
+
+export interface PlanBalanceOverviewData {
+  groups: PlanBalanceGroup[]
+}
+
+// 趋势图数据点与时间范围
+export interface PlanUsageHistoryPoint {
+  ts: number // 秒
+  used_percent: number
+}
+
+export type PlanHistoryRange = '24h' | '7d' | '30d'
 
 export interface PlanMonitorListData {
   plans: PlanMonitorPlan[]

@@ -40,7 +40,7 @@ func setupPlanMonitorTest(t *testing.T) *gorm.DB {
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.ReplaceAll(t.Name(), "/", "_"))
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
-	require.NoError(t, db.AutoMigrate(&model.PlanMonitor{}, &model.PlanMonitorUsage{}))
+	require.NoError(t, db.AutoMigrate(&model.PlanMonitor{}, &model.PlanMonitorUsage{}, &model.PlanMonitorUsageHistory{}))
 	model.DB = db
 	common.MemoryCacheEnabled = false
 	t.Cleanup(func() {

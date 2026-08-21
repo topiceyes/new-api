@@ -20,13 +20,17 @@ import { api } from '@/lib/api'
 
 import type {
   ApiResponse,
+  PlanBalanceOverviewData,
+  PlanHistoryRange,
   PlanMonitorListData,
   PlanMonitorOverviewData,
   PlanMonitorPayload,
   PlanMonitorPlan,
+  PlanUsageHistoryPoint,
 } from './types'
 
 const BASE = '/api/plan_monitor/admin'
+const PUBLIC_BASE = '/api/plan_monitor'
 
 export async function listPlans(): Promise<ApiResponse<PlanMonitorListData>> {
   const res = await api.get(`${BASE}/plans`)
@@ -70,5 +74,36 @@ export async function getOverview(): Promise<
   ApiResponse<PlanMonitorOverviewData>
 > {
   const res = await api.get(`${BASE}/overview`)
+  return res.data
+}
+
+export async function getPlanHistory(
+  id: number,
+  period: string,
+  range: PlanHistoryRange
+): Promise<ApiResponse<{ points: PlanUsageHistoryPoint[] }>> {
+  const res = await api.get(`${BASE}/plans/${id}/history`, {
+    params: { period, range },
+  })
+  return res.data
+}
+
+// ---------- 用户端「套餐余量」 ----------
+
+export async function getPublicOverview(): Promise<
+  ApiResponse<PlanBalanceOverviewData>
+> {
+  const res = await api.get(`${PUBLIC_BASE}/overview`)
+  return res.data
+}
+
+export async function getPublicPlanHistory(
+  id: number,
+  period: string,
+  range: PlanHistoryRange
+): Promise<ApiResponse<{ points: PlanUsageHistoryPoint[] }>> {
+  const res = await api.get(`${PUBLIC_BASE}/plans/${id}/history`, {
+    params: { period, range },
+  })
   return res.data
 }

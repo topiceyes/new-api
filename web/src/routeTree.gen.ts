@@ -43,6 +43,7 @@ import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authentica
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedPlanMonitorIndexRouteImport } from './routes/_authenticated/plan-monitor/index'
+import { Route as AuthenticatedPlanMonitorBalanceRouteImport } from './routes/_authenticated/plan-monitor/balance'
 import { Route as AuthenticatedPlanMonitorOverviewRouteImport } from './routes/_authenticated/plan-monitor/overview'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
@@ -246,6 +247,12 @@ const AuthenticatedPlanMonitorIndexRoute =
     path: '/plan-monitor/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPlanMonitorBalanceRoute =
+  AuthenticatedPlanMonitorBalanceRouteImport.update({
+    id: '/plan-monitor/balance',
+    path: '/plan-monitor/balance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPlanMonitorOverviewRoute =
   AuthenticatedPlanMonitorOverviewRouteImport.update({
     id: '/plan-monitor/overview',
@@ -429,6 +436,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
+  '/plan-monitor/balance': typeof AuthenticatedPlanMonitorBalanceRoute
   '/plan-monitor/overview': typeof AuthenticatedPlanMonitorOverviewRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -488,6 +496,7 @@ export interface FileRoutesByTo {
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
+  '/plan-monitor/balance': typeof AuthenticatedPlanMonitorBalanceRoute
   '/plan-monitor/overview': typeof AuthenticatedPlanMonitorOverviewRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
@@ -551,6 +560,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
+  '/_authenticated/plan-monitor/balance': typeof AuthenticatedPlanMonitorBalanceRoute
   '/_authenticated/plan-monitor/overview': typeof AuthenticatedPlanMonitorOverviewRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -613,6 +623,7 @@ export interface FileRouteTypes {
     | '/dashboard/$section'
     | '/errors/$error'
     | '/models/$section'
+    | '/plan-monitor/balance'
     | '/plan-monitor/overview'
     | '/usage-logs/$section'
     | '/channels/'
@@ -672,6 +683,7 @@ export interface FileRouteTypes {
     | '/dashboard/$section'
     | '/errors/$error'
     | '/models/$section'
+    | '/plan-monitor/balance'
     | '/plan-monitor/overview'
     | '/usage-logs/$section'
     | '/channels'
@@ -734,6 +746,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/$section'
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
+    | '/_authenticated/plan-monitor/balance'
     | '/_authenticated/plan-monitor/overview'
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/channels/'
@@ -1026,6 +1039,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPlanMonitorIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/plan-monitor/balance': {
+      id: '/_authenticated/plan-monitor/balance'
+      path: '/plan-monitor/balance'
+      fullPath: '/plan-monitor/balance'
+      preLoaderRoute: typeof AuthenticatedPlanMonitorBalanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/plan-monitor/overview': {
       id: '/_authenticated/plan-monitor/overview'
       path: '/plan-monitor/overview'
@@ -1301,6 +1321,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardSectionRoute: typeof AuthenticatedDashboardSectionRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
+  AuthenticatedPlanMonitorBalanceRoute: typeof AuthenticatedPlanMonitorBalanceRoute
   AuthenticatedPlanMonitorOverviewRoute: typeof AuthenticatedPlanMonitorOverviewRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
@@ -1326,6 +1347,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardSectionRoute: AuthenticatedDashboardSectionRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
+  AuthenticatedPlanMonitorBalanceRoute: AuthenticatedPlanMonitorBalanceRoute,
   AuthenticatedPlanMonitorOverviewRoute: AuthenticatedPlanMonitorOverviewRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,

@@ -184,6 +184,14 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionAdminRoute.DELETE("/user_subscriptions/:id", controller.AdminDeleteUserSubscription)
 		}
 
+		// Plan balance (user-facing) — 公开套餐余量,任意登录用户可见
+		planMonitorRoute := apiRouter.Group("/plan_monitor")
+		planMonitorRoute.Use(middleware.UserAuth())
+		{
+			planMonitorRoute.GET("/overview", controller.GetPublicPlanMonitorOverview)
+			planMonitorRoute.GET("/plans/:id/history", controller.GetPublicPlanMonitorHistory)
+		}
+
 		// Plan usage monitor (admin) — 上游 token plan 套餐用量监控,与渠道解耦
 		planMonitorAdminRoute := apiRouter.Group("/plan_monitor/admin")
 		planMonitorAdminRoute.Use(middleware.AdminAuth())
@@ -194,6 +202,7 @@ func SetApiRouter(router *gin.Engine) {
 			planMonitorAdminRoute.DELETE("/plans/:id", controller.AdminDeletePlanMonitor)
 			planMonitorAdminRoute.PATCH("/plans/:id/status", controller.AdminUpdatePlanMonitorStatus)
 			planMonitorAdminRoute.POST("/plans/:id/refresh", controller.AdminRefreshPlanMonitor)
+			planMonitorAdminRoute.GET("/plans/:id/history", controller.AdminGetPlanMonitorHistory)
 			planMonitorAdminRoute.GET("/overview", controller.AdminGetPlanMonitorOverview)
 		}
 
