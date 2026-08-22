@@ -1036,6 +1036,16 @@ func CreateUser(c *gin.Context) {
 		DisplayName: user.DisplayName,
 		Role:        user.Role, // 保持管理员设置的角色
 	}
+	// setting 是 JSON 文本列(承载管理员配置的 rate_limit_rpm 等),允许创建时
+	// 直接指定;非法 JSON 会让用户设置整体解析失败,这里直接拒绝。
+	if user.Setting != "" {
+		var settingCheck map[string]interface{}
+		if err := common.UnmarshalJsonStr(user.Setting, &settingCheck); err != nil {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+		cleanUser.Setting = user.Setting
+	}
 	authzTouched := false
 	if err := model.DB.Transaction(func(tx *gorm.DB) error {
 		if err := cleanUser.InsertWithTx(tx, 0); err != nil {

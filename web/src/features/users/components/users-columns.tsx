@@ -173,6 +173,33 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { mobileOrder: 40 },
     },
     {
+      id: 'rate_limit_rpm',
+      header: t('RPM'),
+      cell: ({ row }) => {
+        // rate_limit_rpm lives in the setting JSON, not a top-level column.
+        let rpm = 0
+        try {
+          const parsed = JSON.parse(row.original.setting || '{}') as Record<
+            string,
+            unknown
+          >
+          if (typeof parsed.rate_limit_rpm === 'number') {
+            rpm = parsed.rate_limit_rpm
+          }
+        } catch {
+          // Unparseable setting: show as unlimited rather than failing the row.
+        }
+        return (
+          <span className='text-muted-foreground text-sm'>
+            {rpm > 0 ? rpm : '-'}
+          </span>
+        )
+      },
+      enableSorting: false,
+      size: 80,
+      meta: { mobileHidden: true },
+    },
+    {
       accessorKey: 'group',
       header: t('Group'),
       cell: ({ row }) => {
