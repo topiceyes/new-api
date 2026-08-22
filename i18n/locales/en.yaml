@@ -288,6 +288,7 @@ distributor.invalid_midjourney_request: "Invalid Midjourney request: {{.Error}}"
 distributor.invalid_request_parse_model: "Invalid request, unable to parse model"
 
 relay.channel_rate_limited: "Channel {{.Channel}} rate limit reached ({{.RPM}} req/min). Please retry later or switch to another model."
+relay.user_rate_limited: "Rate limit reached ({{.RPM}} req/min). Please retry later or contact your administrator."
 
 # Custom OAuth provider messages
 custom_oauth.not_found: "Custom OAuth provider not found"

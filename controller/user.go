@@ -674,6 +674,15 @@ func UpdateUser(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
+	// setting 是 JSON 文本列(承载管理员配置的 rate_limit_rpm 等),非法 JSON
+	// 会让用户设置整体解析失败,这里直接拒绝。
+	if updatedUser.Setting != "" {
+		var settingCheck map[string]interface{}
+		if err := common.UnmarshalJsonStr(updatedUser.Setting, &settingCheck); err != nil {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+	}
 	if updatedUser.Password == "" {
 		updatedUser.Password = "$I_LOVE_U" // make Validator happy :)
 	}

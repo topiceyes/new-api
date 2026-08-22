@@ -16,6 +16,7 @@ type UserSetting struct {
 	SidebarModules                   string  `json:"sidebar_modules,omitempty"`                      // SidebarModules 左侧边栏模块配置
 	BillingPreference                string  `json:"billing_preference,omitempty"`                   // BillingPreference 扣费策略（订阅/钱包）
 	Language                         string  `json:"language,omitempty"`                             // Language 用户语言偏好 (zh, en)
+	RateLimitRPM                     int     `json:"rate_limit_rpm,omitempty"`                       // RateLimitRPM 管理员配置的用户级每分钟请求上限,0 为不限;用户自助设置接口不暴露此字段
 }
 
 var (

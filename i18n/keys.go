@@ -342,6 +342,7 @@ const (
 	MsgDistributorInvalidParseModel       = "distributor.invalid_request_parse_model"
 
 	MsgRelayChannelRateLimited = "relay.channel_rate_limited"
+	MsgRelayUserRateLimited    = "relay.user_rate_limited"
 )
 
 // Custom OAuth provider related messages

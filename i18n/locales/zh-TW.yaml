@@ -289,6 +289,7 @@ distributor.invalid_midjourney_request: "無效的midjourney請求，{{.Error}}"
 distributor.invalid_request_parse_model: "無效的請求，無法解析模型"
 
 relay.channel_rate_limited: "管道 {{.Channel}} 請求頻率已達上限（{{.RPM}} 次/分鐘），請稍後重試或更換模型"
+relay.user_rate_limited: "請求頻率已達上限（{{.RPM}} 次/分鐘），請稍後重試或聯絡管理員"
 
 # Custom OAuth provider messages
 custom_oauth.not_found: "自訂 OAuth 供應者不存在"

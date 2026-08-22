@@ -851,6 +851,13 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 		"group":        newUser.Group,
 		"remark":       newUser.Remark,
 	}
+	// Setting JSON carries admin-managed fields like rate_limit_rpm. Only write
+	// it when the request actually provides one: an empty value means the caller
+	// did not include the field, and overwriting with "" would drop the user's
+	// self-service settings.
+	if newUser.Setting != "" {
+		updates["setting"] = newUser.Setting
+	}
 	if updatePassword {
 		updates["password"] = newUser.Password
 	}

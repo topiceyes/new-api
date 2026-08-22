@@ -41,6 +41,12 @@ export const userFormSchema = z.object({
   quota_dollars: z.number().min(0).optional(),
   group: z.string().optional(),
   remark: z.string().optional(),
+  // Admin-managed per-user API rate limit; 0 = unlimited. Lives in the user's
+  // setting JSON, not a top-level column.
+  rate_limit_rpm: z.number().int().min(0).optional(),
+  // Raw setting JSON of the row being edited, kept so the RPM value can be
+  // merged without dropping unrelated keys.
+  setting: z.string().optional(),
   admin_permissions: z
     .record(z.string(), z.record(z.string(), z.boolean()))
     .optional(),
@@ -60,6 +66,8 @@ export const USER_FORM_DEFAULT_VALUES: UserFormValues = {
   quota_dollars: 0,
   group: DEFAULT_GROUP,
   remark: '',
+  rate_limit_rpm: 0,
+  setting: '',
   // Filled against the backend catalog at render time; see UsersMutateDrawer.
   admin_permissions: {},
 }
@@ -67,6 +75,36 @@ export const USER_FORM_DEFAULT_VALUES: UserFormValues = {
 // ============================================================================
 // Form Data Transformation
 // ============================================================================
+
+/**
+ * Merge the admin-configured RPM into the user's setting JSON. Returns
+ * undefined when nothing should be sent (no change needed, or the existing
+ * setting is unparseable — in that case we leave the server value untouched
+ * rather than risk dropping the user's other settings).
+ */
+function mergeRateLimitRpmSetting(
+  raw: string | undefined,
+  rpm: number
+): string | undefined {
+  let obj: Record<string, unknown> = {}
+  if (raw) {
+    try {
+      obj = JSON.parse(raw)
+    } catch {
+      return undefined
+    }
+  }
+  const prev = typeof obj.rate_limit_rpm === 'number' ? obj.rate_limit_rpm : 0
+  if (prev === rpm) {
+    return undefined
+  }
+  if (rpm > 0) {
+    obj.rate_limit_rpm = rpm
+  } else {
+    delete obj.rate_limit_rpm
+  }
+  return JSON.stringify(obj)
+}
 
 /**
  * Transform form data to API payload
@@ -97,11 +135,18 @@ export function transformFormDataToPayload(
   // For create: only send required fields
   if (userId === undefined) {
     payload.role = role
+    if (data.rate_limit_rpm && data.rate_limit_rpm > 0) {
+      payload.setting = JSON.stringify({ rate_limit_rpm: data.rate_limit_rpm })
+    }
   } else {
     // For update: quota is adjusted atomically via /api/user/manage, not sent here
     payload.group = data.group
     payload.remark = data.remark || undefined
     payload.id = userId
+    const setting = mergeRateLimitRpmSetting(data.setting, data.rate_limit_rpm ?? 0)
+    if (setting !== undefined) {
+      payload.setting = setting
+    }
   }
 
   return payload
@@ -113,6 +158,18 @@ export function transformFormDataToPayload(
  * the catalog at render time in UsersMutateDrawer.
  */
 export function transformUserToFormDefaults(user: User): UserFormValues {
+  let rateLimitRPM = 0
+  if (user.setting) {
+    try {
+      const parsed = JSON.parse(user.setting) as Record<string, unknown>
+      if (typeof parsed.rate_limit_rpm === 'number' && parsed.rate_limit_rpm > 0) {
+        rateLimitRPM = parsed.rate_limit_rpm
+      }
+    } catch {
+      // Unparseable setting JSON: leave RPM at 0 and keep the raw string so a
+      // save without RPM changes does not rewrite it.
+    }
+  }
   return {
     username: user.username,
     display_name: user.display_name,
@@ -121,6 +178,8 @@ export function transformUserToFormDefaults(user: User): UserFormValues {
     quota_dollars: quotaUnitsToDollars(user.quota),
     group: user.group || DEFAULT_GROUP,
     remark: user.remark || '',
+    rate_limit_rpm: rateLimitRPM,
+    setting: user.setting || '',
     admin_permissions: user.admin_permissions ?? {},
   }
 }

@@ -430,6 +430,33 @@ export function UsersMutateDrawer({
 
                   <FormField
                     control={form.control}
+                    name='rate_limit_rpm'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('API Rate Limit (RPM)')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={0}
+                            placeholder='0'
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Maximum API requests per minute for this user, shared across all tokens. Requests over the limit are rejected with 429. 0 means unlimited'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name='remark'
                     render={({ field }) => (
                       <FormItem>
