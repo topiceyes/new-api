@@ -15,10 +15,12 @@ func RelayPanicRecover() gin.HandlerFunc {
 			if err := recover(); err != nil {
 				common.SysLog(fmt.Sprintf("panic detected: %v", err))
 				common.SysLog(fmt.Sprintf("stacktrace from panic: %s", string(debug.Stack())))
+				// Neutral wire response: panic details stay in the server logs
+				// above; the client gets no internal error text or project links.
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": gin.H{
-						"message": fmt.Sprintf("Panic detected, error: %v. Please submit a issue here: https://github.com/Calcium-Ion/new-api", err),
-						"type":    "new_api_panic",
+						"message": "Internal server error.",
+						"type":    "internal_error",
 					},
 				})
 				c.Abort()

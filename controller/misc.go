@@ -43,15 +43,24 @@ func TestStatus(c *gin.Context) {
 
 func GetStatus(c *gin.Context) {
 
+	// Checked before acquiring the option read lock: credential validation may
+	// hit the session store, which must not stall option updates.
+	authenticated := middleware.IsDashboardAuthenticated(c)
+
 	cs := console_setting.GetConsoleSetting()
 	common.OptionMapRWMutex.RLock()
 	defer common.OptionMapRWMutex.RUnlock()
 
 	passkeySetting := system_setting.GetPasskeySettings()
 	legalSetting := system_setting.GetLegalSettings()
+	// RPDisplayName 默认为空,此处回落到管理员当前配置的系统名;
+	// 若直接下发默认值,匿名响应会携带硬编码名称成为部署指纹。
+	passkeyDisplayName := passkeySetting.RPDisplayName
+	if passkeyDisplayName == "" {
+		passkeyDisplayName = common.SystemName
+	}
 
 	data := gin.H{
-		"version":                     common.Version,
 		"start_time":                  common.StartTime,
 		"email_verification":          common.EmailVerificationEnabled,
 		"github_oauth":                common.GitHubOAuthEnabled,
@@ -118,7 +127,7 @@ func GetStatus(c *gin.Context) {
 		"oidc_authorization_endpoint": system_setting.GetOIDCSettings().AuthorizationEndpoint,
 		"oidc_display_name":           system_setting.GetOIDCSettings().GetEffectiveDisplayName(),
 		"passkey_login":               passkeySetting.Enabled,
-		"passkey_display_name":        passkeySetting.RPDisplayName,
+		"passkey_display_name":        passkeyDisplayName,
 		"passkey_rp_id":               passkeySetting.RPID,
 		"passkey_origins":             passkeySetting.Origins,
 		"passkey_allow_insecure":      passkeySetting.AllowInsecureOrigin,
@@ -128,6 +137,12 @@ func GetStatus(c *gin.Context) {
 		"user_agreement_enabled":      legalSetting.UserAgreement != "",
 		"privacy_policy_enabled":      legalSetting.PrivacyPolicy != "",
 		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
+	}
+
+	// Version identifies the deployment's upstream release, so only reveal it
+	// to authenticated dashboard users; anonymous callers get no version key.
+	if authenticated {
+		data["version"] = common.Version
 	}
 
 	// 根据启用状态注入可选内容

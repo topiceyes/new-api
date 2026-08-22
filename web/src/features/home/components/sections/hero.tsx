@@ -48,10 +48,13 @@ const MoreIcon = () => (
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
   const { status } = useStatus()
-  const docsUrl =
-    (status?.docs_link as string | undefined) || 'https://docs.newapi.pro'
+  const docsUrl = status?.docs_link as string | undefined
 
   const renderDocsButton = () => {
+    // 未配置文档链接时不渲染按钮,避免兜底指向项目官方文档站而暴露系统身份
+    if (!docsUrl) {
+      return null
+    }
     const isExternal = docsUrl.startsWith('http')
     if (isExternal) {
       return (
@@ -180,7 +183,7 @@ export function Hero(props: HeroProps) {
               </span>
               <p className='text-muted-foreground/60 text-xs leading-relaxed'>
                 {t(
-                  'Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.'
+                  'Supports one-click configuration and adapts to multiple AI client protocols.'
                 )}
               </p>
             </div>

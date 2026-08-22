@@ -107,6 +107,15 @@ func RootAuth() func(c *gin.Context) {
 	}
 }
 
+// IsDashboardAuthenticated reports whether the request carries any valid
+// dashboard credential (session access token or PAT). Errors are swallowed,
+// so it suits public endpoints that reveal extra fields to logged-in users
+// without ever rejecting anonymous callers.
+func IsDashboardAuthenticated(c *gin.Context) bool {
+	user, _, kind, err := classifyDashboardCredential(c)
+	return err == nil && kind != dashboardCredentialUnmatched && user != nil
+}
+
 // GetAuthIdentity returns a dashboard session identity. PAT-authenticated
 // requests intentionally have no SessionID and cannot manage browser sessions.
 func GetAuthIdentity(c *gin.Context) (service.AuthIdentity, bool) {

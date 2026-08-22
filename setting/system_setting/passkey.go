@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/config"
 )
 
@@ -19,8 +18,10 @@ type PasskeySettings struct {
 }
 
 var defaultPasskeySettings = PasskeySettings{
-	Enabled:              false,
-	RPDisplayName:        common.SystemName,
+	Enabled: false,
+	// 默认留空,运行时回落到 common.SystemName(跟随管理员配置的系统名);
+	// 若默认值在包初始化时固化为硬编码名称,匿名 /api/status 会泄露部署指纹。
+	RPDisplayName:        "",
 	RPID:                 "",
 	Origins:              "",
 	AllowInsecureOrigin:  false,

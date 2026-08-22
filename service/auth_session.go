@@ -13,7 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const RefreshCookieName = "new_api_refresh"
+// Neutral name: the cookie shows up in login responses, so it must not carry
+// the project's brand. Renaming invalidates existing refresh cookies once,
+// i.e. every user re-logs in after the upgrade.
+const RefreshCookieName = "app_refresh"
 
 var (
 	ErrLoginSessionInvalid  = errors.New("login session is invalid")

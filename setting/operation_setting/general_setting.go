@@ -24,7 +24,9 @@ type GeneralSetting struct {
 
 // 默认配置
 var generalSetting = GeneralSetting{
-	DocsLink:                   "https://docs.newapi.pro",
+	// DocsLink 默认留空:匿名 /api/status 会下发该值,默认指向项目官方文档站
+	// 会成为部署指纹。管理员可在系统设置中自行配置文档链接。
+	DocsLink:                   "",
 	PingIntervalEnabled:        false,
 	PingIntervalSeconds:        60,
 	QuotaDisplayType:           QuotaDisplayTypeUSD,

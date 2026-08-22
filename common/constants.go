@@ -171,8 +171,16 @@ var GeminiSafetySetting string
 var CohereSafetySetting string
 
 const (
-	RequestIdKey         = "X-Oneapi-Request-Id"
+	// Neutral wire name: the request-id header appears on every response, so
+	// it must not carry a project brand that asset scanners can match.
+	RequestIdKey = "X-Request-Id"
+	// LegacyRequestIdKey is the historical branded header still emitted by
+	// unpatched upstream instances; relay strips and captures it for logging.
+	LegacyRequestIdKey   = "X-Oneapi-Request-Id"
 	UpstreamRequestIdKey = "X-Upstream-Request-Id"
+	// UpstreamVersionHeader is stripped from upstream responses so a chained
+	// instance's version header never leaks through to our clients.
+	UpstreamVersionHeader = "X-New-Api-Version"
 )
 
 const (

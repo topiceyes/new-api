@@ -25,17 +25,20 @@ func CloseResponseBodyGracefully(httpResponse *http.Response) {
 
 // ShouldCopyUpstreamHeader checks whether a given upstream response header
 // should be copied to the client response. It returns false for Content-Length
-// (managed separately) and X-Oneapi-Request-Id (to preserve the local instance
-// ID). When the upstream header is X-Oneapi-Request-Id, the value is captured
-// into the Gin context for later logging.
+// (managed separately), for request-id headers (ours and the legacy branded
+// one, to preserve the local instance ID), and for the upstream's version
+// header. Captured request IDs land in the Gin context for later logging.
 func ShouldCopyUpstreamHeader(c *gin.Context, k string, v []string) bool {
 	if strings.EqualFold(k, "Content-Length") {
 		return false
 	}
-	if strings.EqualFold(k, common.RequestIdKey) {
+	if strings.EqualFold(k, common.RequestIdKey) || strings.EqualFold(k, common.LegacyRequestIdKey) {
 		if c != nil && len(v) > 0 {
 			c.Set(common.UpstreamRequestIdKey, v[0])
 		}
+		return false
+	}
+	if strings.EqualFold(k, common.UpstreamVersionHeader) {
 		return false
 	}
 	return true

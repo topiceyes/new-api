@@ -62,7 +62,8 @@ func fetchLatestCodexClientVersion(ctx context.Context, client *http.Client, rel
 		return "", err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "new-api")
+	// 中性 UA:避免在 GitHub 公开 API 侧留下系统身份痕迹
+	req.Header.Set("User-Agent", "codex-cli")
 
 	resp, err := client.Do(req)
 	if err != nil {

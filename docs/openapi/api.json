@@ -5479,7 +5479,7 @@
       "RefreshCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "new_api_refresh",
+        "name": "app_refresh",
         "description": "仅 refresh/logout 使用的 HttpOnly、SameSite=Strict Cookie"
       },
       "SecurityProof": {

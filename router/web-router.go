@@ -33,6 +33,6 @@ func SetWebRouter(router *gin.Engine, assets WebAssets) {
 			return
 		}
 		c.Header("Cache-Control", "no-cache")
-		c.Data(http.StatusOK, "text/html; charset=utf-8", assets.IndexPage)
+		c.Data(http.StatusOK, "text/html; charset=utf-8", common.RenderIndexPage(assets.IndexPage))
 	})
 }

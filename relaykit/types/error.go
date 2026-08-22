@@ -26,7 +26,10 @@ type ClaudeError struct {
 type ErrorType string
 
 const (
-	ErrorTypeNewAPIError     ErrorType = "new_api_error"
+	// Wire value is deliberately neutral ("api_error"): error responses are
+	// visible to any unauthenticated caller, and a product-named type is a
+	// deployment fingerprint. The symbol keeps its original name.
+	ErrorTypeNewAPIError     ErrorType = "api_error"
 	ErrorTypeOpenAIError     ErrorType = "openai_error"
 	ErrorTypeClaudeError     ErrorType = "claude_error"
 	ErrorTypeMidjourneyError ErrorType = "midjourney_error"
