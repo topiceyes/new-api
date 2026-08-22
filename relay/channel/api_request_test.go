@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -190,4 +191,54 @@ func TestProcessHeaderOverride_PassHeadersTemplateSetsRuntimeHeaders(t *testing.
 	require.Equal(t, "Codex CLI", upstreamReq.Header.Get("Originator"))
 	require.Equal(t, "sess-123", upstreamReq.Header.Get("Session_id"))
 	require.Empty(t, upstreamReq.Header.Get("X-Codex-Beta-Features"))
+}
+
+func TestApplyChannelUserAgent_SetsConfiguredValue(t *testing.T) {
+	t.Parallel()
+
+	header := http.Header{}
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelSetting: dto.ChannelSettings{UserAgent: "claude-cli/2.1.0 (external, cli)"},
+		},
+	}
+
+	applyChannelUserAgent(header, info)
+	require.Equal(t, "claude-cli/2.1.0 (external, cli)", header.Get("User-Agent"))
+}
+
+func TestApplyChannelUserAgent_EmptyKeepsAdaptorDefault(t *testing.T) {
+	t.Parallel()
+
+	header := http.Header{}
+	header.Set("User-Agent", "codex-cli/0.46.0")
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelSetting: dto.ChannelSettings{UserAgent: "   "},
+		},
+	}
+
+	applyChannelUserAgent(header, info)
+	require.Equal(t, "codex-cli/0.46.0", header.Get("User-Agent"))
+}
+
+func TestApplyChannelUserAgent_HeaderOverrideStillWins(t *testing.T) {
+	t.Parallel()
+
+	// Mirror the DoApiRequest ordering: adaptor default, then channel UA, then
+	// an explicit header_override entry must end up on the wire.
+	header := http.Header{}
+	header.Set("User-Agent", "adaptor-default")
+	info := &relaycommon.RelayInfo{
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelSetting: dto.ChannelSettings{UserAgent: "KimiCLI/1.6"},
+		},
+	}
+
+	applyChannelUserAgent(header, info)
+	require.Equal(t, "KimiCLI/1.6", header.Get("User-Agent"))
+
+	req := &http.Request{Header: header}
+	applyHeaderOverrideToRequest(req, map[string]string{"user-agent": "custom-ua/9.9"})
+	require.Equal(t, "custom-ua/9.9", req.Header.Get("User-Agent"))
 }

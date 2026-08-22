@@ -350,6 +350,7 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
     (values.http2_connection_shards != null &&
       values.http2_connection_shards > 1) ||
     (values.rate_limit_rpm != null && values.rate_limit_rpm > 0) ||
+    values.user_agent?.trim() ||
     values.claude_beta_query ||
     values.upstream_model_update_check_enabled ||
     values.upstream_model_update_auto_sync_enabled ||
@@ -4236,6 +4237,73 @@ export function ChannelMutateDrawer({
                                   <FormDescription>
                                     {t(
                                       'Maximum requests per minute allowed on this channel. Requests over the limit are rejected with 429. 0 means unlimited'
+                                    )}
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name='user_agent'
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('User-Agent')}</FormLabel>
+                                  <div className='flex gap-2'>
+                                    <FormControl>
+                                      <Input
+                                        placeholder={t(
+                                          'Default: Go-http-client'
+                                        )}
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <Select
+                                      value=''
+                                      onValueChange={(value) => {
+                                        if (value) {
+                                          field.onChange(value)
+                                        }
+                                      }}
+                                      items={[
+                                        {
+                                          value: 'claude-cli/2.1.0 (external, cli)',
+                                          label: 'Claude Code',
+                                        },
+                                        {
+                                          value: 'codex-cli/0.46.0',
+                                          label: 'Codex CLI',
+                                        },
+                                        {
+                                          value: 'KimiCLI/1.6',
+                                          label: 'Kimi CLI',
+                                        },
+                                      ]}
+                                    >
+                                      <SelectTrigger className='w-36 shrink-0'>
+                                        <SelectValue
+                                          placeholder={t('Presets')}
+                                        />
+                                      </SelectTrigger>
+                                      <SelectContent alignItemWithTrigger={false}>
+                                        <SelectGroup>
+                                          <SelectItem value='claude-cli/2.1.0 (external, cli)'>
+                                            Claude Code
+                                          </SelectItem>
+                                          <SelectItem value='codex-cli/0.46.0'>
+                                            Codex CLI
+                                          </SelectItem>
+                                          <SelectItem value='KimiCLI/1.6'>
+                                            Kimi CLI
+                                          </SelectItem>
+                                        </SelectGroup>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <FormDescription>
+                                    {t(
+                                      'User-Agent header sent to the upstream provider for this channel. Explicit header overrides still take precedence'
                                     )}
                                   </FormDescription>
                                   <FormMessage />

@@ -287,6 +287,7 @@ export const channelFormSchema = z
     http_protocol: z.enum(['auto', 'http1']).optional(),
     http2_connection_shards: z.number().int().optional(),
     rate_limit_rpm: z.number().int().min(0).optional(),
+    user_agent: z.string().optional(),
     pass_through_body_enabled: z.boolean().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
@@ -464,6 +465,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   http_protocol: HTTP_PROTOCOL_AUTO,
   http2_connection_shards: 1,
   rate_limit_rpm: 0,
+  user_agent: '',
   pass_through_body_enabled: false,
   system_prompt: '',
   system_prompt_override: false,
@@ -508,6 +510,7 @@ export function transformChannelToFormDefaults(
     http_protocol: HTTP_PROTOCOL_AUTO as 'auto' | 'http1',
     http2_connection_shards: 1,
     rate_limit_rpm: 0,
+    user_agent: '',
     pass_through_body_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
@@ -529,6 +532,8 @@ export function transformChannelToFormDefaults(
         rate_limit_rpm: Number.isInteger(parsed.rate_limit_rpm)
           ? parsed.rate_limit_rpm
           : 0,
+        user_agent:
+          typeof parsed.user_agent === 'string' ? parsed.user_agent : '',
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
@@ -699,6 +704,11 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
   const rateLimitRpm = formData.rate_limit_rpm
   if (rateLimitRpm && rateLimitRpm > 0) {
     settingObj.rate_limit_rpm = Math.floor(rateLimitRpm)
+  }
+
+  const userAgent = formData.user_agent?.trim()
+  if (userAgent) {
+    settingObj.user_agent = userAgent
   }
 
   return JSON.stringify(settingObj)

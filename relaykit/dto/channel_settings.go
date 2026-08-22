@@ -26,6 +26,10 @@ type ChannelSettings struct {
 	// RateLimitRPM caps requests per minute for this channel. Zero/unset means
 	// unlimited. Requests over the limit are rejected with 429.
 	RateLimitRPM int `json:"rate_limit_rpm,omitempty"`
+	// UserAgent overrides the User-Agent header on outbound upstream requests
+	// for this channel. Empty means the Go default (Go-http-client/*).
+	// Explicit header_override entries still take precedence over this value.
+	UserAgent string `json:"user_agent,omitempty"`
 }
 
 const (

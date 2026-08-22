@@ -90,6 +90,7 @@ export interface ChannelSettings {
   http_protocol?: 'auto' | 'http1' | string
   http2_connection_shards?: number
   rate_limit_rpm?: number
+  user_agent?: string
 }
 
 export interface ChannelOtherSettings {
