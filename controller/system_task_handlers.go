@@ -25,6 +25,7 @@ func RegisterScheduledSystemTasks() {
 	service.RegisterSystemTaskHandler(asyncTaskPollHandler{})
 	service.RegisterSystemTaskHandler(channelScheduleHandler{})
 	service.RegisterSystemTaskHandler(planMonitorHandler{})
+	service.RegisterSystemTaskHandler(orgSyncHandler{})
 }
 
 // channelTestHandler runs the scheduled "test all channels" job. Enablement and
@@ -201,5 +202,32 @@ func (planMonitorHandler) NewPayload() any { return nil }
 
 func (planMonitorHandler) Run(ctx context.Context, task *model.SystemTask, runnerID string) {
 	summary := planmonitor.RunFetchOnce(ctx)
+	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, summary, nil)
+}
+
+// orgSyncHandler periodically snapshots the enterprise org structure
+// (departments + members + leader flags) from whichever provider
+// (DingTalk/Feishu, mutually exclusive) is enabled. Cadence comes from the
+// provider's orgsync_interval_hours setting; enablement additionally requires
+// credentials so a misconfigured tenant schedules no rows. Manual "sync now"
+// triggers enqueue the same task type, so scheduled and manual runs share the
+// DB lease and can never overlap.
+type orgSyncHandler struct{}
+
+func (orgSyncHandler) Type() string { return model.SystemTaskTypeOrgSync }
+func (orgSyncHandler) Enabled() bool {
+	return service.OrgSyncScheduleEnabled()
+}
+func (orgSyncHandler) Interval() time.Duration {
+	return service.OrgSyncInterval()
+}
+func (orgSyncHandler) NewPayload() any { return nil }
+
+func (orgSyncHandler) Run(ctx context.Context, task *model.SystemTask, runnerID string) {
+	summary, err := service.RunOrgSyncOnce(ctx)
+	if err != nil {
+		finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusFailed, nil, err)
+		return
+	}
 	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, summary, nil)
 }

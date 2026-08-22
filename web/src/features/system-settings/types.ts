@@ -179,6 +179,10 @@ export type AuthSettings = {
   'dingtalk.patrol_mode': DingTalkPatrolMode
   'dingtalk.patrol_hour': number
   'dingtalk.patrol_interval_hours': number
+  'dingtalk.orgsync_enabled': boolean
+  'dingtalk.orgsync_interval_hours': number
+  'dingtalk.orgsync_map_group': boolean
+  'dingtalk.orgsync_target_group': string
   'feishu.enabled': boolean
   'feishu.app_id': string
   'feishu.app_secret': string
@@ -186,6 +190,10 @@ export type AuthSettings = {
   'feishu.patrol_mode': FeishuPatrolMode
   'feishu.patrol_hour': number
   'feishu.patrol_interval_hours': number
+  'feishu.orgsync_enabled': boolean
+  'feishu.orgsync_interval_hours': number
+  'feishu.orgsync_map_group': boolean
+  'feishu.orgsync_target_group': string
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string

@@ -73,6 +73,12 @@ const AUTH_SECTIONS = [
           'dingtalk.patrol_hour': settings['dingtalk.patrol_hour'],
           'dingtalk.patrol_interval_hours':
             settings['dingtalk.patrol_interval_hours'],
+          'dingtalk.orgsync_enabled': settings['dingtalk.orgsync_enabled'],
+          'dingtalk.orgsync_interval_hours':
+            settings['dingtalk.orgsync_interval_hours'],
+          'dingtalk.orgsync_map_group': settings['dingtalk.orgsync_map_group'],
+          'dingtalk.orgsync_target_group':
+            settings['dingtalk.orgsync_target_group'],
           'feishu.enabled': settings['feishu.enabled'],
           'feishu.app_id': settings['feishu.app_id'],
           'feishu.app_secret': settings['feishu.app_secret'],
@@ -81,6 +87,12 @@ const AUTH_SECTIONS = [
           'feishu.patrol_hour': settings['feishu.patrol_hour'],
           'feishu.patrol_interval_hours':
             settings['feishu.patrol_interval_hours'],
+          'feishu.orgsync_enabled': settings['feishu.orgsync_enabled'],
+          'feishu.orgsync_interval_hours':
+            settings['feishu.orgsync_interval_hours'],
+          'feishu.orgsync_map_group': settings['feishu.orgsync_map_group'],
+          'feishu.orgsync_target_group':
+            settings['feishu.orgsync_target_group'],
           TelegramOAuthEnabled: settings.TelegramOAuthEnabled,
           TelegramBotToken: settings.TelegramBotToken,
           TelegramBotName: settings.TelegramBotName,

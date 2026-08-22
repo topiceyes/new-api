@@ -43,6 +43,49 @@ func isPositiveOptionValue(value string) bool {
 	return err == nil && floatValue > 0
 }
 
+// orgSyncGroupExists 判断分组是否在「用户分组」列表中。
+func orgSyncGroupExists(group string) bool {
+	if group == "" {
+		return false
+	}
+	_, ok := setting.GetUserUsableGroupsCopy()[group]
+	return ok
+}
+
+// orgSyncGroupMappingReady 校验该 provider 当前配置的目标分组有效,
+// 供开启主管分组映射前把关。optionKey 形如 "<provider>.orgsync_map_group"。
+func orgSyncGroupMappingReady(optionKey string) bool {
+	target := ""
+	if strings.HasPrefix(optionKey, "dingtalk.") {
+		target = system_setting.GetDingTalkSettings().OrgSyncTargetGroup
+	} else {
+		target = system_setting.GetFeishuSettings().OrgSyncTargetGroup
+	}
+	return orgSyncGroupExists(target)
+}
+
+// validateOrgSyncTargetGroup 校验目标分组的新值:非空必须存在于用户分组;
+// 清空只在映射开关已关时允许,防止映射开着但分组被摘掉的悬空状态。
+func validateOrgSyncTargetGroup(optionKey string, value string) error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed != "" {
+		if !orgSyncGroupExists(trimmed) {
+			return fmt.Errorf("目标分组必须是「用户分组」中已存在的分组！")
+		}
+		return nil
+	}
+	mappingEnabled := false
+	if strings.HasPrefix(optionKey, "dingtalk.") {
+		mappingEnabled = system_setting.GetDingTalkSettings().OrgSyncMapGroup
+	} else {
+		mappingEnabled = system_setting.GetFeishuSettings().OrgSyncMapGroup
+	}
+	if mappingEnabled {
+		return fmt.Errorf("主管分组映射已开启，不能清空目标分组！")
+	}
+	return nil
+}
+
 func collectModelNamesFromOptionValue(raw string, modelNames map[string]struct{}) {
 	if strings.TrimSpace(raw) == "" {
 		return
@@ -264,6 +307,53 @@ func UpdateOption(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
 				"message": "飞书离职巡检间隔必须是 1-24 之间的整数！",
+			})
+			return
+		}
+	case "dingtalk.orgsync_enabled":
+		if option.Value == "true" {
+			dingtalkSettings := system_setting.GetDingTalkSettings()
+			if dingtalkSettings.AppKey == "" || dingtalkSettings.AppSecret == "" {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "无法启用钉钉组织架构同步，请先填入钉钉 AppKey 以及 AppSecret！",
+				})
+				return
+			}
+		}
+	case "feishu.orgsync_enabled":
+		if option.Value == "true" {
+			feishuSettings := system_setting.GetFeishuSettings()
+			if feishuSettings.AppId == "" || feishuSettings.AppSecret == "" {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "无法启用飞书组织架构同步，请先填入飞书 App ID 以及 App Secret！",
+				})
+				return
+			}
+		}
+	case "dingtalk.orgsync_interval_hours", "feishu.orgsync_interval_hours":
+		if hours, err := strconv.Atoi(option.Value.(string)); err != nil || hours < 1 || hours > 168 {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "组织架构同步间隔必须是 1-168 之间的整数（小时）！",
+			})
+			return
+		}
+	case "dingtalk.orgsync_map_group", "feishu.orgsync_map_group":
+		// 开启映射时目标分组必须已选且存在,否则同步时主管无处可加。
+		if option.Value == "true" && !orgSyncGroupMappingReady(option.Key) {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "请先为组织架构同步选择一个有效的目标分组，再开启主管分组映射！",
+			})
+			return
+		}
+	case "dingtalk.orgsync_target_group", "feishu.orgsync_target_group":
+		if err := validateOrgSyncTargetGroup(option.Key, option.Value.(string)); err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
 			})
 			return
 		}

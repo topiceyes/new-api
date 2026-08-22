@@ -27,6 +27,7 @@ import {
   LayoutDashboard,
   ListTodo,
   MessageSquare,
+  Network,
   PieChart,
   Radio,
   ServerCog,
@@ -140,6 +141,11 @@ export function useSidebarData(): SidebarData {
             title: t('Users'),
             url: '/users',
             icon: Users,
+          },
+          {
+            title: t('Organization'),
+            url: '/organization',
+            icon: Network,
           },
           {
             title: t('Redemption Codes'),

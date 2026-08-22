@@ -50,12 +50,13 @@ import {
 import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
+import { DingTalkPatrolBlock } from './dingtalk-patrol'
+import { FeishuPatrolBlock } from './feishu-patrol'
 import {
   buildOAuthCallbackUrl,
   resolveOAuthSiteUrl,
 } from './oauth-callback-url'
-import { DingTalkPatrolBlock } from './dingtalk-patrol'
-import { FeishuPatrolBlock } from './feishu-patrol'
+import { OrgSyncBlock } from './org-sync'
 
 /**
  * react-hook-form 7 treats dotted `name` strings as nested paths. To keep
@@ -91,6 +92,10 @@ const oauthSchema = z.object({
     patrol_mode: z.enum(['daily', 'interval']),
     patrol_hour: z.number().int().min(0).max(23),
     patrol_interval_hours: z.number().int().min(1).max(24),
+    orgsync_enabled: z.boolean(),
+    orgsync_interval_hours: z.number().int().min(1).max(168),
+    orgsync_map_group: z.boolean(),
+    orgsync_target_group: z.string(),
   }),
   feishu: z.object({
     enabled: z.boolean(),
@@ -100,6 +105,10 @@ const oauthSchema = z.object({
     patrol_mode: z.enum(['daily', 'interval']),
     patrol_hour: z.number().int().min(0).max(23),
     patrol_interval_hours: z.number().int().min(1).max(24),
+    orgsync_enabled: z.boolean(),
+    orgsync_interval_hours: z.number().int().min(1).max(168),
+    orgsync_map_group: z.boolean(),
+    orgsync_target_group: z.string(),
   }),
   TelegramOAuthEnabled: z.boolean(),
   TelegramBotToken: z.string(),
@@ -141,6 +150,10 @@ type FlatOAuthDefaults = {
   'dingtalk.patrol_mode': 'daily' | 'interval'
   'dingtalk.patrol_hour': number
   'dingtalk.patrol_interval_hours': number
+  'dingtalk.orgsync_enabled': boolean
+  'dingtalk.orgsync_interval_hours': number
+  'dingtalk.orgsync_map_group': boolean
+  'dingtalk.orgsync_target_group': string
   'feishu.enabled': boolean
   'feishu.app_id': string
   'feishu.app_secret': string
@@ -148,6 +161,10 @@ type FlatOAuthDefaults = {
   'feishu.patrol_mode': 'daily' | 'interval'
   'feishu.patrol_hour': number
   'feishu.patrol_interval_hours': number
+  'feishu.orgsync_enabled': boolean
+  'feishu.orgsync_interval_hours': number
+  'feishu.orgsync_map_group': boolean
+  'feishu.orgsync_target_group': string
   TelegramOAuthEnabled: boolean
   TelegramBotToken: string
   TelegramBotName: string
@@ -241,6 +258,10 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     patrol_mode: defaults['dingtalk.patrol_mode'] ?? 'daily',
     patrol_hour: defaults['dingtalk.patrol_hour'] ?? 3,
     patrol_interval_hours: defaults['dingtalk.patrol_interval_hours'] ?? 24,
+    orgsync_enabled: defaults['dingtalk.orgsync_enabled'],
+    orgsync_interval_hours: defaults['dingtalk.orgsync_interval_hours'] ?? 6,
+    orgsync_map_group: defaults['dingtalk.orgsync_map_group'],
+    orgsync_target_group: defaults['dingtalk.orgsync_target_group'] ?? '',
   },
   feishu: {
     enabled: defaults['feishu.enabled'],
@@ -250,6 +271,10 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     patrol_mode: defaults['feishu.patrol_mode'] ?? 'daily',
     patrol_hour: defaults['feishu.patrol_hour'] ?? 3,
     patrol_interval_hours: defaults['feishu.patrol_interval_hours'] ?? 24,
+    orgsync_enabled: defaults['feishu.orgsync_enabled'],
+    orgsync_interval_hours: defaults['feishu.orgsync_interval_hours'] ?? 6,
+    orgsync_map_group: defaults['feishu.orgsync_map_group'],
+    orgsync_target_group: defaults['feishu.orgsync_target_group'] ?? '',
   },
   TelegramOAuthEnabled: defaults.TelegramOAuthEnabled,
   TelegramBotToken: defaults.TelegramBotToken ?? '',
@@ -287,6 +312,10 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   'dingtalk.patrol_mode': values.dingtalk.patrol_mode,
   'dingtalk.patrol_hour': values.dingtalk.patrol_hour,
   'dingtalk.patrol_interval_hours': values.dingtalk.patrol_interval_hours,
+  'dingtalk.orgsync_enabled': values.dingtalk.orgsync_enabled,
+  'dingtalk.orgsync_interval_hours': values.dingtalk.orgsync_interval_hours,
+  'dingtalk.orgsync_map_group': values.dingtalk.orgsync_map_group,
+  'dingtalk.orgsync_target_group': values.dingtalk.orgsync_target_group,
   'feishu.enabled': values.feishu.enabled,
   'feishu.app_id': values.feishu.app_id,
   'feishu.app_secret': values.feishu.app_secret,
@@ -294,6 +323,10 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   'feishu.patrol_mode': values.feishu.patrol_mode,
   'feishu.patrol_hour': values.feishu.patrol_hour,
   'feishu.patrol_interval_hours': values.feishu.patrol_interval_hours,
+  'feishu.orgsync_enabled': values.feishu.orgsync_enabled,
+  'feishu.orgsync_interval_hours': values.feishu.orgsync_interval_hours,
+  'feishu.orgsync_map_group': values.feishu.orgsync_map_group,
+  'feishu.orgsync_target_group': values.feishu.orgsync_target_group,
   TelegramOAuthEnabled: values.TelegramOAuthEnabled,
   TelegramBotToken: values.TelegramBotToken,
   TelegramBotName: values.TelegramBotName,
@@ -1181,7 +1214,10 @@ export function OAuthSection(props: OAuthSectionProps) {
                 />
               </TabsContent>
 
-              <TabsContent value='dingtalk' className={oauthTabContentClassName}>
+              <TabsContent
+                value='dingtalk'
+                className={oauthTabContentClassName}
+              >
                 <OAuthSetupGuide
                   title={t('Setup guide')}
                   description={t(
@@ -1296,6 +1332,8 @@ export function OAuthSection(props: OAuthSectionProps) {
                 />
 
                 <DingTalkPatrolBlock form={form} />
+
+                <OrgSyncBlock form={form} provider='dingtalk' />
               </TabsContent>
 
               <TabsContent value='feishu' className={oauthTabContentClassName}>
@@ -1389,6 +1427,8 @@ export function OAuthSection(props: OAuthSectionProps) {
                 />
 
                 <FeishuPatrolBlock form={form} />
+
+                <OrgSyncBlock form={form} provider='feishu' />
               </TabsContent>
             </Tabs>
           </SettingsForm>

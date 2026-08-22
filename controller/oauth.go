@@ -222,6 +222,24 @@ func HandleOAuth(c *gin.Context) {
 	setupLogin(user, c)
 }
 
+// bindOrgMemberOnLogin 登录/绑定即同步组织架构绑定:钉钉/飞书登录拿到
+// unionId 后立刻把 org_members 快照里对应成员标记为已绑定,不必等下一次
+// 全量同步。失败只记日志,不影响登录主流程;主管分组映射仍由同步统一计算。
+func bindOrgMemberOnLogin(provider oauth.Provider, unionId string, userId int) {
+	orgProvider := ""
+	switch provider.(type) {
+	case *oauth.DingTalkProvider:
+		orgProvider = model.OrgProviderDingTalk
+	case *oauth.FeishuProvider:
+		orgProvider = model.OrgProviderFeishu
+	default:
+		return
+	}
+	if err := model.BindOrgMemberToUser(orgProvider, unionId, userId); err != nil {
+		common.SysError(fmt.Sprintf("[OAuth] bind org member failed: provider=%s userId=%d: %s", orgProvider, userId, err.Error()))
+	}
+}
+
 // handleOAuthBind handles binding OAuth account to existing user
 func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model.AuthFlow, flowToken string) {
 	// Exchange code for token
@@ -281,6 +299,7 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 			common.ApiError(c, err)
 			return
 		}
+		bindOrgMemberOnLogin(provider, oauthUser.ProviderUserID, userId)
 	}
 
 	common.ApiSuccessI18n(c, i18n.MsgOAuthBindSuccess, gin.H{
@@ -302,6 +321,7 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		if user.Id == 0 {
 			return nil, &OAuthUserDeletedError{}
 		}
+		bindOrgMemberOnLogin(provider, oauthUser.ProviderUserID, user.Id)
 		return user, nil
 	}
 
@@ -432,6 +452,7 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 
 		// Perform post-transaction tasks
 		user.FinalizeOAuthUserCreation(inviterId)
+		bindOrgMemberOnLogin(provider, oauthUser.ProviderUserID, user.Id)
 	}
 
 	return user, nil

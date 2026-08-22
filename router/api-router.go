@@ -319,6 +319,13 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			feishuRoute.POST("/leave-check/run", controller.RunFeishuLeaveCheck)
 		}
+		organizationRoute := apiRouter.Group("/organization")
+		organizationRoute.Use(middleware.AdminAuth())
+		{
+			organizationRoute.GET("/overview", controller.GetOrgOverview)
+			organizationRoute.GET("/sync/status", controller.GetOrgSyncStatus)
+			organizationRoute.POST("/sync/run", controller.RunOrgSync)
+		}
 		systemInfoRoute := apiRouter.Group("/system-info")
 		systemInfoRoute.Use(middleware.RootAuth())
 		{

@@ -23,6 +23,7 @@ const (
 	SystemTaskTypeAsyncTaskPoll  = "async_task_poll"
 	SystemTaskTypeChannelSchedule = "channel_schedule"
 	SystemTaskTypePlanMonitor     = "plan_monitor"
+	SystemTaskTypeOrgSync         = "org_sync"
 )
 
 var ErrSystemTaskLockLost = errors.New("system task lock lost")
