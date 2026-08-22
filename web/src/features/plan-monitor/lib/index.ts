@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 // 用量展示纯函数,供组件与测试共用。
 
 export type UsageLevel = 'green' | 'yellow' | 'red'

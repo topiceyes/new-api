@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 // 套餐监控(上游 token plan 用量)类型定义,与后端 controller/plan_monitor.go 对应。
 
 export interface PlanMonitorUsageView {
