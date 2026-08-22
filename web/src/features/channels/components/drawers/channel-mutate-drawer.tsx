@@ -349,6 +349,7 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
     (values.http_protocol && values.http_protocol !== 'auto') ||
     (values.http2_connection_shards != null &&
       values.http2_connection_shards > 1) ||
+    (values.rate_limit_rpm != null && values.rate_limit_rpm > 0) ||
     values.claude_beta_query ||
     values.upstream_model_update_check_enabled ||
     values.upstream_model_update_auto_sync_enabled ||
@@ -4206,6 +4207,35 @@ export function ChannelMutateDrawer({
                                   <FormDescription>
                                     {t(
                                       'Network proxy for this channel (supports HTTP, HTTPS, SOCKS5, and SOCKS5H)'
+                                    )}
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name='rate_limit_rpm'
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    {t('Request Rate Limit (RPM)')}
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type='number'
+                                      min={0}
+                                      placeholder='0'
+                                      {...field}
+                                      onChange={(e) =>
+                                        field.onChange(Number(e.target.value))
+                                      }
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    {t(
+                                      'Maximum requests per minute allowed on this channel. Requests over the limit are rejected with 429. 0 means unlimited'
                                     )}
                                   </FormDescription>
                                   <FormMessage />

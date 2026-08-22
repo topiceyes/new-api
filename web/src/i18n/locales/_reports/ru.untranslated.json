@@ -8,6 +8,8 @@
   "Feishu": "Feishu",
   "Enable DingTalk OAuth": "Enable DingTalk OAuth",
   "Failed to start DingTalk login": "Failed to start DingTalk login",
+  "Maximum requests per minute allowed on this channel. Requests over the limit are rejected with 429. 0 means unlimited": "Maximum requests per minute allowed on this channel. Requests over the limit are rejected with 429. 0 means unlimited",
+  "Request Rate Limit (RPM)": "Request Rate Limit (RPM)",
   "App ID": "App ID",
   "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
   "Your DingTalk OAuth Client Secret": "Your DingTalk OAuth Client Secret",

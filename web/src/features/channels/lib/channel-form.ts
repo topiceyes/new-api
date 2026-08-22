@@ -286,6 +286,7 @@ export const channelFormSchema = z
       .refine(isOptionalProxyURL, ERROR_MESSAGES.INVALID_PROXY),
     http_protocol: z.enum(['auto', 'http1']).optional(),
     http2_connection_shards: z.number().int().optional(),
+    rate_limit_rpm: z.number().int().min(0).optional(),
     pass_through_body_enabled: z.boolean().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
@@ -462,6 +463,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   proxy: '',
   http_protocol: HTTP_PROTOCOL_AUTO,
   http2_connection_shards: 1,
+  rate_limit_rpm: 0,
   pass_through_body_enabled: false,
   system_prompt: '',
   system_prompt_override: false,
@@ -505,6 +507,7 @@ export function transformChannelToFormDefaults(
     proxy: '',
     http_protocol: HTTP_PROTOCOL_AUTO as 'auto' | 'http1',
     http2_connection_shards: 1,
+    rate_limit_rpm: 0,
     pass_through_body_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
@@ -523,6 +526,9 @@ export function transformChannelToFormDefaults(
         proxy: parsed.proxy || '',
         http_protocol: protocol,
         http2_connection_shards: protocol === HTTP_PROTOCOL_HTTP1 ? 1 : shards,
+        rate_limit_rpm: Number.isInteger(parsed.rate_limit_rpm)
+          ? parsed.rate_limit_rpm
+          : 0,
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
@@ -688,6 +694,11 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
     settingObj.http_protocol = HTTP_PROTOCOL_HTTP1
   } else if (shards > 1) {
     settingObj.http2_connection_shards = shards
+  }
+
+  const rateLimitRpm = formData.rate_limit_rpm
+  if (rateLimitRpm && rateLimitRpm > 0) {
+    settingObj.rate_limit_rpm = Math.floor(rateLimitRpm)
   }
 
   return JSON.stringify(settingObj)

@@ -23,6 +23,9 @@ type ChannelSettings struct {
 	// HTTP2ConnectionShards spreads HTTP/2 traffic across N independent transports
 	// (1-8). Zero/unset means 1. Ignored when HTTPProtocol is "http1".
 	HTTP2ConnectionShards int `json:"http2_connection_shards,omitempty"`
+	// RateLimitRPM caps requests per minute for this channel. Zero/unset means
+	// unlimited. Requests over the limit are rejected with 429.
+	RateLimitRPM int `json:"rate_limit_rpm,omitempty"`
 }
 
 const (

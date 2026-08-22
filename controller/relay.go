@@ -304,12 +304,19 @@ func getChannel(c *gin.Context, info *relaycommon.RelayInfo, retryParam *service
 		if !autoBan {
 			autoBanInt = 0
 		}
-		return &model.Channel{
+		channel := &model.Channel{
 			Id:      c.GetInt("channel_id"),
 			Type:    c.GetInt("channel_type"),
 			Name:    c.GetString("channel_name"),
 			AutoBan: &autoBanInt,
-		}, nil
+		}
+		if fullChannel, err := model.CacheGetChannel(channel.Id); err == nil && fullChannel != nil {
+			channel = fullChannel
+		}
+		if limited, retryAfter := service.CheckChannelRateLimit(c, channel); limited {
+			return nil, service.NewChannelRateLimitError(c, channel, retryAfter)
+		}
+		return channel, nil
 	}
 	channel, selectGroup, err := service.CacheGetRandomSatisfiedChannel(retryParam)
 	if err != nil {
@@ -317,6 +324,9 @@ func getChannel(c *gin.Context, info *relaycommon.RelayInfo, retryParam *service
 	}
 	if channel == nil {
 		return nil, types.NewError(fmt.Errorf("分组 %s 下模型 %s 的可用渠道不存在（retry）", selectGroup, info.OriginModelName), types.ErrorCodeGetChannelFailed, types.ErrOptionWithSkipRetry())
+	}
+	if limited, retryAfter := service.CheckChannelRateLimit(c, channel); limited {
+		return nil, service.NewChannelRateLimitError(c, channel, retryAfter)
 	}
 
 	info.PriceData.GroupRatioInfo = helper.HandleGroupRatio(c, info)
@@ -537,7 +547,12 @@ func RelayTask(c *gin.Context) {
 			channel, channelErr = getChannel(c, relayInfo, retryParam)
 			if channelErr != nil {
 				logger.LogError(c, channelErr.Error())
-				taskErr = service.TaskErrorWrapperLocal(channelErr.Err, "get_channel_failed", http.StatusInternalServerError)
+				// 保留原始状态码,使渠道限速等 4xx 能透传给任务调用方
+				statusCode := channelErr.StatusCode
+				if statusCode < 400 || statusCode > 599 {
+					statusCode = http.StatusInternalServerError
+				}
+				taskErr = service.TaskErrorWrapperLocal(channelErr.Err, "get_channel_failed", statusCode)
 				break
 			}
 		}
