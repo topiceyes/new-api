@@ -1,5 +1,10 @@
 {
+  "Default: Go-http-client": "Default: Go-http-client",
+  "Presets": "Presets",
+  "User-Agent": "User-Agent",
+  "User-Agent header sent to the upstream provider for this channel. Explicit header overrides still take precedence": "User-Agent header sent to the upstream provider for this channel. Explicit header overrides still take precedence",
   "Allow users to sign in with DingTalk": "Allow users to sign in with DingTalk",
+  "API Rate Limit (RPM)": "API Rate Limit (RPM),",
   "AppKey": "AppKey",
   "AppSecret": "AppSecret",
   "Continue with DingTalk": "Continue with DingTalk",
@@ -8,6 +13,7 @@
   "Feishu": "Feishu",
   "Enable DingTalk OAuth": "Enable DingTalk OAuth",
   "Failed to start DingTalk login": "Failed to start DingTalk login",
+  "Maximum API requests per minute for this user, shared across all tokens. Requests over the limit are rejected with 429. 0 means unlimited": "Maximum API requests per minute for this user, shared across all tokens. Requests over the limit are rejected with 429. 0 means unlimited",
   "Maximum requests per minute allowed on this channel. Requests over the limit are rejected with 429. 0 means unlimited": "Maximum requests per minute allowed on this channel. Requests over the limit are rejected with 429. 0 means unlimited",
   "Request Rate Limit (RPM)": "Request Rate Limit (RPM)",
   "App ID": "App ID",

@@ -1,7 +1,9 @@
 {
+  "User-Agent header sent to the upstream provider for this channel. Explicit header overrides still take precedence": "User-Agent header sent to the upstream provider for this channel. Explicit header overrides still take precedence",
   "Allow users to sign in with DingTalk": "Allow users to sign in with DingTalk",
   "Continue with DingTalk": "Continue with DingTalk",
   "Failed to start DingTalk login": "Failed to start DingTalk login",
+  "Maximum API requests per minute for this user, shared across all tokens. Requests over the limit are rejected with 429. 0 means unlimited": "Maximum API requests per minute for this user, shared across all tokens. Requests over the limit are rejected with 429. 0 means unlimited",
   "Maximum requests per minute allowed on this channel. Requests over the limit are rejected with 429. 0 means unlimited": "Maximum requests per minute allowed on this channel. Requests over the limit are rejected with 429. 0 means unlimited",
   "Fill in the following info to monitor an upstream plan": "Fill in the following info to monitor an upstream plan",
   "Leave empty to keep the current API key unchanged": "Leave empty to keep the current API key unchanged",
