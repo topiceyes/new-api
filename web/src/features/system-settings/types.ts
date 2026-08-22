@@ -303,6 +303,7 @@ export type ModelSettings = {
 
 export type BillingSettings = {
   QuotaForNewUser: number
+  DefaultUserRPM: number
   PreConsumedQuota: number
   QuotaForInviter: number
   QuotaForInvitee: number

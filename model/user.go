@@ -715,6 +715,11 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 		// 初始化用户设置
 		if user.Setting == "" {
 			defaultSetting := dto.UserSetting{}
+			// 系统设置的新用户默认 RPM;管理员显式传入的 setting 不经过这里,
+			// 其 rate_limit_rpm(含显式 0)优先于该默认值。
+			if common.DefaultUserRPM > 0 {
+				defaultSetting.RateLimitRPM = common.DefaultUserRPM
+			}
 			user.SetSetting(defaultSetting)
 		}
 

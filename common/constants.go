@@ -124,6 +124,9 @@ var TelegramBotName = ""
 var QuotaForNewUser = 0
 var QuotaForInviter = 0
 var QuotaForInvitee = 0
+// DefaultUserRPM 新用户默认的每分钟 API 请求上限,0 为不限制;
+// 管理员对用户显式设置的 rate_limit_rpm 优先于该默认值。
+var DefaultUserRPM = 0
 var ChannelDisableThreshold = 5.0
 var AutomaticDisableChannelEnabled = false
 var AutomaticEnableChannelEnabled = false
