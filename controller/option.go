@@ -357,6 +357,77 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "dingtalk.notify_enabled":
+		if option.Value == "true" {
+			dingtalkSettings := system_setting.GetDingTalkSettings()
+			if dingtalkSettings.AppKey == "" || dingtalkSettings.AppSecret == "" {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "无法启用钉钉消息通知，请先填入钉钉 AppKey 以及 AppSecret！",
+				})
+				return
+			}
+			if dingtalkSettings.AgentId == "" {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "无法启用钉钉消息通知，请先填入钉钉 AgentId！",
+				})
+				return
+			}
+			parsed, err := strconv.ParseInt(dingtalkSettings.AgentId, 10, 64)
+			if err != nil || parsed <= 0 {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "钉钉 AgentId 必须是纯数字！",
+				})
+				return
+			}
+		}
+	case "dingtalk.agent_id":
+		trimmed := strings.TrimSpace(option.Value.(string))
+		if trimmed != "" {
+			parsed, err := strconv.ParseInt(trimmed, 10, 64)
+			if err != nil || parsed <= 0 {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "钉钉 AgentId 必须是纯数字！",
+				})
+				return
+			}
+		} else if system_setting.GetDingTalkSettings().NotifyEnabled {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "钉钉消息通知开启中，不能清空 AgentId！请先关闭钉钉消息通知。",
+			})
+			return
+		}
+	case "feishu.notify_enabled":
+		if option.Value == "true" {
+			feishuSettings := system_setting.GetFeishuSettings()
+			if feishuSettings.AppId == "" || feishuSettings.AppSecret == "" {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": "无法启用飞书消息通知，请先填入飞书 App ID 以及 App Secret！",
+				})
+				return
+			}
+		}
+	case "dingtalk.app_key", "dingtalk.app_secret":
+		if strings.TrimSpace(option.Value.(string)) == "" && system_setting.GetDingTalkSettings().NotifyEnabled {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "钉钉消息通知开启中，不能清空 AppKey/AppSecret！请先关闭钉钉消息通知。",
+			})
+			return
+		}
+	case "feishu.app_id", "feishu.app_secret":
+		if strings.TrimSpace(option.Value.(string)) == "" && system_setting.GetFeishuSettings().NotifyEnabled {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "飞书消息通知开启中，不能清空 App ID/App Secret！请先关闭飞书消息通知。",
+			})
+			return
+		}
 	case "LinuxDOOAuthEnabled":
 		if option.Value == "true" && common.LinuxDOClientId == "" {
 			c.JSON(http.StatusOK, gin.H{

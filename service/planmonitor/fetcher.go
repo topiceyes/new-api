@@ -12,8 +12,8 @@ import (
 	"github.com/QuantumNous/new-api/service"
 )
 
-// notifyRootUser 告警发送入口,测试中可替换为替身。
-var notifyRootUser = service.NotifyRootUser
+// sendAdminAlert 告警发送入口,测试中可替换为替身。
+var sendAdminAlert = service.SendAdminAlert
 
 // periodLabel 告警文案里的周期中文名。
 var periodLabel = map[string]string{
@@ -51,7 +51,7 @@ func RunFetchOnce(ctx context.Context) FetchSummary {
 		provider, err := GetProvider(plan.Provider)
 		if err != nil {
 			summary.FailedCount++
-			recordFetchError(plan.Id, err)
+			recordFetchError(plan, err)
 			continue
 		}
 		fetchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -59,13 +59,13 @@ func RunFetchOnce(ctx context.Context) FetchSummary {
 		cancel()
 		if err != nil {
 			summary.FailedCount++
-			recordFetchError(plan.Id, err)
+			recordFetchError(plan, err)
 			continue
 		}
 
 		if err := saveFetchSuccess(plan, usages, now); err != nil {
 			summary.FailedCount++
-			recordFetchError(plan.Id, err)
+			recordFetchError(plan, err)
 			continue
 		}
 		summary.FetchedCount++
@@ -120,11 +120,21 @@ func saveFetchSuccess(plan *model.PlanMonitor, usages []PeriodUsage, now int64) 
 	if err := model.SavePlanMonitorFetch(plan.Id, rows); err != nil {
 		return err
 	}
+
+	// 失败告警恢复:先清零计数与告警状态,再清 last_error/写 last_fetch_time。
+	wasAlerting, resetErr := model.ResetPlanMonitorFailAlert(plan.Id)
+	if resetErr != nil {
+		common.SysError("plan monitor: reset fail alert state failed: " + resetErr.Error())
+	}
+
 	if err := model.RecordPlanMonitorFetchResult(plan.Id, nil); err != nil {
 		common.SysError("plan monitor: record fetch result failed: " + err.Error())
 	}
 	for _, row := range alertRows {
 		sendUsageAlert(plan, row)
+	}
+	if wasAlerting {
+		sendFetchRecoveredAlert(plan)
 	}
 	return nil
 }
@@ -143,7 +153,29 @@ func sendUsageAlert(plan *model.PlanMonitor, usage model.PlanMonitorUsage) {
 		plan.PlanName, plan.Provider, period, usage.UsedPercent, plan.AlertThreshold,
 		time.Unix(usage.PeriodEndTime, 0).Format("2006-01-02 15:04"),
 	)
-	notifyRootUser(notifyType, subject, content)
+	sendAdminAlert(notifyType, subject, content)
+}
+
+// sendFetchFailedAlert 发送套餐拉取连续失败告警。
+func sendFetchFailedAlert(plan *model.PlanMonitor, count int, fetchErr error) {
+	notifyType := fmt.Sprintf("%s_%d", dto.NotifyTypePlanFetchFailed, plan.Id)
+	subject := fmt.Sprintf("套餐「%s」连续拉取失败 %d 次", plan.PlanName, count)
+	content := fmt.Sprintf(
+		"套餐「%s」(%s) 已连续失败 %d 次(告警阈值 %d 次)。最近错误: %s。请检查 API Key、网络或上游状态。",
+		plan.PlanName, plan.Provider, count, plan.FailAlertThreshold, fetchErr.Error(),
+	)
+	sendAdminAlert(notifyType, subject, content)
+}
+
+// sendFetchRecoveredAlert 发送套餐从连续失败中恢复的通知。
+func sendFetchRecoveredAlert(plan *model.PlanMonitor) {
+	notifyType := fmt.Sprintf("%s_%d", dto.NotifyTypePlanFetchRecovered, plan.Id)
+	subject := fmt.Sprintf("套餐「%s」拉取已恢复", plan.PlanName)
+	content := fmt.Sprintf(
+		"套餐「%s」(%s) 已重新拉取成功,连续失败计数已清零。",
+		plan.PlanName, plan.Provider,
+	)
+	sendAdminAlert(notifyType, subject, content)
 }
 
 // due 判断套餐是否到达刷新时间。LastFetchTime 为 0(从未成功)时立即拉取。
@@ -166,22 +198,46 @@ func FetchOneNow(ctx context.Context, planId int64) error {
 	}
 	provider, err := GetProvider(plan.Provider)
 	if err != nil {
-		recordFetchError(plan.Id, err)
+		recordFetchError(plan, err)
 		return err
 	}
 	fetchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	usages, err := provider.FetchUsage(fetchCtx, plan.ApiUrl, plan.ApiKey)
 	if err != nil {
-		recordFetchError(plan.Id, err)
+		recordFetchError(plan, err)
 		return err
 	}
 	return saveFetchSuccess(plan, usages, time.Now().Unix())
 }
 
-func recordFetchError(planId int64, err error) {
-	common.SysError("plan monitor fetch failed for plan " + strconv.FormatInt(planId, 10) + ": " + err.Error())
-	if dbErr := model.RecordPlanMonitorFetchResult(planId, err); dbErr != nil {
-		common.SysError("plan monitor: record fetch error failed: " + dbErr.Error())
+func recordFetchError(plan *model.PlanMonitor, err error) {
+	common.SysError("plan monitor fetch failed for plan " + strconv.FormatInt(plan.Id, 10) + ": " + err.Error())
+
+	if plan.FailAlertThreshold <= 0 {
+		// 失败告警关闭时清残留状态,仍要记录本次错误。
+		if dbErr := model.ClearPlanMonitorFailAlertState(plan.Id); dbErr != nil {
+			common.SysError("plan monitor: clear fail alert state failed: " + dbErr.Error())
+		}
+		if dbErr := model.RecordPlanMonitorFetchResult(plan.Id, err); dbErr != nil {
+			common.SysError("plan monitor: record fetch error failed: " + dbErr.Error())
+		}
+		return
+	}
+
+	count, dbErr := model.IncrementPlanMonitorFetchFail(plan.Id, err)
+	if dbErr != nil {
+		common.SysError("plan monitor: increment fetch fail count failed: " + dbErr.Error())
+		return
+	}
+	if count >= plan.FailAlertThreshold {
+		won, markErr := model.MarkPlanMonitorFailAlertSent(plan.Id, time.Now().Unix())
+		if markErr != nil {
+			common.SysError("plan monitor: mark fail alert sent failed: " + markErr.Error())
+			return
+		}
+		if won {
+			sendFetchFailedAlert(plan, count, err)
+		}
 	}
 }

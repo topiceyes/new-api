@@ -313,11 +313,13 @@ func SetApiRouter(router *gin.Engine) {
 		dingtalkRoute.Use(middleware.RootAuth())
 		{
 			dingtalkRoute.POST("/leave-check/run", controller.RunDingTalkLeaveCheck)
+			dingtalkRoute.POST("/notify/test", controller.TestDingTalkNotify)
 		}
 		feishuRoute := apiRouter.Group("/feishu")
 		feishuRoute.Use(middleware.RootAuth())
 		{
 			feishuRoute.POST("/leave-check/run", controller.RunFeishuLeaveCheck)
+			feishuRoute.POST("/notify/test", controller.TestFeishuNotify)
 		}
 		organizationRoute := apiRouter.Group("/organization")
 		organizationRoute.Use(middleware.AdminAuth())

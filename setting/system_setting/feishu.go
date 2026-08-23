@@ -7,6 +7,9 @@ type FeishuSettings struct {
 	AppId     string `json:"app_id"`
 	AppSecret string `json:"app_secret"`
 
+	// Message notifications via Feishu IM.
+	NotifyEnabled bool `json:"notify_enabled"`
+
 	// Departed-employee patrol: independently configurable schedule for the
 	// audit that disables accounts of users who left the organization.
 	PatrolEnabled       bool   `json:"patrol_enabled"`
@@ -16,8 +19,8 @@ type FeishuSettings struct {
 
 	// Org-structure sync: periodic snapshot of departments and members from
 	// the Feishu address book, shown on the admin organization page.
-	OrgSyncEnabled       bool   `json:"orgsync_enabled"`
-	OrgSyncIntervalHours int    `json:"orgsync_interval_hours"` // 1-168, gap between scheduled syncs
+	OrgSyncEnabled       bool `json:"orgsync_enabled"`
+	OrgSyncIntervalHours int  `json:"orgsync_interval_hours"` // 1-168, gap between scheduled syncs
 	// 主管分组映射:开启后,部门主管自动加入 OrgSyncTargetGroup;卸任时恢复
 	// 到映射前分组。只动同步写入的分组,不覆盖管理员手动调整。
 	OrgSyncMapGroup    bool   `json:"orgsync_map_group"`

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
@@ -141,51 +140,8 @@ const dingTalkErrUserNotFound = 60121
 // disable or reject based on it, otherwise a DingTalk outage or permission
 // gap would lock out active employees.
 func (p *DingTalkProvider) CheckUserActive(ctx context.Context, unionId string) (bool, error) {
-	if unionId == "" {
-		return false, fmt.Errorf("empty unionId")
-	}
-	appToken, err := p.GetAppAccessToken(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	bodyBytes, err := common.Marshal(map[string]string{"unionid": unionId})
-	if err != nil {
-		return false, err
-	}
-	req, err := http.NewRequestWithContext(ctx, "POST",
-		"https://oapi.dingtalk.com/topapi/user/getbyunionid?access_token="+url.QueryEscape(appToken),
-		bytes.NewReader(bodyBytes))
-	if err != nil {
-		return false, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := http.Client{Timeout: 10 * time.Second}
-	res, err := client.Do(req)
-	if err != nil {
-		return false, err
-	}
-	defer res.Body.Close()
-
-	var resp struct {
-		ErrCode int    `json:"errcode"`
-		ErrMsg  string `json:"errmsg"`
-		Result  struct {
-			UserID string `json:"userid"`
-		} `json:"result"`
-	}
-	if err = common.DecodeJson(res.Body, &resp); err != nil {
-		return false, err
-	}
-	switch resp.ErrCode {
-	case 0:
-		return true, nil
-	case dingTalkErrUserNotFound:
-		return false, nil
-	default:
-		return false, fmt.Errorf("dingtalk getbyunionid errcode=%d errmsg=%s", resp.ErrCode, resp.ErrMsg)
-	}
+	_, active, err := p.GetUserIdByUnionId(ctx, unionId)
+	return active, err
 }
 
 func (p *DingTalkProvider) ExchangeToken(ctx context.Context, code string, c *gin.Context) (*OAuthToken, error) {

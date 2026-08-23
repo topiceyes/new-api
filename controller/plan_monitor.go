@@ -22,7 +22,8 @@ type planMonitorRequest struct {
 	ApiKey             string `json:"api_key"` // 编辑时留空表示不修改
 	RefreshIntervalMin int    `json:"refresh_interval_min"`
 	SortOrder          int    `json:"sort_order"`
-	AlertThreshold     int    `json:"alert_threshold"` // 用量告警阈值(百分比),0=不告警
+	AlertThreshold     int    `json:"alert_threshold"`      // 用量告警阈值(百分比),0=不告警
+	FailAlertThreshold *int   `json:"fail_alert_threshold"` // 连续失败告警次数,0=不告警;nil 表示新建默认 3
 	Enabled            bool   `json:"enabled"`
 	IsPublic           bool   `json:"is_public"`
 }
@@ -37,6 +38,9 @@ type planMonitorResponse struct {
 	RefreshIntervalMin int    `json:"refresh_interval_min"`
 	SortOrder          int    `json:"sort_order"`
 	AlertThreshold     int    `json:"alert_threshold"`
+	FailAlertThreshold int    `json:"fail_alert_threshold"`
+	FetchFailCount     int    `json:"fetch_fail_count"`
+	FailAlertSentAt    int64  `json:"fail_alert_sent_at"`
 	Enabled            bool   `json:"enabled"`
 	IsPublic           bool   `json:"is_public"`
 	CreatedTime        int64  `json:"created_time"`
@@ -55,6 +59,9 @@ func toPlanMonitorResponse(p *model.PlanMonitor) planMonitorResponse {
 		RefreshIntervalMin: p.RefreshIntervalMin,
 		SortOrder:          p.SortOrder,
 		AlertThreshold:     p.AlertThreshold,
+		FailAlertThreshold: p.FailAlertThreshold,
+		FetchFailCount:     p.FetchFailCount,
+		FailAlertSentAt:    p.FailAlertSentAt,
 		Enabled:            p.Enabled,
 		IsPublic:           p.IsPublic,
 		CreatedTime:        p.CreatedTime,
@@ -77,6 +84,9 @@ func validatePlanMonitorRequest(req *planMonitorRequest) string {
 	}
 	if req.AlertThreshold < 0 || req.AlertThreshold > 100 {
 		return "告警阈值必须在 0-100 之间(0 表示不告警)"
+	}
+	if req.FailAlertThreshold != nil && (*req.FailAlertThreshold < 0 || *req.FailAlertThreshold > 100) {
+		return "连续失败告警次数必须在 0-100 之间(0 表示不告警)"
 	}
 	return ""
 }
@@ -126,6 +136,11 @@ func AdminCreatePlanMonitor(c *gin.Context) {
 		Enabled:            req.Enabled,
 		IsPublic:           req.IsPublic,
 	}
+	// 新建默认连续失败告警 3 次;显式传 0 表示关闭。
+	plan.FailAlertThreshold = 3
+	if req.FailAlertThreshold != nil {
+		plan.FailAlertThreshold = *req.FailAlertThreshold
+	}
 	if err := model.CreatePlanMonitor(plan); err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "创建套餐失败: " + err.Error()})
 		return
@@ -160,6 +175,9 @@ func AdminUpdatePlanMonitor(c *gin.Context) {
 	existing.RefreshIntervalMin = req.RefreshIntervalMin
 	existing.SortOrder = req.SortOrder
 	existing.AlertThreshold = req.AlertThreshold
+	if req.FailAlertThreshold != nil {
+		existing.FailAlertThreshold = *req.FailAlertThreshold
+	}
 	existing.Enabled = req.Enabled
 	existing.IsPublic = req.IsPublic
 	// key 留空表示不修改
@@ -169,6 +187,12 @@ func AdminUpdatePlanMonitor(c *gin.Context) {
 	if err := model.UpdatePlanMonitor(existing); err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "更新套餐失败: " + err.Error()})
 		return
+	}
+	// 阈值被关闭(0)时清掉残留的失败计数/告警标记,避免列表页显示过期状态
+	if existing.FailAlertThreshold <= 0 {
+		if err := model.ClearPlanMonitorFailAlertState(existing.Id); err != nil {
+			common.SysError("plan monitor: clear fail alert state on threshold disable failed: " + err.Error())
+		}
 	}
 	common.ApiSuccess(c, gin.H{"plan": toPlanMonitorResponse(existing)})
 }

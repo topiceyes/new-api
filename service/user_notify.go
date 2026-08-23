@@ -48,11 +48,6 @@ func NotifyUpstreamModelUpdateWatchers(subject string, content string) {
 }
 
 func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data dto.Notify) error {
-	notifyType := userSetting.NotifyType
-	if notifyType == "" {
-		notifyType = dto.NotifyTypeEmail
-	}
-
 	// Check notification limit
 	canSend, err := CheckNotificationLimit(userId, data.Type)
 	if err != nil {
@@ -60,7 +55,15 @@ func NotifyUser(userId int, userEmail string, userSetting dto.UserSetting, data 
 		return err
 	}
 	if !canSend {
-		return fmt.Errorf("notification limit exceeded for user %d with type %s", userId, notifyType)
+		return fmt.Errorf("notification limit exceeded for user %d with type %s", userId, data.Type)
+	}
+	return dispatchUserNotify(userId, userEmail, userSetting, data)
+}
+
+func dispatchUserNotify(userId int, userEmail string, userSetting dto.UserSetting, data dto.Notify) error {
+	notifyType := userSetting.NotifyType
+	if notifyType == "" {
+		notifyType = dto.NotifyTypeEmail
 	}
 
 	switch notifyType {

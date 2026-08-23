@@ -17,18 +17,6 @@ type capturedNotify struct {
 	content    string
 }
 
-// stubNotifyRootUser 替换告警发送入口,返回捕获切片指针。
-func stubNotifyRootUser(t *testing.T) *[]capturedNotify {
-	t.Helper()
-	captured := &[]capturedNotify{}
-	original := notifyRootUser
-	notifyRootUser = func(notifyType, subject, content string) {
-		*captured = append(*captured, capturedNotify{notifyType: notifyType, subject: subject, content: content})
-	}
-	t.Cleanup(func() { notifyRootUser = original })
-	return captured
-}
-
 func fetchNow(t *testing.T, planId int64) {
 	t.Helper()
 	require.NoError(t, FetchOneNow(context.Background(), planId))
@@ -43,7 +31,7 @@ func TestUsageAlert_FiresOnceResetsAfterDrop(t *testing.T) {
 		},
 	}
 	registerFake(t, fake)
-	notifies := stubNotifyRootUser(t)
+	notifies := stubSendAdminAlert(t)
 
 	plan := seedPlan(t, db, "alert-test", 5, 0)
 	require.NoError(t, db.Model(plan).Update("alert_threshold", 90).Error)
@@ -81,7 +69,7 @@ func TestUsageAlert_DisabledThresholdNeverAlerts(t *testing.T) {
 		usages: []PeriodUsage{{Period: model.PlanPeriod5Hour, UsedPercent: 99}},
 	}
 	registerFake(t, fake)
-	notifies := stubNotifyRootUser(t)
+	notifies := stubSendAdminAlert(t)
 
 	// alert_threshold 默认 0 = 不告警
 	plan := seedPlan(t, db, "alert-disabled-test", 5, 0)
@@ -99,7 +87,7 @@ func TestSaveFetchSuccess_WritesHistoryAndPrunes(t *testing.T) {
 		usages: []PeriodUsage{{Period: model.PlanPeriodWeekly, UsedPercent: 60, RemainingPercent: 40}},
 	}
 	registerFake(t, fake)
-	stubNotifyRootUser(t)
+	stubSendAdminAlert(t)
 
 	plan := seedPlan(t, db, "history-test", 5, 0)
 	// 预置一条 31 天前的历史,应被清理

@@ -16,6 +16,12 @@ const (
 	// NotifyTypePlanUsageThreshold 套餐用量超阈值告警。实际使用的 type 会追加
 	// _<planId>_<period> 后缀,让每个套餐每个周期的告警独立计数限流。
 	NotifyTypePlanUsageThreshold = "plan_usage_threshold"
+	// NotifyTypePlanFetchFailed 套餐拉取连续失败告警。实际使用的 type 会追加
+	// _<planId> 后缀,让每个套餐的告警独立计数限流。
+	NotifyTypePlanFetchFailed = "plan_fetch_failed"
+	// NotifyTypePlanFetchRecovered 套餐拉取从连续失败中恢复通知。实际使用的 type 会追加
+	// _<planId> 后缀。
+	NotifyTypePlanFetchRecovered = "plan_fetch_recovered"
 )
 
 func NewNotify(t string, title string, content string, values []interface{}) Notify {

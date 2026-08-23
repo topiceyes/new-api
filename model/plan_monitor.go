@@ -17,12 +17,15 @@ type PlanMonitor struct {
 	RefreshIntervalMin int    `json:"refresh_interval_min" gorm:"default:5"`  // 刷新间隔(分钟)
 	SortOrder          int    `json:"sort_order" gorm:"default:0"`            // 排序权重,越小越靠前(分组顺序取组内最小值)
 	AlertThreshold     int    `json:"alert_threshold" gorm:"default:0"`       // 用量告警阈值(百分比),0=不告警
-	Enabled            bool   `json:"enabled"` // 是否启用监控(请求总会显式带值;不加 default tag,否则 Create 传 false 会被吞)
-	IsPublic           bool   `json:"is_public"` // 是否在用户端「套餐余量」页公开(零值 false 即默认不公开)
+	Enabled            bool   `json:"enabled"`                                // 是否启用监控(请求总会显式带值;不加 default tag,否则 Create 传 false 会被吞)
+	IsPublic           bool   `json:"is_public"`                              // 是否在用户端「套餐余量」页公开(零值 false 即默认不公开)
 	CreatedTime        int64  `json:"created_time" gorm:"bigint"`
 	UpdatedTime        int64  `json:"updated_time" gorm:"bigint"`
-	LastFetchTime      int64  `json:"last_fetch_time" gorm:"bigint"` // 最近一次成功拉取时间
-	LastError          string `json:"last_error" gorm:"type:text"`   // 最近一次拉取错误,成功时清空
+	LastFetchTime      int64  `json:"last_fetch_time" gorm:"bigint"`    // 最近一次成功拉取时间
+	LastError          string `json:"last_error" gorm:"type:text"`      // 最近一次拉取错误,成功时清空
+	FailAlertThreshold int    `json:"fail_alert_threshold"`             // 连续失败告警次数,0=关闭
+	FetchFailCount     int    `json:"fetch_fail_count"`                 // 当前连续失败次数
+	FailAlertSentAt    int64  `json:"fail_alert_sent_at" gorm:"bigint"` // 失败告警发送时间,0=未告警;恢复后清零
 
 	// usages 不建外键级联,查询时按 plan_id 关联
 	Usages []PlanMonitorUsage `json:"usages,omitempty" gorm:"-"`
@@ -98,6 +101,7 @@ func UpdatePlanMonitor(p *PlanMonitor) error {
 		"refresh_interval_min": p.RefreshIntervalMin,
 		"sort_order":           p.SortOrder,
 		"alert_threshold":      p.AlertThreshold,
+		"fail_alert_threshold": p.FailAlertThreshold,
 		"enabled":              p.Enabled,
 		"is_public":            p.IsPublic,
 		"updated_time":         p.UpdatedTime,
@@ -151,6 +155,71 @@ func RecordPlanMonitorFetchResult(id int64, fetchErr error) error {
 	} else {
 		updates["last_error"] = ""
 		updates["last_fetch_time"] = time.Now().Unix()
+	}
+	return DB.Model(&PlanMonitor{}).Where("id = ?", id).Updates(updates).Error
+}
+
+// ---------- 失败告警状态 ----------
+
+// IncrementPlanMonitorFetchFail 原子自增失败计数并记录错误,返回自增后的新计数。
+// 与 RecordPlanMonitorFetchResult 不同:此函数专门用于需要连续失败计数的场景。
+// 自增用 SQL 表达式保证并发不丢更新;返回值为更新后再读的近似值,
+// 并发下可能略偏大,但不影响正确性——发送权由 MarkPlanMonitorFailAlertSent 原子去抖。
+func IncrementPlanMonitorFetchFail(id int64, fetchErr error) (int, error) {
+	err := DB.Model(&PlanMonitor{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"fetch_fail_count": gorm.Expr("fetch_fail_count + 1"),
+		"last_error":       fetchErr.Error(),
+		"updated_time":     time.Now().Unix(),
+	}).Error
+	if err != nil {
+		return 0, err
+	}
+	var plan PlanMonitor
+	err = DB.Select("fetch_fail_count").Where("id = ?", id).First(&plan).Error
+	return plan.FetchFailCount, err
+}
+
+// MarkPlanMonitorFailAlertSent 条件置位:仅当 fail_alert_sent_at == 0 时才写入当前时间。
+// 返回 true 表示当前调用赢得了发送权(RowsAffected==1),可据此发通知。
+func MarkPlanMonitorFailAlertSent(id int64, now int64) (bool, error) {
+	updates := map[string]interface{}{
+		"fail_alert_sent_at": now,
+		"updated_time":       time.Now().Unix(),
+	}
+	res := DB.Model(&PlanMonitor{}).Where("id = ? AND fail_alert_sent_at = 0", id).Updates(updates)
+	if res.Error != nil {
+		return false, res.Error
+	}
+	return res.RowsAffected > 0, nil
+}
+
+// ResetPlanMonitorFailAlert 成功恢复时清零失败计数与告警状态。
+// 返回 wasAlerting=true 表示此前已经发过失败告警,调用方应补发一条"已恢复"通知。
+// 用条件 UPDATE 的 RowsAffected 原子判定 wasAlerting,避免并发恢复时重复发恢复通知。
+func ResetPlanMonitorFailAlert(id int64) (bool, error) {
+	updates := map[string]interface{}{
+		"fetch_fail_count":   0,
+		"fail_alert_sent_at": 0,
+		"updated_time":       time.Now().Unix(),
+	}
+	res := DB.Model(&PlanMonitor{}).Where("id = ? AND fail_alert_sent_at > 0", id).Updates(updates)
+	if res.Error != nil {
+		return false, res.Error
+	}
+	if res.RowsAffected > 0 {
+		return true, nil
+	}
+	// 未发过告警,只需清计数(若残留)
+	err := DB.Model(&PlanMonitor{}).Where("id = ? AND fetch_fail_count > 0", id).Updates(updates).Error
+	return false, err
+}
+
+// ClearPlanMonitorFailAlertState 告警阈值关闭或配置变更时清残留状态。
+func ClearPlanMonitorFailAlertState(id int64) error {
+	updates := map[string]interface{}{
+		"fetch_fail_count":   0,
+		"fail_alert_sent_at": 0,
+		"updated_time":       time.Now().Unix(),
 	}
 	return DB.Model(&PlanMonitor{}).Where("id = ?", id).Updates(updates).Error
 }

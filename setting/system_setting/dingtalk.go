@@ -10,6 +10,10 @@ type DingTalkSettings struct {
 	ClientId     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
 
+	// Message notifications via DingTalk work-notice (asyncsend_v2).
+	NotifyEnabled bool   `json:"notify_enabled"`
+	AgentId       string `json:"agent_id"` // 企业内部应用的 AgentId,纯数字
+
 	// Departed-employee patrol: independently configurable schedule for the
 	// daily audit that disables accounts of users who left the organization.
 	PatrolEnabled       bool   `json:"patrol_enabled"`
@@ -19,8 +23,8 @@ type DingTalkSettings struct {
 
 	// Org-structure sync: periodic snapshot of departments and members from
 	// the DingTalk address book, shown on the admin organization page.
-	OrgSyncEnabled       bool   `json:"orgsync_enabled"`
-	OrgSyncIntervalHours int    `json:"orgsync_interval_hours"` // 1-168, gap between scheduled syncs
+	OrgSyncEnabled       bool `json:"orgsync_enabled"`
+	OrgSyncIntervalHours int  `json:"orgsync_interval_hours"` // 1-168, gap between scheduled syncs
 	// 主管分组映射:开启后,部门主管自动加入 OrgSyncTargetGroup;卸任时恢复
 	// 到映射前分组。只动同步写入的分组,不覆盖管理员手动调整。
 	OrgSyncMapGroup    bool   `json:"orgsync_map_group"`
