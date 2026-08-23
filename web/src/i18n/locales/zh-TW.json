@@ -5371,6 +5371,7 @@
     "Your Feishu App Secret": "你的飛書 App Secret",
     "Your DingTalk CorpId": "你的釘釘 CorpId",
     "App ID": "App ID",
+    "App Secret": "App Secret",
     "Your Discord OAuth Client ID": "您的 Discord OAuth 用戶端 ID",
     "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
     "Your Discord OAuth Client Secret": "您的 Discord OAuth 用戶端密鑰",
@@ -5459,6 +5460,22 @@
     "During sync, supervisors (department leaders) bound to local accounts are moved into the target group, and restored when they are no longer supervisors": "同步時，已綁定本機帳號的主管（部門負責人）會被移入目標分組，不再擔任主管時恢復原分組",
     "Supervisor target group": "主管目標分組",
     "Select a user group": "選擇使用者分組",
-    "Only groups already defined in user group settings are accepted": "僅接受已在使用者分組設定中定義的分組"
+    "Only groups already defined in user group settings are accepted": "僅接受已在使用者分組設定中定義的分組",
+    "AgentId": "AgentId",
+    "DingTalk app AgentId": "釘釘應用 AgentId",
+    "Enable DingTalk Work Notifications": "啟用釘釘工作通知",
+    "Enable Feishu Message Notifications": "啟用飛書訊息通知",
+    "Failed to send test message": "測試訊息發送失敗",
+    "Message Notifications": "訊息通知",
+    "Required for work notifications; pure numeric value": "工作通知必填；純數字",
+    "Send Test Message": "發送測試訊息",
+    "Send plan usage alerts to root user via DingTalk work notice": "透過釘釘工作通知向 root 用戶發送套餐用量告警",
+    "Send plan usage alerts to root user via Feishu IM": "透過飛書 IM 向 root 用戶發送套餐用量告警",
+    "Test message sent": "測試訊息已發送",
+    "Test uses saved settings; save changes before testing": "測試使用已儲存的設定；請先儲存再測試",
+    "Fail Alert Threshold": "連續失敗告警次數",
+    "Fail alert threshold must be between 0 and 100": "連續失敗告警次數需在 0 到 100 之間",
+    "Notify root user after this many consecutive fetch failures; 0 means disabled": "連續拉取失敗達到該次數後通知 root 用戶；0 表示關閉",
+    "Some settings failed to save; please review and try again": "部分設定儲存失敗，請檢查後重試"
   }
 }

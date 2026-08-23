@@ -5371,6 +5371,7 @@
     "Your Feishu App Secret": "Feishu App Secret của bạn",
     "Your DingTalk CorpId": "CorpId DingTalk của bạn",
     "App ID": "App ID",
+    "App Secret": "App Secret",
     "Your Discord OAuth Client ID": "Discord OAuth Client ID của bạn",
     "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
     "Your Discord OAuth Client Secret": "Discord OAuth Client Secret của bạn",
@@ -5459,6 +5460,22 @@
     "During sync, supervisors (department leaders) bound to local accounts are moved into the target group, and restored when they are no longer supervisors": "Khi đồng bộ, người giám sát (trưởng phòng) đã liên kết tài khoản cục bộ sẽ được chuyển vào nhóm đích và được khôi phục khi không còn là người giám sát",
     "Supervisor target group": "Nhóm đích của người giám sát",
     "Select a user group": "Chọn nhóm người dùng",
-    "Only groups already defined in user group settings are accepted": "Chỉ chấp nhận nhóm đã được định nghĩa trong cài đặt nhóm người dùng"
+    "Only groups already defined in user group settings are accepted": "Chỉ chấp nhận nhóm đã được định nghĩa trong cài đặt nhóm người dùng",
+    "AgentId": "AgentId",
+    "DingTalk app AgentId": "AgentId ứng dụng DingTalk",
+    "Enable DingTalk Work Notifications": "Bật thông báo công việc DingTalk",
+    "Enable Feishu Message Notifications": "Bật thông báo tin nhắn Feishu",
+    "Failed to send test message": "Gửi tin nhắn thử thất bại",
+    "Message Notifications": "Thông báo tin nhắn",
+    "Required for work notifications; pure numeric value": "Bắt buộc cho thông báo công việc; chỉ gồm chữ số",
+    "Send Test Message": "Gửi tin nhắn thử",
+    "Send plan usage alerts to root user via DingTalk work notice": "Gửi cảnh báo sử dụng gói đến người dùng root qua thông báo công việc DingTalk",
+    "Send plan usage alerts to root user via Feishu IM": "Gửi cảnh báo sử dụng gói đến người dùng root qua Feishu IM",
+    "Test message sent": "Đã gửi tin nhắn thử",
+    "Test uses saved settings; save changes before testing": "Kiểm thử dùng cấu hình đã lưu; hãy lưu thay đổi trước khi thử",
+    "Fail Alert Threshold": "Ngưỡng cảnh báo thất bại liên tiếp",
+    "Fail alert threshold must be between 0 and 100": "Ngưỡng cảnh báo thất bại phải nằm trong khoảng 0 đến 100",
+    "Notify root user after this many consecutive fetch failures; 0 means disabled": "Thông báo cho người dùng root sau số lần lấy dữ liệu thất bại liên tiếp này; 0 nghĩa là tắt",
+    "Some settings failed to save; please review and try again": "Một số cài đặt không lưu được; vui lòng kiểm tra và thử lại"
   }
 }

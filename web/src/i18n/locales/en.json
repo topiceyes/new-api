@@ -5371,6 +5371,7 @@
     "Your Feishu App Secret": "Your Feishu App Secret",
     "Your DingTalk CorpId": "Your DingTalk CorpId",
     "App ID": "App ID",
+    "App Secret": "App Secret",
     "Your Discord OAuth Client ID": "Your Discord OAuth Client ID",
     "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
     "Your Discord OAuth Client Secret": "Your Discord OAuth Client Secret",
@@ -5459,6 +5460,22 @@
     "During sync, supervisors (department leaders) bound to local accounts are moved into the target group, and restored when they are no longer supervisors": "During sync, supervisors (department leaders) bound to local accounts are moved into the target group, and restored when they are no longer supervisors",
     "Supervisor target group": "Supervisor target group",
     "Select a user group": "Select a user group",
-    "Only groups already defined in user group settings are accepted": "Only groups already defined in user group settings are accepted"
+    "Only groups already defined in user group settings are accepted": "Only groups already defined in user group settings are accepted",
+    "AgentId": "AgentId",
+    "DingTalk app AgentId": "DingTalk app AgentId",
+    "Enable DingTalk Work Notifications": "Enable DingTalk Work Notifications",
+    "Enable Feishu Message Notifications": "Enable Feishu Message Notifications",
+    "Failed to send test message": "Failed to send test message",
+    "Message Notifications": "Message Notifications",
+    "Required for work notifications; pure numeric value": "Required for work notifications; pure numeric value",
+    "Send Test Message": "Send Test Message",
+    "Send plan usage alerts to root user via DingTalk work notice": "Send plan usage alerts to root user via DingTalk work notice",
+    "Send plan usage alerts to root user via Feishu IM": "Send plan usage alerts to root user via Feishu IM",
+    "Test message sent": "Test message sent",
+    "Test uses saved settings; save changes before testing": "Test uses saved settings; save changes before testing",
+    "Fail Alert Threshold": "Fail Alert Threshold",
+    "Fail alert threshold must be between 0 and 100": "Fail alert threshold must be between 0 and 100",
+    "Notify root user after this many consecutive fetch failures; 0 means disabled": "Notify root user after this many consecutive fetch failures; 0 means disabled",
+    "Some settings failed to save; please review and try again": "Some settings failed to save; please review and try again"
   }
 }

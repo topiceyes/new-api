@@ -18,6 +18,7 @@
   "Default RPM for New Users": "Default RPM for New Users",
   "Request Rate Limit (RPM)": "Request Rate Limit (RPM)",
   "App ID": "App ID",
+  "App Secret": "App Secret",
   "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
   "Your DingTalk OAuth Client Secret": "Your DingTalk OAuth Client Secret",
   "Add Plan": "Add Plan",
@@ -52,5 +53,6 @@
   "View Usage": "View Usage",
   "Leave blank to use the default": "Leave blank to use the default",
   "Smaller values appear first": "Smaller values appear first",
-  "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+  "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.",
+  "AgentId": "AgentId"
 }

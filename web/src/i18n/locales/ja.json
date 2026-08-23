@@ -5371,6 +5371,7 @@
     "Your Feishu App Secret": "あなたの Feishu App Secret",
     "Your DingTalk CorpId": "DingTalk の CorpId",
     "App ID": "App ID",
+    "App Secret": "App Secret",
     "Your Discord OAuth Client ID": "Discord OAuth クライアント ID",
     "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
     "Your Discord OAuth Client Secret": "Discord OAuth クライアント シークレット",
@@ -5459,6 +5460,22 @@
     "During sync, supervisors (department leaders) bound to local accounts are moved into the target group, and restored when they are no longer supervisors": "同期時に、ローカルアカウントにバインドされた上長（部門責任者）は対象グループに移動され、上長でなくなると元に戻ります",
     "Supervisor target group": "上長の対象グループ",
     "Select a user group": "ユーザーグループを選択",
-    "Only groups already defined in user group settings are accepted": "ユーザーグループ設定で定義済みのグループのみ受け付けます"
+    "Only groups already defined in user group settings are accepted": "ユーザーグループ設定で定義済みのグループのみ受け付けます",
+    "AgentId": "AgentId",
+    "DingTalk app AgentId": "DingTalk アプリの AgentId",
+    "Enable DingTalk Work Notifications": "DingTalk ワーク通知を有効化",
+    "Enable Feishu Message Notifications": "Feishu メッセージ通知を有効化",
+    "Failed to send test message": "テストメッセージの送信に失敗しました",
+    "Message Notifications": "メッセージ通知",
+    "Required for work notifications; pure numeric value": "ワーク通知に必須；数字のみ",
+    "Send Test Message": "テストメッセージを送信",
+    "Send plan usage alerts to root user via DingTalk work notice": "DingTalk ワーク通知で root ユーザーにプラン使用量アラートを送信",
+    "Send plan usage alerts to root user via Feishu IM": "Feishu IM で root ユーザーにプラン使用量アラートを送信",
+    "Test message sent": "テストメッセージを送信しました",
+    "Test uses saved settings; save changes before testing": "テストは保存済みの設定を使用します。テスト前に変更を保存してください",
+    "Fail Alert Threshold": "連続失敗アラート回数",
+    "Fail alert threshold must be between 0 and 100": "連続失敗アラート回数は 0 から 100 の間で指定してください",
+    "Notify root user after this many consecutive fetch failures; 0 means disabled": "連続してこの回数取得に失敗したら root ユーザーに通知；0 で無効",
+    "Some settings failed to save; please review and try again": "一部の設定を保存できませんでした。確認して再試行してください"
   }
 }

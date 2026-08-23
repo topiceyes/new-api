@@ -5371,6 +5371,7 @@
     "Your Feishu App Secret": "Ваш Feishu App Secret",
     "Your DingTalk CorpId": "Ваш CorpId DingTalk",
     "App ID": "App ID",
+    "App Secret": "App Secret",
     "Your Discord OAuth Client ID": "Ваш Discord OAuth Client ID",
     "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
     "Your Discord OAuth Client Secret": "Ваш Discord OAuth Client Secret",
@@ -5459,6 +5460,22 @@
     "During sync, supervisors (department leaders) bound to local accounts are moved into the target group, and restored when they are no longer supervisors": "При синхронизации руководители (начальники отделов), привязанные к локальным учётным записям, переносятся в целевую группу и возвращаются обратно, когда перестают быть руководителями",
     "Supervisor target group": "Целевая группа руководителей",
     "Select a user group": "Выберите группу пользователей",
-    "Only groups already defined in user group settings are accepted": "Принимаются только группы, уже определённые в настройках групп пользователей"
+    "Only groups already defined in user group settings are accepted": "Принимаются только группы, уже определённые в настройках групп пользователей",
+    "AgentId": "AgentId",
+    "DingTalk app AgentId": "AgentId приложения DingTalk",
+    "Enable DingTalk Work Notifications": "Включить рабочие уведомления DingTalk",
+    "Enable Feishu Message Notifications": "Включить уведомления Feishu",
+    "Failed to send test message": "Не удалось отправить тестовое сообщение",
+    "Message Notifications": "Уведомления сообщениями",
+    "Required for work notifications; pure numeric value": "Обязательно для рабочих уведомлений; только цифры",
+    "Send Test Message": "Отправить тестовое сообщение",
+    "Send plan usage alerts to root user via DingTalk work notice": "Отправлять оповещения об использовании плана пользователю root через рабочее уведомление DingTalk",
+    "Send plan usage alerts to root user via Feishu IM": "Отправлять оповещения об использовании плана пользователю root через Feishu IM",
+    "Test message sent": "Тестовое сообщение отправлено",
+    "Test uses saved settings; save changes before testing": "Тест использует сохранённые настройки; сохраните изменения перед тестом",
+    "Fail Alert Threshold": "Порог оповещений о сбоях",
+    "Fail alert threshold must be between 0 and 100": "Порог оповещений о сбоях должен быть от 0 до 100",
+    "Notify root user after this many consecutive fetch failures; 0 means disabled": "Уведомить пользователя root после такого числа последовательных сбоев загрузки; 0 — отключено",
+    "Some settings failed to save; please review and try again": "Не удалось сохранить некоторые настройки; проверьте и повторите попытку"
   }
 }

@@ -5371,6 +5371,7 @@
     "Your Feishu App Secret": "Votre App Secret Feishu",
     "Your DingTalk CorpId": "Votre CorpId DingTalk",
     "App ID": "App ID",
+    "App Secret": "App Secret",
     "Your Discord OAuth Client ID": "Votre ID client OAuth Discord",
     "Your DingTalk OAuth Client ID": "Your DingTalk OAuth Client ID",
     "Your Discord OAuth Client Secret": "Votre secret client OAuth Discord",
@@ -5459,6 +5460,22 @@
     "During sync, supervisors (department leaders) bound to local accounts are moved into the target group, and restored when they are no longer supervisors": "Lors de la synchronisation, les superviseurs (chefs de département) liés à des comptes locaux sont déplacés vers le groupe cible, puis restaurés lorsqu'ils ne sont plus superviseurs",
     "Supervisor target group": "Groupe cible des superviseurs",
     "Select a user group": "Sélectionner un groupe d'utilisateurs",
-    "Only groups already defined in user group settings are accepted": "Seuls les groupes déjà définis dans les paramètres de groupes d'utilisateurs sont acceptés"
+    "Only groups already defined in user group settings are accepted": "Seuls les groupes déjà définis dans les paramètres de groupes d'utilisateurs sont acceptés",
+    "AgentId": "AgentId",
+    "DingTalk app AgentId": "AgentId de l'application DingTalk",
+    "Enable DingTalk Work Notifications": "Activer les notifications de travail DingTalk",
+    "Enable Feishu Message Notifications": "Activer les notifications de messages Feishu",
+    "Failed to send test message": "Échec de l'envoi du message de test",
+    "Message Notifications": "Notifications de messages",
+    "Required for work notifications; pure numeric value": "Requis pour les notifications de travail ; valeur purement numérique",
+    "Send Test Message": "Envoyer un message de test",
+    "Send plan usage alerts to root user via DingTalk work notice": "Envoyer les alertes d'utilisation des forfaits à l'utilisateur root via une notification de travail DingTalk",
+    "Send plan usage alerts to root user via Feishu IM": "Envoyer les alertes d'utilisation des forfaits à l'utilisateur root via Feishu IM",
+    "Test message sent": "Message de test envoyé",
+    "Test uses saved settings; save changes before testing": "Le test utilise les paramètres enregistrés ; enregistrez les modifications avant de tester",
+    "Fail Alert Threshold": "Seuil d'alerte d'échecs consécutifs",
+    "Fail alert threshold must be between 0 and 100": "Le seuil d'alerte d'échecs doit être compris entre 0 et 100",
+    "Notify root user after this many consecutive fetch failures; 0 means disabled": "Notifier l'utilisateur root après ce nombre d'échecs de récupération consécutifs ; 0 désactive",
+    "Some settings failed to save; please review and try again": "Certains paramètres n'ont pas pu être enregistrés ; veuillez vérifier et réessayer"
   }
 }

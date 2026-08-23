@@ -2,5 +2,6 @@
   "User-Agent": "User-Agent",
   "AppKey": "AppKey",
   "AppSecret": "AppSecret",
-  "CorpId": "CorpId"
+  "CorpId": "CorpId",
+  "AgentId": "AgentId"
 }
