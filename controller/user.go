@@ -521,6 +521,8 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"oidc_id":           user.OidcId,
 		"wechat_id":         user.WeChatId,
 		"telegram_id":       user.TelegramId,
+		"dingtalk_id":       user.DingTalkId,
+		"feishu_id":         user.FeishuId,
 		"group":             user.Group,
 		"quota":             user.Quota,
 		"used_quota":        user.UsedQuota,

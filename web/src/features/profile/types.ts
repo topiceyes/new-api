@@ -81,6 +81,10 @@ export interface UserProfile {
   telegram_id?: string
   /** LinuxDO ID (OAuth) */
   linux_do_id?: string
+  /** DingTalk unionId (OAuth) */
+  dingtalk_id?: string
+  /** Feishu union_id (OAuth) */
+  feishu_id?: string
 }
 
 /**

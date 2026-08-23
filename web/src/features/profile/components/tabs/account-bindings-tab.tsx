@@ -27,7 +27,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { createOAuthFlow } from '@/features/auth/api'
+import { createOAuthFlow, fetchDingTalkAuthUrl } from '@/features/auth/api'
 import {
   OAUTH_BIND_CALLBACK_MESSAGE,
   OAUTH_BIND_RESULT_MESSAGE,
@@ -43,6 +43,7 @@ import { useStatus } from '@/hooks/use-status'
 import { api } from '@/lib/api'
 import {
   buildDiscordOAuthUrl,
+  buildFeishuOAuthUrl,
   buildGitHubOAuthUrl,
   indexCustomOAuthBindings,
   buildLinuxDOOAuthUrl,
@@ -156,7 +157,10 @@ export function AccountBindingsTab({
   }
 
   const startOAuthBinding = useCallback(
-    async (provider: string, buildUrl: (state: string) => string) => {
+    async (
+      provider: string,
+      buildUrl: (state: string) => string | Promise<string>
+    ) => {
       const previous = pendingOAuthBinding.current
       if (previous) {
         clearPendingOAuthBinding(previous)
@@ -191,7 +195,9 @@ export function AccountBindingsTab({
           throw new Error('OAuth bind popup storage is unavailable')
         }
         pending.state = state
-        popup.location.replace(buildUrl(state))
+        const url = await buildUrl(state)
+        if (pendingOAuthBinding.current !== pending || popup.closed) return
+        popup.location.replace(url)
       } catch {
         const isCurrent = pendingOAuthBinding.current === pending
         clearPendingOAuthBinding(pending)
@@ -407,6 +413,36 @@ export function AccountBindingsTab({
           if (clientId) {
             void startOAuthBinding('linuxdo', (state) =>
               buildLinuxDOOAuthUrl(clientId, state)
+            )
+          }
+        },
+      },
+      {
+        id: 'dingtalk',
+        label: t('DingTalk'),
+        icon: Link2,
+        value: profile?.dingtalk_id,
+        isBound: Boolean(profile?.dingtalk_id),
+        isEnabled: status?.dingtalk_oauth || false,
+        onBind: () => {
+          void startOAuthBinding('dingtalk', async (state) => {
+            const redirectUri = `${window.location.origin}/oauth/dingtalk`
+            return fetchDingTalkAuthUrl(redirectUri, state)
+          })
+        },
+      },
+      {
+        id: 'feishu',
+        label: t('Feishu'),
+        icon: Link2,
+        value: profile?.feishu_id,
+        isBound: Boolean(profile?.feishu_id),
+        isEnabled: status?.feishu_oauth || false,
+        onBind: () => {
+          const appId = status?.feishu_app_id
+          if (appId) {
+            void startOAuthBinding('feishu', (state) =>
+              buildFeishuOAuthUrl(appId, state)
             )
           }
         },
