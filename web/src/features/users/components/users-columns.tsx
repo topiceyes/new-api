@@ -93,7 +93,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
         return (
           <div className='flex min-w-[80px] flex-col gap-1'>
             <div className='flex items-center gap-2'>
-              <LongText className='max-w-[70px] font-medium'>
+              <LongText className='max-w-[160px] font-medium'>
                 {username}
               </LongText>
               {remark && (
@@ -101,7 +101,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
                   <TooltipTrigger
                     render={<StatusBadge variant='success' copyable={false} />}
                   >
-                    <LongText className='max-w-[40px]'>{remark}</LongText>
+                    <LongText className='max-w-[60px]'>{remark}</LongText>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className='text-xs'>{remark}</p>
@@ -110,7 +110,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
               )}
             </div>
             {displayName && displayName !== username && (
-              <LongText className='text-muted-foreground max-w-[90px] text-xs'>
+              <LongText className='text-muted-foreground max-w-[180px] text-xs'>
                 {displayName}
               </LongText>
             )}
@@ -118,7 +118,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
         )
       },
       enableHiding: false,
-      size: 110,
+      size: 220,
       meta: { mobileTitle: true },
     },
     {
@@ -174,7 +174,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     },
     {
       id: 'rate_limit_rpm',
-      header: t('RPM'),
+      header: () => <div className='w-full text-center'>{t('RPM')}</div>,
       cell: ({ row }) => {
         // rate_limit_rpm lives in the setting JSON, not a top-level column.
         let rpm = 0
@@ -190,9 +190,11 @@ export function useUsersColumns(): ColumnDef<User>[] {
           // Unparseable setting: show as unlimited rather than failing the row.
         }
         return (
-          <span className='text-muted-foreground text-sm'>
-            {rpm > 0 ? rpm : '-'}
-          </span>
+          <div className='flex justify-center'>
+            <span className='text-muted-foreground text-sm'>
+              {rpm > 0 ? rpm : '-'}
+            </span>
+          </div>
         )
       },
       enableSorting: false,
@@ -242,7 +244,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
         return value.includes(String(row.getValue(id)))
       },
       enableSorting: false,
-      size: 120,
+      size: 72,
       meta: { mobileOrder: 20 },
     },
     {
