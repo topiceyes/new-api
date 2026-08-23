@@ -43,7 +43,10 @@ export function useUpdateOption() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (request: UpdateOptionRequest) => updateSystemOption(request),
+    // skipBusinessError: this hook toasts failures itself; without the flag the
+    // response interceptor would show a second, duplicate error toast.
+    mutationFn: (request: UpdateOptionRequest) =>
+      updateSystemOption(request, true),
     onSuccess: (data, variables) => {
       if (data.success) {
         // Always refresh system-options

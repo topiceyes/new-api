@@ -39,6 +39,12 @@ export type UpdateOptionResponse = {
   message: string
 }
 
+export type NotifyTestResponse = {
+  success: boolean
+  message: string
+  data?: { message?: string }
+}
+
 export type DingTalkPatrolMode = 'daily' | 'interval'
 
 export type DingTalkLeaveCheckResult = {
@@ -175,6 +181,8 @@ export type AuthSettings = {
   'dingtalk.app_key': string
   'dingtalk.app_secret': string
   'dingtalk.corp_id': string
+  'dingtalk.notify_enabled': boolean
+  'dingtalk.agent_id': string
   'dingtalk.patrol_enabled': boolean
   'dingtalk.patrol_mode': DingTalkPatrolMode
   'dingtalk.patrol_hour': number
@@ -186,6 +194,7 @@ export type AuthSettings = {
   'feishu.enabled': boolean
   'feishu.app_id': string
   'feishu.app_secret': string
+  'feishu.notify_enabled': boolean
   'feishu.patrol_enabled': boolean
   'feishu.patrol_mode': FeishuPatrolMode
   'feishu.patrol_hour': number

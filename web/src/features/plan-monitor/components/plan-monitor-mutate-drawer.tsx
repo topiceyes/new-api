@@ -82,6 +82,7 @@ interface PlanMonitorFormValues {
   refresh_interval_min: number
   sort_order: number
   alert_threshold: number
+  fail_alert_threshold: number
   enabled: boolean
   is_public: boolean
 }
@@ -113,6 +114,11 @@ export function PlanMonitorMutateDrawer({
       .int()
       .min(0, t('Alert threshold must be between 0 and 100'))
       .max(100, t('Alert threshold must be between 0 and 100')),
+    fail_alert_threshold: z.coerce
+      .number()
+      .int()
+      .min(0, t('Fail alert threshold must be between 0 and 100'))
+      .max(100, t('Fail alert threshold must be between 0 and 100')),
     enabled: z.boolean(),
     is_public: z.boolean(),
   })
@@ -127,6 +133,7 @@ export function PlanMonitorMutateDrawer({
       refresh_interval_min: 5,
       sort_order: 0,
       alert_threshold: 90,
+      fail_alert_threshold: 3,
       enabled: true,
       is_public: false,
     },
@@ -144,6 +151,7 @@ export function PlanMonitorMutateDrawer({
         refresh_interval_min: currentRow.refresh_interval_min || 5,
         sort_order: currentRow.sort_order || 0,
         alert_threshold: currentRow.alert_threshold ?? 0,
+        fail_alert_threshold: currentRow.fail_alert_threshold ?? 0,
         enabled: currentRow.enabled,
         is_public: currentRow.is_public,
       })
@@ -156,6 +164,7 @@ export function PlanMonitorMutateDrawer({
         refresh_interval_min: 5,
         sort_order: 0,
         alert_threshold: 90,
+        fail_alert_threshold: 3,
         enabled: true,
         is_public: false,
       })
@@ -179,6 +188,7 @@ export function PlanMonitorMutateDrawer({
         refresh_interval_min: Number(values.refresh_interval_min || 5),
         sort_order: Number(values.sort_order || 0),
         alert_threshold: Number(values.alert_threshold || 0),
+        fail_alert_threshold: Number(values.fail_alert_threshold ?? 3),
         enabled: values.enabled,
         is_public: values.is_public,
       }
@@ -414,6 +424,35 @@ export function PlanMonitorMutateDrawer({
                     <FormDescription>
                       {t(
                         'Notify root user when used percentage reaches this threshold; 0 means disabled'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='fail_alert_threshold'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Fail Alert Threshold')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type='number'
+                        min={0}
+                        max={100}
+                        onChange={(e) =>
+                          field.onChange(
+                            Number.parseInt(e.target.value, 10) || 0
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Notify root user after this many consecutive fetch failures; 0 means disabled'
                       )}
                     </FormDescription>
                     <FormMessage />

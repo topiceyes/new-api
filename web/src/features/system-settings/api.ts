@@ -24,6 +24,7 @@ import type {
   FeishuLeaveCheckResponse,
   FetchUpstreamRatiosRequest,
   LogCleanupTask,
+  NotifyTestResponse,
   SystemOptionsResponse,
   SystemTaskListResponse,
   SystemTaskResponse,
@@ -38,8 +39,13 @@ export async function getSystemOptions() {
   return res.data
 }
 
-export async function updateSystemOption(request: UpdateOptionRequest) {
-  const res = await api.put<UpdateOptionResponse>('/api/option/', request)
+export async function updateSystemOption(
+  request: UpdateOptionRequest,
+  skipBusinessError = false
+) {
+  const res = await api.put<UpdateOptionResponse>('/api/option/', request, {
+    skipBusinessError,
+  })
   return res.data
 }
 
@@ -119,5 +125,15 @@ export async function fetchUpstreamRatios(request: FetchUpstreamRatiosRequest) {
     '/api/ratio_sync/fetch',
     request
   )
+  return res.data
+}
+
+export async function testDingTalkNotify() {
+  const res = await api.post<NotifyTestResponse>('/api/dingtalk/notify/test')
+  return res.data
+}
+
+export async function testFeishuNotify() {
+  const res = await api.post<NotifyTestResponse>('/api/feishu/notify/test')
   return res.data
 }

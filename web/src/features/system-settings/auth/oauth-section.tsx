@@ -51,7 +51,9 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
 import { DingTalkPatrolBlock } from './dingtalk-patrol'
+import { DingTalkNotifyBlock } from './dingtalk-notify'
 import { FeishuPatrolBlock } from './feishu-patrol'
+import { FeishuNotifyBlock } from './feishu-notify'
 import {
   buildOAuthCallbackUrl,
   resolveOAuthSiteUrl,
@@ -88,6 +90,8 @@ const oauthSchema = z.object({
     app_key: z.string(),
     app_secret: z.string(),
     corp_id: z.string(),
+    notify_enabled: z.boolean(),
+    agent_id: z.string(),
     patrol_enabled: z.boolean(),
     patrol_mode: z.enum(['daily', 'interval']),
     patrol_hour: z.number().int().min(0).max(23),
@@ -101,6 +105,7 @@ const oauthSchema = z.object({
     enabled: z.boolean(),
     app_id: z.string(),
     app_secret: z.string(),
+    notify_enabled: z.boolean(),
     patrol_enabled: z.boolean(),
     patrol_mode: z.enum(['daily', 'interval']),
     patrol_hour: z.number().int().min(0).max(23),
@@ -146,6 +151,8 @@ type FlatOAuthDefaults = {
   'dingtalk.app_key': string
   'dingtalk.app_secret': string
   'dingtalk.corp_id': string
+  'dingtalk.notify_enabled': boolean
+  'dingtalk.agent_id': string
   'dingtalk.patrol_enabled': boolean
   'dingtalk.patrol_mode': 'daily' | 'interval'
   'dingtalk.patrol_hour': number
@@ -157,6 +164,7 @@ type FlatOAuthDefaults = {
   'feishu.enabled': boolean
   'feishu.app_id': string
   'feishu.app_secret': string
+  'feishu.notify_enabled': boolean
   'feishu.patrol_enabled': boolean
   'feishu.patrol_mode': 'daily' | 'interval'
   'feishu.patrol_hour': number
@@ -254,6 +262,8 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     app_key: defaults['dingtalk.app_key'] ?? '',
     app_secret: defaults['dingtalk.app_secret'] ?? '',
     corp_id: defaults['dingtalk.corp_id'] ?? '',
+    notify_enabled: defaults['dingtalk.notify_enabled'],
+    agent_id: defaults['dingtalk.agent_id'] ?? '',
     patrol_enabled: defaults['dingtalk.patrol_enabled'],
     patrol_mode: defaults['dingtalk.patrol_mode'] ?? 'daily',
     patrol_hour: defaults['dingtalk.patrol_hour'] ?? 3,
@@ -267,6 +277,7 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
     enabled: defaults['feishu.enabled'],
     app_id: defaults['feishu.app_id'] ?? '',
     app_secret: defaults['feishu.app_secret'] ?? '',
+    notify_enabled: defaults['feishu.notify_enabled'],
     patrol_enabled: defaults['feishu.patrol_enabled'],
     patrol_mode: defaults['feishu.patrol_mode'] ?? 'daily',
     patrol_hour: defaults['feishu.patrol_hour'] ?? 3,
@@ -308,6 +319,10 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   'dingtalk.app_key': values.dingtalk.app_key,
   'dingtalk.app_secret': values.dingtalk.app_secret,
   'dingtalk.corp_id': values.dingtalk.corp_id,
+  // agent_id must precede notify_enabled: the backend validates
+  // notify_enabled against the already-saved AgentId.
+  'dingtalk.agent_id': values.dingtalk.agent_id,
+  'dingtalk.notify_enabled': values.dingtalk.notify_enabled,
   'dingtalk.patrol_enabled': values.dingtalk.patrol_enabled,
   'dingtalk.patrol_mode': values.dingtalk.patrol_mode,
   'dingtalk.patrol_hour': values.dingtalk.patrol_hour,
@@ -319,6 +334,7 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   'feishu.enabled': values.feishu.enabled,
   'feishu.app_id': values.feishu.app_id,
   'feishu.app_secret': values.feishu.app_secret,
+  'feishu.notify_enabled': values.feishu.notify_enabled,
   'feishu.patrol_enabled': values.feishu.patrol_enabled,
   'feishu.patrol_mode': values.feishu.patrol_mode,
   'feishu.patrol_hour': values.feishu.patrol_hour,
@@ -460,16 +476,53 @@ export function OAuthSection(props: OAuthSectionProps) {
       return
     }
 
-    for (const key of changedKeys) {
-      await updateOption.mutateAsync({
-        key,
-        value: normalized[key],
-      })
+    // The backend validates switches against already-saved values, so order
+    // matters: closing switches first (frees dependencies like mutual-exclusion
+    // checks), then plain values (credentials the switches depend on), then
+    // opening switches last.
+    const sortRank = (key: keyof FlatOAuthDefaults) => {
+      const value = normalized[key]
+      if (value === false) return 0
+      if (value === true) return 2
+      return 1
+    }
+    const orderedKeys = [...changedKeys].sort(
+      (a, b) => sortRank(a) - sortRank(b)
+    )
+
+    const failedKeys = new Set<string>()
+    for (const key of orderedKeys) {
+      try {
+        const res = await updateOption.mutateAsync({
+          key,
+          value: normalized[key],
+        })
+        if (!res.success) failedKeys.add(key)
+      } catch {
+        // Network/auth failure: stop the batch, but still advance the
+        // baseline for keys that already saved below.
+        failedKeys.add(key)
+        orderedKeys.slice(orderedKeys.indexOf(key) + 1).forEach((k) => failedKeys.add(k))
+        break
+      }
+    }
+    if (failedKeys.size > 0) {
+      toast.error(
+        t('Some settings failed to save; please review and try again')
+      )
     }
 
-    baselineRef.current = normalized
-    baselineSerializedRef.current = JSON.stringify(normalized)
-    form.reset(buildFormDefaults(normalized))
+    // Only advance the baseline for keys that were actually saved;
+    // failed keys stay dirty so the form reflects the server state.
+    const savedBaseline = { ...baselineRef.current }
+    for (const key of changedKeys) {
+      if (!failedKeys.has(key)) {
+        ;(savedBaseline as Record<string, unknown>)[key] = normalized[key]
+      }
+    }
+    baselineRef.current = savedBaseline
+    baselineSerializedRef.current = JSON.stringify(savedBaseline)
+    form.reset(buildFormDefaults(savedBaseline))
   }
 
   const handleReset = () => {
@@ -1333,6 +1386,8 @@ export function OAuthSection(props: OAuthSectionProps) {
 
                 <DingTalkPatrolBlock form={form} />
 
+                <DingTalkNotifyBlock form={form} />
+
                 <OrgSyncBlock form={form} provider='dingtalk' />
               </TabsContent>
 
@@ -1427,6 +1482,8 @@ export function OAuthSection(props: OAuthSectionProps) {
                 />
 
                 <FeishuPatrolBlock form={form} />
+
+                <FeishuNotifyBlock form={form} />
 
                 <OrgSyncBlock form={form} provider='feishu' />
               </TabsContent>

@@ -35,6 +35,9 @@ export interface PlanMonitorPlan {
   refresh_interval_min: number
   sort_order: number // 排序权重,越小越靠前
   alert_threshold: number // 用量告警阈值(百分比),0=不告警
+  fail_alert_threshold: number // 连续失败告警次数,0=不告警
+  fetch_fail_count: number // 当前连续失败次数
+  fail_alert_sent_at: number // 失败告警发送时间,0=未告警
   enabled: boolean
   is_public: boolean // 是否在用户端「套餐余量」页公开
   created_time: number
@@ -60,6 +63,7 @@ export interface PlanMonitorPayload {
   refresh_interval_min: number
   sort_order: number
   alert_threshold: number
+  fail_alert_threshold: number
   enabled: boolean
   is_public: boolean
 }
