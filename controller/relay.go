@@ -552,7 +552,13 @@ func RelayTask(c *gin.Context) {
 				if statusCode < 400 || statusCode > 599 {
 					statusCode = http.StatusInternalServerError
 				}
-				taskErr = service.TaskErrorWrapperLocal(channelErr.Err, "get_channel_failed", statusCode)
+				// 有具体错误码(如粘性绑定 busy)时透传,respondTaskError 才能
+				// 区分"渠道 key 占满"与"负载饱和"。
+				code := "get_channel_failed"
+				if ec := channelErr.GetErrorCode(); ec != "" {
+					code = string(ec)
+				}
+				taskErr = service.TaskErrorWrapperLocal(channelErr.Err, code, statusCode)
 				break
 			}
 		}
@@ -630,7 +636,7 @@ func RelayTask(c *gin.Context) {
 func respondTaskError(c *gin.Context, taskErr *taskdto.TaskError) {
 	// 粘性绑定 busy 拒绝的 429 有明确原因文案,不改写成"负载饱和"误导排障。
 	if taskErr.StatusCode == http.StatusTooManyRequests &&
-		taskErr.Code != "channel:sticky_key_busy" {
+		taskErr.Code != string(types.ErrorCodeChannelStickyKeyBusy) {
 		taskErr.Message = "当前分组上游负载已饱和，请稍后再试"
 	}
 	c.JSON(taskErr.StatusCode, taskErr)

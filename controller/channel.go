@@ -742,6 +742,9 @@ func DeleteChannel(c *gin.Context) {
 		return
 	}
 	model.InitChannelCache()
+	// 清掉该渠道的粘性绑定:绑定按渠道 id 存,而数据库会复用被删行的主键,
+	// 不清理的话新建的同 id 渠道会继承残留绑定、占满 key 槽。
+	service.ClearChannelStickyBindings(id)
 	if channelLookupFailed {
 		service.ResetProxyClientCache()
 	} else {
@@ -924,6 +927,10 @@ func DeleteChannelBatch(c *gin.Context) {
 		return
 	}
 	model.InitChannelCache()
+	for _, id := range channelBatch.Ids {
+		// 同 DeleteChannel:清理粘性绑定,防主键复用后新渠道继承残留绑定。
+		service.ClearChannelStickyBindings(id)
+	}
 	if deletedCount > 0 {
 		service.ResetProxyClientCache()
 	}
@@ -1102,8 +1109,8 @@ func UpdateChannel(c *gin.Context) {
 	model.InitChannelCache()
 	// 多 Key 渠道 key 列表整体替换(replace/直接带新 key)会重排下标,粘性绑定
 	// 存的下标已指向别的物理 key,与 delete_key 同理需要清空重绑。
-	// append 模式只在尾部追加、不重排,无需清。
-	if channel.ChannelInfo.IsMultiKey && channel.Key != originChannel.Key &&
+	// append 模式只在尾部追加、不重排;请求不带 key(Key=="")是无关编辑,都不清。
+	if channel.ChannelInfo.IsMultiKey && channel.Key != "" && channel.Key != originChannel.Key &&
 		(channel.KeyMode == nil || *channel.KeyMode != "append") {
 		service.ClearChannelStickyBindings(channel.Id)
 	}
@@ -1987,6 +1994,8 @@ func ManageMultiKeys(c *gin.Context) {
 		}
 
 		model.InitChannelCache()
+		// 与 delete_key 同理:批量删除后剩余 key 重排下标,清空粘性绑定重绑。
+		service.ClearChannelStickyBindings(channel.Id)
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": fmt.Sprintf("已删除 %d 个自动禁用的密钥", deletedCount),
