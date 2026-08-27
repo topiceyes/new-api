@@ -1473,11 +1473,26 @@ func CopyChannel(c *gin.Context) {
 // MultiKeyManageRequest represents the request for multi-key management operations
 type MultiKeyManageRequest struct {
 	ChannelId int    `json:"channel_id"`
-	Action    string `json:"action"`              // "disable_key", "enable_key", "delete_key", "delete_disabled_keys", "get_key_status"
+	Action    string `json:"action"`              // "disable_key", "enable_key", "delete_key", "delete_disabled_keys", "get_key_status", "get_sticky_bindings", "release_sticky_binding"
 	KeyIndex  *int   `json:"key_index,omitempty"` // for disable_key, enable_key, and delete_key actions
+	TokenId   int    `json:"token_id,omitempty"`  // for release_sticky_binding action
 	Page      int    `json:"page,omitempty"`      // for get_key_status pagination
 	PageSize  int    `json:"page_size,omitempty"` // for get_key_status pagination
 	Status    *int   `json:"status,omitempty"`    // for get_key_status filtering: 1=enabled, 2=manual_disabled, 3=auto_disabled, nil=all
+}
+
+// StickyBindingItem 粘性绑定列表单条(含令牌/用户名与 key 预览,供管理端展示)。
+type StickyBindingItem struct {
+	TokenId      int    `json:"token_id"`
+	TokenName    string `json:"token_name"`
+	UserId       int    `json:"user_id"`
+	Username     string `json:"username"`
+	KeyIndex     int    `json:"key_index"`
+	KeyPreview   string `json:"key_preview"`
+	KeyStatus    int    `json:"key_status"`
+	Exclusive    bool   `json:"exclusive"`
+	IdleSeconds  int    `json:"idle_seconds"`
+	TtlRemaining int    `json:"ttl_remaining_seconds"`
 }
 
 // MultiKeyStatusResponse represents the response for key status query
@@ -1532,14 +1547,18 @@ func ManageMultiKeys(c *gin.Context) {
 		return
 	}
 
-	// get_key_status 为只读查询，不记录审计；其余为修改操作，记录审计并跳过中间件兜底。
-	if request.Action == "get_key_status" {
+	// get_key_status / get_sticky_bindings 为只读查询，不记录审计；其余为修改操作，记录审计并跳过中间件兜底。
+	if request.Action == "get_key_status" || request.Action == "get_sticky_bindings" {
 		markAuditLogged(c)
 	} else {
-		recordManageAudit(c, "channel.multi_key_manage", map[string]interface{}{
+		auditPayload := map[string]interface{}{
 			"action": request.Action,
 			"id":     channel.Id,
-		})
+		}
+		if request.TokenId != 0 {
+			auditPayload["token_id"] = request.TokenId
+		}
+		recordManageAudit(c, "channel.multi_key_manage", auditPayload)
 	}
 
 	lock := model.GetChannelPollingLock(channel.Id)
@@ -1963,6 +1982,76 @@ func ManageMultiKeys(c *gin.Context) {
 			"success": true,
 			"message": fmt.Sprintf("已删除 %d 个自动禁用的密钥", deletedCount),
 			"data":    deletedCount,
+		})
+		return
+
+	case "get_sticky_bindings":
+		setting := channel.GetSetting()
+		if !setting.StickyTokenKeyBinding {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "该渠道未开启令牌粘性 Key 绑定",
+			})
+			return
+		}
+		bindings := service.ListChannelStickyBindings(channel.Id, setting.StickyKeyIdleMinutes)
+		keys := channel.GetKeys()
+		items := make([]StickyBindingItem, 0, len(bindings))
+		for _, b := range bindings {
+			item := StickyBindingItem{
+				TokenId:      b.TokenId,
+				UserId:       -1,
+				KeyIndex:     b.KeyIndex,
+				KeyStatus:    1,
+				Exclusive:    b.Exclusive,
+				IdleSeconds:  b.IdleSeconds,
+				TtlRemaining: b.TtlRemaining,
+			}
+			if token, err := model.GetTokenById(b.TokenId); err == nil && token != nil {
+				item.TokenName = token.Name
+				item.UserId = token.UserId
+				if username, err := model.GetUsernameById(token.UserId, false); err == nil {
+					item.Username = username
+				}
+			}
+			if item.TokenName == "" {
+				item.TokenName = fmt.Sprintf("#%d", b.TokenId)
+			}
+			if b.KeyIndex >= 0 && b.KeyIndex < len(keys) {
+				key := keys[b.KeyIndex]
+				if len(key) > 10 {
+					item.KeyPreview = key[:10] + "..."
+				} else {
+					item.KeyPreview = key
+				}
+			}
+			if status, ok := channel.ChannelInfo.MultiKeyStatusList[b.KeyIndex]; ok {
+				item.KeyStatus = status
+			}
+			items = append(items, item)
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"bindings":       items,
+				"idle_minutes":   setting.StickyKeyIdleMinutes,
+				"exhaust_policy": setting.StickyKeyExhaustPolicy,
+			},
+		})
+		return
+
+	case "release_sticky_binding":
+		if request.TokenId == 0 {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "缺少 token_id",
+			})
+			return
+		}
+		service.ReleaseChannelStickyBinding(channel.Id, request.TokenId)
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"message": "已解绑",
 		})
 		return
 
