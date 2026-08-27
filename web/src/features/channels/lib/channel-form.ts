@@ -289,6 +289,7 @@ export const channelFormSchema = z
     rate_limit_rpm: z.number().int().min(0).optional(),
     user_agent: z.string().optional(),
     header_preset: z.string().optional(),
+    suppress_stream_options: z.boolean().optional(),
     sticky_token_key_binding: z.boolean().optional(),
     sticky_key_idle_minutes: z.coerce.number().int().min(1).max(1440).optional(),
     sticky_key_exhaust_policy: z.enum(['busy', 'share']).optional(),
@@ -471,6 +472,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   rate_limit_rpm: 0,
   user_agent: '',
   header_preset: '',
+  suppress_stream_options: false,
   sticky_token_key_binding: false,
   sticky_key_idle_minutes: 10,
   sticky_key_exhaust_policy: 'busy',
@@ -520,6 +522,7 @@ export function transformChannelToFormDefaults(
     rate_limit_rpm: 0,
     user_agent: '',
     header_preset: '',
+    suppress_stream_options: false,
     sticky_token_key_binding: false,
     sticky_key_idle_minutes: 10,
     sticky_key_exhaust_policy: 'busy' as 'busy' | 'share',
@@ -548,6 +551,7 @@ export function transformChannelToFormDefaults(
           typeof parsed.user_agent === 'string' ? parsed.user_agent : '',
         header_preset:
           typeof parsed.header_preset === 'string' ? parsed.header_preset : '',
+        suppress_stream_options: parsed.suppress_stream_options || false,
         sticky_token_key_binding: parsed.sticky_token_key_binding || false,
         sticky_key_idle_minutes: Number.isInteger(
           parsed.sticky_key_idle_minutes
@@ -736,6 +740,10 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
   const headerPreset = formData.header_preset?.trim()
   if (headerPreset) {
     settingObj.header_preset = headerPreset
+  }
+
+  if (formData.suppress_stream_options) {
+    settingObj.suppress_stream_options = true
   }
 
   // 令牌粘性 Key 绑定:默认值不落盘,与 user_agent 同策略。

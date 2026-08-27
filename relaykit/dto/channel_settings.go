@@ -36,6 +36,13 @@ type ChannelSettings struct {
 	// Presets are defined in relay/channel; unknown values are ignored.
 	// Explicit UserAgent and header_override entries still take precedence.
 	HeaderPreset string `json:"header_preset,omitempty"`
+	// SuppressStreamOptions stops the gateway from injecting
+	// stream_options.include_usage on streaming requests for this channel —
+	// a tell that identifies server-side gateways (real clients either omit it
+	// or send a different shape). Turn it on for risk-sensitive upstreams; the
+	// trade-off is that streaming responses no longer carry exact usage and
+	// billing falls back to estimation.
+	SuppressStreamOptions bool `json:"suppress_stream_options,omitempty"`
 	// StickyTokenKeyBinding makes multi-key channels bind each token to one
 	// fixed upstream key (idle-released) instead of rotating keys, so every
 	// key's traffic profile stays close to a single client.

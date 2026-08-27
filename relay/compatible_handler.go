@@ -55,11 +55,18 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 	if !info.SupportStreamOptions || !lo.FromPtrOr(request.Stream, false) {
 		request.StreamOptions = nil
 	} else {
-		// 如果支持StreamOptions，且请求中没有设置StreamOptions，根据配置文件设置StreamOptions
-		if constant.ForceStreamOption {
+		// 渠道开启「抑制 stream_options」时不再向上游注入 include_usage:
+		// 这是个 server-side 网关特征,风控敏感的上游(如订阅版 token plan)
+		// 容易据此判定为转发站。代价是流式响应不含精确 usage,计费回退估算。
+		if constant.ForceStreamOption && !info.ChannelSetting.SuppressStreamOptions {
 			request.StreamOptions = &dto.StreamOptions{
 				IncludeUsage: true,
 			}
+		}
+		// SuppressStreamOptions 时,若客户端原本就没带 stream_options,includeUsage
+		// 保持默认 true(下游最终响应可补发 usage 给客户端);上游侧看不到该字段。
+		if info.ChannelSetting.SuppressStreamOptions {
+			request.StreamOptions = nil
 		}
 	}
 

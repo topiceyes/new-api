@@ -5588,6 +5588,8 @@
     "critical": "critical",
     "Save audit settings": "Save audit settings",
     "Matched Context": "Matched Context",
-    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request"
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request",
+    "Suppress Stream Options": "Suppress Stream Options",
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation"
   }
 }

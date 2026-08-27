@@ -5588,6 +5588,8 @@
     "critical": "重大",
     "Save audit settings": "監査設定を保存",
     "Matched Context": "一致コンテキスト",
-    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "プリセットを選択すると、上流リクエストに一致するクライアントフィンガープリント（Accept / Accept-Language）も適用されます"
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "プリセットを選択すると、上流リクエストに一致するクライアントフィンガープリント（Accept / Accept-Language）も適用されます",
+    "Suppress Stream Options": "stream_options を抑制",
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "上流に stream_options.include_usage を送信しない——サーバー側ゲートウェイを識別する手がかり。ストリーミング応答に正確な usage が含まれなくなり、課金は推定に切り替わります"
   }
 }

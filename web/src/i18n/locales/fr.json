@@ -5588,6 +5588,8 @@
     "critical": "Critique",
     "Save audit settings": "Enregistrer les paramètres d’audit",
     "Matched Context": "Contexte de correspondance",
-    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Les présélections appliquent aussi une empreinte client assortie (Accept / Accept-Language) à la requête amont"
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Les présélections appliquent aussi une empreinte client assortie (Accept / Accept-Language) à la requête amont",
+    "Suppress Stream Options": "Supprimer stream_options",
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "N’envoie pas stream_options.include_usage en amont — un signe qui identifie les passerelles côté serveur. Les réponses en flux ne portent plus d’usage exact ; la facturation bascule sur estimation"
   }
 }

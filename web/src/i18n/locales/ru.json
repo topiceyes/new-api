@@ -5588,6 +5588,8 @@
     "critical": "Критично",
     "Save audit settings": "Сохранить настройки аудита",
     "Matched Context": "Контекст совпадения",
-    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Пресеты также применяют соответствующий отпечаток клиента (Accept / Accept-Language) к исходящему запросу"
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Пресеты также применяют соответствующий отпечаток клиента (Accept / Accept-Language) к исходящему запросу",
+    "Suppress Stream Options": "Подавить stream_options",
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "Не отправлять stream_options.include_usage上游 — признак серверных шлюзов. Стрим-ответы больше не несут точного usage; биллинг переходит на оценку"
   }
 }

@@ -356,6 +356,7 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
     (values.rate_limit_rpm != null && values.rate_limit_rpm > 0) ||
     values.user_agent?.trim() ||
     values.header_preset?.trim() ||
+    values.suppress_stream_options ||
     values.sticky_token_key_binding ||
     values.claude_beta_query ||
     values.upstream_model_update_check_enabled ||
@@ -4425,6 +4426,31 @@ export function ChannelMutateDrawer({
                                     )}
                                   </FormDescription>
                                   <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name='suppress_stream_options'
+                              render={({ field }) => (
+                                <FormItem className='flex items-center justify-between px-4 py-3'>
+                                  <div className='space-y-0.5'>
+                                    <FormLabel>
+                                      {t('Suppress Stream Options')}
+                                    </FormLabel>
+                                    <FormDescription>
+                                      {t(
+                                        'Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation'
+                                      )}
+                                    </FormDescription>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
                                 </FormItem>
                               )}
                             />

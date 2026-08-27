@@ -5588,6 +5588,8 @@
     "critical": "严重",
     "Save audit settings": "保存审计设置",
     "Matched Context": "命中上下文",
-    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "选择预设会同时为上游请求应用配套的客户端指纹（Accept / Accept-Language）"
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "选择预设会同时为上游请求应用配套的客户端指纹（Accept / Accept-Language）",
+    "Suppress Stream Options": "抑制 stream_options",
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "不向上游发送 stream_options.include_usage——这是识别服务端网关的特征。流式响应将不再携带精确 usage，计费回退到估算"
   }
 }
