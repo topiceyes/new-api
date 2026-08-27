@@ -170,6 +170,10 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 	}
 
+	// 安全审计在预扣费成功后触发:余额不足被拒的请求不出网关,不产生审计
+	// 噪音(敏感词/价格校验被拒的请求同理)。
+	relaycommon.NotifyRelayInfoReady(c, relayInfo)
+
 	defer func() {
 		// Only return quota if downstream failed and quota was actually pre-consumed
 		if newAPIError != nil {
@@ -428,6 +432,7 @@ func RelayMidjourney(c *gin.Context) {
 		})
 		return
 	}
+	relaycommon.NotifyRelayInfoReady(c, relayInfo)
 
 	var mjErr *taskdto.MidjourneyResponse
 	switch relayInfo.RelayMode {
@@ -494,6 +499,7 @@ func RelayTaskFetch(c *gin.Context) {
 		})
 		return
 	}
+	relaycommon.NotifyRelayInfoReady(c, relayInfo)
 	if taskErr := relay.RelayTaskFetch(c, relayInfo.RelayMode); taskErr != nil {
 		respondTaskError(c, taskErr)
 	}
@@ -509,6 +515,7 @@ func RelayTask(c *gin.Context) {
 		})
 		return
 	}
+	relaycommon.NotifyRelayInfoReady(c, relayInfo)
 
 	if taskErr := relay.ResolveOriginTask(c, relayInfo); taskErr != nil {
 		respondTaskError(c, taskErr)

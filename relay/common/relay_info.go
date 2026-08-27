@@ -552,17 +552,22 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 		info.UserSetting = userSetting
 	}
 
-	if OnRelayInfoReady != nil {
-		OnRelayInfoReady(c, info)
-	}
-
 	return info
 }
 
-// OnRelayInfoReady 在 RelayInfo 构造完成、relay 发送前触发,用于挂接安全审计等
-// 旁路逻辑。本包不能 import service(会成环),故由 main.go 启动时显式注入实现。
-// 实现方必须只做轻量同步快照,重活走异步,不得修改 info 或阻塞主路径。
+// OnRelayInfoReady 在 RelayInfo 构造完成、请求即将发送上游前触发,用于挂接安全
+// 审计等旁路逻辑。本包不能 import service(会成环),故由 main.go 启动时显式注入
+// 实现。实现方必须只做轻量同步快照,重活走异步,不得修改 info 或阻塞主路径。
+// 文本 relay 在预扣费成功后经 NotifyRelayInfoReady 触发(计费被拒的请求不出网关,
+// 不进审计);任务/MJ 等路径在构造后立即触发。
 var OnRelayInfoReady func(c *gin.Context, info *RelayInfo)
+
+// NotifyRelayInfoReady 触发已注入的 OnRelayInfoReady 回调,未注入时为空操作。
+func NotifyRelayInfoReady(c *gin.Context, info *RelayInfo) {
+	if OnRelayInfoReady != nil {
+		OnRelayInfoReady(c, info)
+	}
+}
 
 func cloneRequestHeaders(c *gin.Context) map[string]string {
 	if c == nil || c.Request == nil {
