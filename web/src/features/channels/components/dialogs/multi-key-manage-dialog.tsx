@@ -51,6 +51,8 @@ import {
   enableAllMultiKeys,
   disableAllMultiKeys,
   deleteDisabledMultiKeys,
+  getStickyBindings,
+  releaseStickyBinding,
 } from '../../api'
 import { MULTI_KEY_FILTER_OPTIONS } from '../../constants'
 import {
@@ -60,7 +62,7 @@ import {
   getMultiKeyConfirmMessage,
   isDestructiveAction,
 } from '../../lib'
-import type { KeyStatus, MultiKeyConfirmAction } from '../../types'
+import type { KeyStatus, MultiKeyConfirmAction, StickyBindingItem } from '../../types'
 import { useChannels } from '../channels-provider'
 import { StatisticsCard } from './multi-key-statistics-card'
 import { MultiKeyTableRowActions } from './multi-key-table-row-actions'
@@ -95,6 +97,24 @@ export function MultiKeyManageDialog({
   const [manualDisabledCount, setManualDisabledCount] = useState(0)
   const [autoDisabledCount, setAutoDisabledCount] = useState(0)
 
+  // Sticky token-key bindings (only for channels with the feature enabled)
+  const [stickyBindings, setStickyBindings] = useState<StickyBindingItem[]>([])
+  const [stickyIdleMinutes, setStickyIdleMinutes] = useState(0)
+  const [stickyExhaustPolicy, setStickyExhaustPolicy] = useState('busy')
+  const [isStickyLoading, setIsStickyLoading] = useState(false)
+  const [releasingTokenId, setReleasingTokenId] = useState<number | null>(null)
+
+  const stickyEnabled = (() => {
+    if (!currentRow?.setting) return false
+    try {
+      return Boolean(
+        JSON.parse(currentRow.setting).sticky_token_key_binding
+      )
+    } catch {
+      return false
+    }
+  })()
+
   // UI state
   const [statusFilter, setStatusFilter] = useState<number | null>(null)
   const [confirmAction, setConfirmAction] =
@@ -107,9 +127,60 @@ export function MultiKeyManageDialog({
       setCurrentPage(1)
       setStatusFilter(null)
       loadKeyStatus(1, pageSize, null)
+      if (stickyEnabled) {
+        loadStickyBindings()
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, currentRow?.id])
+
+  const loadStickyBindings = async () => {
+    if (!currentRow) return
+    setIsStickyLoading(true)
+    try {
+      const response = await getStickyBindings(currentRow.id)
+      if (response.success && response.data) {
+        setStickyBindings(response.data.bindings || [])
+        setStickyIdleMinutes(response.data.idle_minutes || 0)
+        setStickyExhaustPolicy(response.data.exhaust_policy || 'busy')
+      } else if (!response.success) {
+        toast.error(response.message || t('Failed to load key status'))
+      }
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : t('Failed to load key status')
+      )
+    } finally {
+      setIsStickyLoading(false)
+    }
+  }
+
+  const handleReleaseBinding = async (tokenId: number) => {
+    if (!currentRow) return
+    setReleasingTokenId(tokenId)
+    try {
+      const response = await releaseStickyBinding(currentRow.id, tokenId)
+      if (response.success) {
+        toast.success(response.message || t('Operation successful'))
+        loadStickyBindings()
+      } else {
+        toast.error(response.message || t('Operation failed'))
+      }
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : t('Operation failed')
+      )
+    } finally {
+      setReleasingTokenId(null)
+    }
+  }
+
+  const formatDuration = (seconds: number) => {
+    if (seconds < 0) seconds = 0
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return m > 0 ? `${m}m ${s}s` : `${s}s`
+  }
 
   const loadKeyStatus = async (
     page: number = currentPage,
@@ -288,6 +359,117 @@ export function MultiKeyManageDialog({
               total={total}
             />
           </div>
+
+          {stickyEnabled && (
+            <div className='shrink-0 space-y-2 rounded-md border p-3'>
+              <div className='flex items-center justify-between'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <h4 className='text-sm font-medium'>
+                    {t('Sticky Key Bindings')}
+                  </h4>
+                  <StatusBadge
+                    label={
+                      stickyExhaustPolicy === 'share'
+                        ? t('Share a random key')
+                        : t('Busy (reject new requests)')
+                    }
+                    variant='neutral'
+                    copyable={false}
+                  />
+                  {stickyIdleMinutes > 0 && (
+                    <span className='text-muted-foreground text-xs'>
+                      {t('Idle Release (minutes)')}: {stickyIdleMinutes}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={loadStickyBindings}
+                  disabled={isStickyLoading}
+                >
+                  <RefreshCw className='h-4 w-4' />
+                </Button>
+              </div>
+              {isStickyLoading ? (
+                <div className='flex items-center justify-center py-6'>
+                  <Loader2 className='text-muted-foreground h-6 w-6 animate-spin' />
+                </div>
+              ) : stickyBindings.length === 0 ? (
+                <p className='text-muted-foreground py-4 text-center text-sm'>
+                  {t('No active bindings')}
+                </p>
+              ) : (
+                <StaticDataTable
+                  className='rounded-none border-0'
+                  tableClassName='min-w-[720px]'
+                  data={stickyBindings}
+                  getRowKey={(b) => b.token_id}
+                  columns={[
+                    {
+                      id: 'token',
+                      header: t('Token'),
+                      className: 'min-w-[140px]',
+                      cell: (b) =>
+                        `${b.token_name}${b.token_name.startsWith('#') ? '' : ` (#${b.token_id})`}`,
+                    },
+                    {
+                      id: 'user',
+                      header: t('Username'),
+                      className: 'w-32',
+                      cell: (b) => b.username || '-',
+                    },
+                    {
+                      id: 'key',
+                      header: 'Key',
+                      className: 'min-w-[140px]',
+                      cell: (b) => (
+                        <span className='font-mono text-xs'>
+                          #{b.key_index + 1} {b.key_preview}
+                        </span>
+                      ),
+                    },
+                    {
+                      id: 'exclusive',
+                      header: t('Type'),
+                      className: 'w-24',
+                      cell: (b) =>
+                        b.exclusive ? t('Exclusive') : t('Shared'),
+                    },
+                    {
+                      id: 'idle',
+                      header: t('Idle'),
+                      className: 'w-24',
+                      cellClassName: 'text-muted-foreground text-sm',
+                      cell: (b) => formatDuration(b.idle_seconds),
+                    },
+                    {
+                      id: 'ttl',
+                      header: t('Releases In'),
+                      className: 'w-24',
+                      cellClassName: 'text-muted-foreground text-sm',
+                      cell: (b) => formatDuration(b.ttl_remaining_seconds),
+                    },
+                    {
+                      id: 'actions',
+                      header: t('Actions'),
+                      className: 'text-right',
+                      cell: (b) => (
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          onClick={() => handleReleaseBinding(b.token_id)}
+                          disabled={releasingTokenId === b.token_id}
+                        >
+                          {t('Unbind')}
+                        </Button>
+                      ),
+                    },
+                  ]}
+                />
+              )}
+            </div>
+          )}
 
           <Separator className='shrink-0' />
 

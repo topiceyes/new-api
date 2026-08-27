@@ -5568,6 +5568,20 @@
     "Classification Model": "分类模型",
     "Interval (minutes)": "执行间隔（分钟）",
     "Batch Size": "批处理大小",
-    "Prompts classified per task run": "每次任务运行分类的 Prompt 数量"
+    "Prompts classified per task run": "每次任务运行分类的 Prompt 数量",
+    "Token Sticky Key Binding": "令牌粘性 Key 绑定",
+    "Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile": "仅多 Key 渠道生效：令牌固定使用同一个上游 Key（空闲自动释放），不再轮询；让每个 Key 的访问画像保持单客户端特征",
+    "Idle Release (minutes)": "空闲释放时间（分钟）",
+    "Binding is released after this many idle minutes": "绑定在空闲指定分钟后自动释放",
+    "Exhaust Policy": "Key 占满策略",
+    "Busy (reject new requests)": "服务器忙（拒绝新请求）",
+    "Share a random key": "随机共用一个 Key",
+    "What a new token gets when all keys are bound": "所有 Key 都被绑定后，新令牌的处理方式",
+    "Sticky Key Bindings": "粘性 Key 绑定列表",
+    "No active bindings": "暂无活跃绑定",
+    "Exclusive": "独占",
+    "Shared": "共享",
+    "Releases In": "剩余释放",
+    "Idle": "空闲"
   }
 }

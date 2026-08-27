@@ -5568,6 +5568,20 @@
     "Classification Model": "Mô hình phân loại",
     "Interval (minutes)": "Khoảng cách (phút)",
     "Batch Size": "Kích thước lô",
-    "Prompts classified per task run": "Số prompt được phân loại mỗi lần chạy tác vụ"
+    "Prompts classified per task run": "Số prompt được phân loại mỗi lần chạy tác vụ",
+    "Token Sticky Key Binding": "Gắn key cố định theo token",
+    "Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile": "Chỉ cho kênh đa key: gắn mỗi token vào một key cố định (tự giải phóng khi nhàn rỗi) thay vì luân phiên, để hồ sơ truy cập của mỗi key giữ đặc điểm một máy khách duy nhất",
+    "Idle Release (minutes)": "Giải phóng khi nhàn rỗi (phút)",
+    "Binding is released after this many idle minutes": "Gắn kết được giải phóng sau số phút nhàn rỗi này",
+    "Exhaust Policy": "Chính sách khi hết key",
+    "Busy (reject new requests)": "Bận (từ chối yêu cầu mới)",
+    "Share a random key": "Chia sẻ một key ngẫu nhiên",
+    "What a new token gets when all keys are bound": "Token mới nhận được gì khi tất cả key đã được gắn",
+    "Sticky Key Bindings": "Danh sách gắn key cố định",
+    "No active bindings": "Không có gắn kết nào đang hoạt động",
+    "Exclusive": "Độc chiếm",
+    "Shared": "Chung",
+    "Releases In": "Giải phóng sau",
+    "Idle": "Nhàn rỗi"
   }
 }

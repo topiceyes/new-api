@@ -5568,6 +5568,20 @@
     "Classification Model": "分類模型",
     "Interval (minutes)": "執行間隔（分鐘）",
     "Batch Size": "批次大小",
-    "Prompts classified per task run": "每次任務執行分類的 Prompt 數量"
+    "Prompts classified per task run": "每次任務執行分類的 Prompt 數量",
+    "Token Sticky Key Binding": "權杖粘性 Key 綁定",
+    "Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile": "僅多 Key 渠道生效：權杖固定使用同一個上游 Key（閒置自動釋放），不再輪詢；讓每個 Key 的存取畫像保持單客戶端特徵",
+    "Idle Release (minutes)": "閒置釋放時間（分鐘）",
+    "Binding is released after this many idle minutes": "綁定在閒置指定分鐘後自動釋放",
+    "Exhaust Policy": "Key 佔滿策略",
+    "Busy (reject new requests)": "伺服器忙（拒絕新請求）",
+    "Share a random key": "隨機共用一個 Key",
+    "What a new token gets when all keys are bound": "所有 Key 都被綁定後，新權杖的處理方式",
+    "Sticky Key Bindings": "粘性 Key 綁定列表",
+    "No active bindings": "暫無活躍綁定",
+    "Exclusive": "獨佔",
+    "Shared": "共享",
+    "Releases In": "剩餘釋放",
+    "Idle": "閒置"
   }
 }

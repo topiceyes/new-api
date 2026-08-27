@@ -35,6 +35,7 @@ import type {
   GetChannelsResponse,
   MultiKeyManageParams,
   MultiKeyStatusResponse,
+  StickyBindingsResponse,
   SearchChannelsParams,
   SearchChannelsResponse,
   TagOperationParams,
@@ -387,6 +388,32 @@ export async function getMultiKeyStatus(
     page_size: pageSize,
     status,
   }) as Promise<MultiKeyStatusResponse>
+}
+
+/**
+ * List sticky token-key bindings for multi-key channel
+ */
+export async function getStickyBindings(
+  channelId: number
+): Promise<StickyBindingsResponse> {
+  return manageMultiKeys({
+    channel_id: channelId,
+    action: 'get_sticky_bindings',
+  }) as Promise<StickyBindingsResponse>
+}
+
+/**
+ * Release a sticky token-key binding
+ */
+export async function releaseStickyBinding(
+  channelId: number,
+  tokenId: number
+): Promise<{ success: boolean; message?: string }> {
+  return manageMultiKeys({
+    channel_id: channelId,
+    action: 'release_sticky_binding',
+    token_id: tokenId,
+  }) as Promise<{ success: boolean; message?: string }>
 }
 
 /**

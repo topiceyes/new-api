@@ -5568,6 +5568,20 @@
     "Classification Model": "分類モデル",
     "Interval (minutes)": "間隔（分）",
     "Batch Size": "バッチサイズ",
-    "Prompts classified per task run": "1 回のタスク実行で分類するプロンプト数"
+    "Prompts classified per task run": "1 回のタスク実行で分類するプロンプト数",
+    "Token Sticky Key Binding": "トークン固定キーバインド",
+    "Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile": "複数キーチャネル専用：トークンを 1 つの固定上流キーに紐付け（アイドルで自動解放）、ローテーションせず、各キーのトラフィックプロファイルを単一クライアントに保ちます",
+    "Idle Release (minutes)": "アイドル解放（分）",
+    "Binding is released after this many idle minutes": "指定したアイドル分数の後にバインドを解放します",
+    "Exhaust Policy": "キー枯渇時のポリシー",
+    "Busy (reject new requests)": "ビジー（新規リクエストを拒否）",
+    "Share a random key": "ランダムなキーを共有",
+    "What a new token gets when all keys are bound": "すべてのキーがバインド済みのとき新しいトークンが得るもの",
+    "Sticky Key Bindings": "固定キーバインド一覧",
+    "No active bindings": "アクティブなバインドはありません",
+    "Exclusive": "専有",
+    "Shared": "共有",
+    "Releases In": "解放まで",
+    "Idle": "アイドル"
   }
 }

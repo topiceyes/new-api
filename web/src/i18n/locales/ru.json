@@ -5568,6 +5568,20 @@
     "Classification Model": "Модель классификации",
     "Interval (minutes)": "Интервал (минуты)",
     "Batch Size": "Размер пакета",
-    "Prompts classified per task run": "Промптов за один запуск задачи"
+    "Prompts classified per task run": "Промптов за один запуск задачи",
+    "Token Sticky Key Binding": "Привязка ключа к токену",
+    "Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile": "Только для каналов с несколькими ключами: каждый токен закрепляется за одним восходящим ключом (освобождение после простоя) вместо ротации, чтобы профиль трафика каждого ключа оставался «один клиент»",
+    "Idle Release (minutes)": "Освобождение после простоя (минуты)",
+    "Binding is released after this many idle minutes": "Привязка освобождается после стольких минут простоя",
+    "Exhaust Policy": "Политика при заполнении",
+    "Busy (reject new requests)": "Занято (отклонять новые запросы)",
+    "Share a random key": "Разделить случайный ключ",
+    "What a new token gets when all keys are bound": "Что получает новый токен, когда все ключи заняты",
+    "Sticky Key Bindings": "Привязки ключей",
+    "No active bindings": "Нет активных привязок",
+    "Exclusive": "Эксклюзивно",
+    "Shared": "Разделяемый",
+    "Releases In": "Освобождение через",
+    "Idle": "Простой"
   }
 }

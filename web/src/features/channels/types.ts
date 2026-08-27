@@ -314,10 +314,36 @@ export interface MultiKeyManageParams {
     | 'disable_all_keys'
     | 'delete_key'
     | 'delete_disabled_keys'
+    | 'get_sticky_bindings'
+    | 'release_sticky_binding'
   key_index?: number
+  token_id?: number
   page?: number
   page_size?: number
   status?: number // 1=enabled, 2=manual_disabled, 3=auto_disabled
+}
+
+export interface StickyBindingItem {
+  token_id: number
+  token_name: string
+  user_id: number
+  username: string
+  key_index: number
+  key_preview: string
+  key_status: number // 1=enabled, 2=manual_disabled, 3=auto_disabled
+  exclusive: boolean
+  idle_seconds: number
+  ttl_remaining_seconds: number
+}
+
+export interface StickyBindingsResponse {
+  success: boolean
+  message?: string
+  data?: {
+    bindings: StickyBindingItem[]
+    idle_minutes: number
+    exhaust_policy: string
+  }
 }
 
 export interface BatchDeleteParams {

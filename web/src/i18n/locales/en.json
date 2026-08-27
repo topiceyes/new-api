@@ -5568,6 +5568,20 @@
     "Classification Model": "Classification Model",
     "Interval (minutes)": "Interval (minutes)",
     "Batch Size": "Batch Size",
-    "Prompts classified per task run": "Prompts classified per task run"
+    "Prompts classified per task run": "Prompts classified per task run",
+    "Token Sticky Key Binding": "Token Sticky Key Binding",
+    "Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile": "Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile",
+    "Idle Release (minutes)": "Idle Release (minutes)",
+    "Binding is released after this many idle minutes": "Binding is released after this many idle minutes",
+    "Exhaust Policy": "Exhaust Policy",
+    "Busy (reject new requests)": "Busy (reject new requests)",
+    "Share a random key": "Share a random key",
+    "What a new token gets when all keys are bound": "What a new token gets when all keys are bound",
+    "Sticky Key Bindings": "Sticky Key Bindings",
+    "No active bindings": "No active bindings",
+    "Exclusive": "Exclusive",
+    "Shared": "Shared",
+    "Releases In": "Releases In",
+    "Idle": "Idle"
   }
 }

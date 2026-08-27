@@ -5568,6 +5568,20 @@
     "Classification Model": "Modèle de classification",
     "Interval (minutes)": "Intervalle (minutes)",
     "Batch Size": "Taille du lot",
-    "Prompts classified per task run": "Prompts classés par exécution"
+    "Prompts classified per task run": "Prompts classés par exécution",
+    "Token Sticky Key Binding": "Liaison clé fixe par jeton",
+    "Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile": "Canaux multi-clés uniquement : lie chaque jeton à une clé amont fixe (libérée après inactivité) au lieu de tourner, pour que chaque clé garde un profil de trafic à client unique",
+    "Idle Release (minutes)": "Libération après inactivité (minutes)",
+    "Binding is released after this many idle minutes": "La liaison est libérée après ce nombre de minutes d’inactivité",
+    "Exhaust Policy": "Politique d’épuisement",
+    "Busy (reject new requests)": "Occupé (rejeter les nouvelles requêtes)",
+    "Share a random key": "Partager une clé aléatoire",
+    "What a new token gets when all keys are bound": "Ce qu’un nouveau jeton obtient lorsque toutes les clés sont liées",
+    "Sticky Key Bindings": "Liaisons de clés fixes",
+    "No active bindings": "Aucune liaison active",
+    "Exclusive": "Exclusif",
+    "Shared": "Partagé",
+    "Releases In": "Libération dans",
+    "Idle": "Inactif"
   }
 }

@@ -351,6 +351,7 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
       values.http2_connection_shards > 1) ||
     (values.rate_limit_rpm != null && values.rate_limit_rpm > 0) ||
     values.user_agent?.trim() ||
+    values.sticky_token_key_binding ||
     values.claude_beta_query ||
     values.upstream_model_update_check_enabled ||
     values.upstream_model_update_auto_sync_enabled ||
@@ -4189,6 +4190,105 @@ export function ChannelMutateDrawer({
                                   </FormItem>
                                 )}
                               />
+
+                              <FormField
+                                control={form.control}
+                                name='sticky_token_key_binding'
+                                render={({ field }) => (
+                                  <FormItem className='flex items-center justify-between px-4 py-3'>
+                                    <div className='space-y-0.5'>
+                                      <FormLabel>
+                                        {t('Token Sticky Key Binding')}
+                                      </FormLabel>
+                                      <FormDescription>
+                                        {t(
+                                          'Multi-key channels only: bind each token to one fixed upstream key (idle-released) instead of rotating, so every key keeps a single-client traffic profile'
+                                        )}
+                                      </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                      <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+
+                              {form.watch('sticky_token_key_binding') && (
+                                <div className='grid gap-x-5 gap-y-4 px-4 py-3 sm:grid-cols-2'>
+                                  <FormField
+                                    control={form.control}
+                                    name='sticky_key_idle_minutes'
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>
+                                          {t('Idle Release (minutes)')}
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input type='number' min={1} {...field} />
+                                        </FormControl>
+                                        <FormDescription>
+                                          {t(
+                                            'Binding is released after this many idle minutes'
+                                          )}
+                                        </FormDescription>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name='sticky_key_exhaust_policy'
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>
+                                          {t('Exhaust Policy')}
+                                        </FormLabel>
+                                        <Select
+                                          value={field.value || 'busy'}
+                                          onValueChange={field.onChange}
+                                          items={[
+                                            {
+                                              value: 'busy',
+                                              label: t(
+                                                'Busy (reject new requests)'
+                                              ),
+                                            },
+                                            {
+                                              value: 'share',
+                                              label: t('Share a random key'),
+                                            },
+                                          ]}
+                                        >
+                                          <SelectTrigger>
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent
+                                            alignItemWithTrigger={false}
+                                          >
+                                            <SelectGroup>
+                                              <SelectItem value='busy'>
+                                                {t('Busy (reject new requests)')}
+                                              </SelectItem>
+                                              <SelectItem value='share'>
+                                                {t('Share a random key')}
+                                              </SelectItem>
+                                            </SelectGroup>
+                                          </SelectContent>
+                                        </Select>
+                                        <FormDescription>
+                                          {t(
+                                            'What a new token gets when all keys are bound'
+                                          )}
+                                        </FormDescription>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              )}
                             </div>
 
                             <FormField

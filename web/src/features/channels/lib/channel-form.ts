@@ -288,6 +288,9 @@ export const channelFormSchema = z
     http2_connection_shards: z.number().int().optional(),
     rate_limit_rpm: z.number().int().min(0).optional(),
     user_agent: z.string().optional(),
+    sticky_token_key_binding: z.boolean().optional(),
+    sticky_key_idle_minutes: z.coerce.number().int().min(1).max(1440).optional(),
+    sticky_key_exhaust_policy: z.enum(['busy', 'share']).optional(),
     pass_through_body_enabled: z.boolean().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
@@ -466,6 +469,9 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   http2_connection_shards: 1,
   rate_limit_rpm: 0,
   user_agent: '',
+  sticky_token_key_binding: false,
+  sticky_key_idle_minutes: 10,
+  sticky_key_exhaust_policy: 'busy',
   pass_through_body_enabled: false,
   system_prompt: '',
   system_prompt_override: false,
@@ -511,6 +517,9 @@ export function transformChannelToFormDefaults(
     http2_connection_shards: 1,
     rate_limit_rpm: 0,
     user_agent: '',
+    sticky_token_key_binding: false,
+    sticky_key_idle_minutes: 10,
+    sticky_key_exhaust_policy: 'busy',
     pass_through_body_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
@@ -534,6 +543,14 @@ export function transformChannelToFormDefaults(
           : 0,
         user_agent:
           typeof parsed.user_agent === 'string' ? parsed.user_agent : '',
+        sticky_token_key_binding: parsed.sticky_token_key_binding || false,
+        sticky_key_idle_minutes: Number.isInteger(
+          parsed.sticky_key_idle_minutes
+        )
+          ? parsed.sticky_key_idle_minutes
+          : 10,
+        sticky_key_exhaust_policy:
+          parsed.sticky_key_exhaust_policy === 'share' ? 'share' : 'busy',
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
@@ -709,6 +726,18 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
   const userAgent = formData.user_agent?.trim()
   if (userAgent) {
     settingObj.user_agent = userAgent
+  }
+
+  // 令牌粘性 Key 绑定:默认值不落盘,与 user_agent 同策略。
+  if (formData.sticky_token_key_binding) {
+    settingObj.sticky_token_key_binding = true
+    const idleMinutes = formData.sticky_key_idle_minutes
+    if (Number.isInteger(idleMinutes) && idleMinutes > 0 && idleMinutes !== 10) {
+      settingObj.sticky_key_idle_minutes = idleMinutes
+    }
+    if (formData.sticky_key_exhaust_policy === 'share') {
+      settingObj.sticky_key_exhaust_policy = 'share'
+    }
   }
 
   return JSON.stringify(settingObj)
