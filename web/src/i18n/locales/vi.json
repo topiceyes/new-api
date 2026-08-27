@@ -5586,6 +5586,7 @@
     "info": "Thông tin",
     "warning": "Cảnh báo",
     "critical": "Nghiêm trọng",
-    "Save audit settings": "Lưu cài đặt kiểm toán"
+    "Save audit settings": "Lưu cài đặt kiểm toán",
+    "Matched Context": "Ngữ cảnh trùng khớp"
   }
 }

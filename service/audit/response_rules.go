@@ -3,6 +3,7 @@ package audit
 import (
 	"regexp"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/system_setting"
@@ -52,23 +53,53 @@ func activeResponseRules() []compiledRule {
 	return responseRules
 }
 
+// responseContextWindow 响应命中上下文窗口长度(字符),命中位置前后各半。
+const responseContextWindow = 200
+
+// contextAround 返回命中位置前后的上下文窗口,命中片段用【】标出,
+// 窗口内的密钥/PII 再做打码。窗口超长(命中本身极长)时按上限截断。
+func contextAround(text string, start, end int, window int) string {
+	runes := []rune(text)
+	s := utf8.RuneCountInString(text[:start])
+	e := utf8.RuneCountInString(text[:end])
+	half := window / 2
+	ws := s - half
+	if ws < 0 {
+		ws = 0
+	}
+	we := e + half
+	if we > len(runes) {
+		we = len(runes)
+	}
+	// 命中段本身超长时,窗口至少覆盖完整命中(否则截断处语义不明);
+	// 否则把总长压回窗口上限。
+	if we < e {
+		we = e
+	} else if we-ws > window && e-s <= window {
+		we = ws + window
+	}
+	return maskSensitiveIn(string(runes[ws:s]) + "【" + string(runes[s:e]) + "】" + string(runes[e:we]))
+}
+
 // ScanResponse 对上游响应文本执行全部响应规则,返回命中列表(与 ScanPrompt 同语义)。
+// 响应侧不存原文,命中额外带 200 字符打码上下文供排障。
 func ScanResponse(text string) []RuleHit {
 	if text == "" {
 		return nil
 	}
 	var hits []RuleHit
 	for _, rule := range activeResponseRules() {
-		matches := rule.re.FindAllString(text, maxHitsPerRule+1)
-		if len(matches) == 0 {
+		locs := rule.re.FindAllStringIndex(text, maxHitsPerRule+1)
+		if len(locs) == 0 {
 			continue
 		}
 		hits = append(hits, RuleHit{
 			RuleId:   rule.id,
 			RuleName: rule.name,
 			Severity: rule.severity,
-			Excerpt:  MaskExcerpt(matches[0]),
-			Count:    len(matches),
+			Excerpt:  MaskExcerpt(text[locs[0][0]:locs[0][1]]),
+			Context:  contextAround(text, locs[0][0], locs[0][1], responseContextWindow),
+			Count:    len(locs),
 		})
 	}
 	return hits

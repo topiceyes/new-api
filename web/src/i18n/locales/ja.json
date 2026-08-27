@@ -5586,6 +5586,7 @@
     "info": "情報",
     "warning": "警告",
     "critical": "重大",
-    "Save audit settings": "監査設定を保存"
+    "Save audit settings": "監査設定を保存",
+    "Matched Context": "一致コンテキスト"
   }
 }

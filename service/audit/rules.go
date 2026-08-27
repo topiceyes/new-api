@@ -2,6 +2,7 @@ package audit
 
 import (
 	"regexp"
+	"strings"
 	"sync"
 	"unicode/utf8"
 
@@ -25,8 +26,9 @@ type RuleHit struct {
 	RuleId   string `json:"rule_id"`
 	RuleName string `json:"rule_name"`
 	Severity string `json:"severity"`
-	Excerpt  string `json:"excerpt"` // 打码后的首个命中片段
-	Count    int    `json:"count"`   // 有效命中次数
+	Excerpt  string `json:"excerpt"`            // 打码后的首个命中片段
+	Context  string `json:"context,omitempty"`  // 命中位置的上下文窗口(仅 PII/密钥打码,响应侧排障用)
+	Count    int    `json:"count"`              // 有效命中次数
 }
 
 // 内置规则。Id 为稳定常量,事件按 RuleId 关联,请勿改名。
@@ -101,6 +103,32 @@ func activeRules() []compiledRule {
 
 // maxHitsPerRule 限制单规则命中计数上限,避免病态输入拖慢扫描。
 const maxHitsPerRule = 32
+
+// maskSensitiveIn 把文本中命中的密钥/PII 片段替换为打码形式(同 MaskExcerpt)。
+// 用于响应命中上下文:排障需要看懂载荷,但审计库不能变成第二份密钥库。
+func maskSensitiveIn(text string) string {
+	masked := text
+	for _, rule := range activeRules() {
+		locs := rule.re.FindAllStringIndex(masked, -1)
+		if len(locs) == 0 {
+			continue
+		}
+		var b strings.Builder
+		last := 0
+		for _, loc := range locs {
+			m := masked[loc[0]:loc[1]]
+			if rule.validate != nil && !rule.validate(m) {
+				continue
+			}
+			b.WriteString(masked[last:loc[0]])
+			b.WriteString(MaskExcerpt(m))
+			last = loc[1]
+		}
+		b.WriteString(masked[last:])
+		masked = b.String()
+	}
+	return masked
+}
 
 // ScanPrompt 对提取出的 prompt 文本执行全部启用规则,返回命中列表。
 func ScanPrompt(text string) []RuleHit {

@@ -122,6 +122,17 @@ export function AuditEventDetailSheet({ event, open, onOpenChange }: Props) {
                     value={String(detailObj.count ?? '-')}
                   />
                 )}
+                {typeof detailObj?.context === 'string' &&
+                  detailObj.context !== '' && (
+                    <div className='py-1'>
+                      <div className='text-muted-foreground mb-1 text-sm'>
+                        {t('Matched Context')}
+                      </div>
+                      <pre className='bg-muted max-h-[240px] overflow-auto rounded-md p-3 text-xs break-all whitespace-pre-wrap'>
+                        {detailObj.context}
+                      </pre>
+                    </div>
+                  )}
               </SideDrawerSection>
             )}
 

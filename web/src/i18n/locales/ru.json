@@ -5586,6 +5586,7 @@
     "info": "Инфо",
     "warning": "Предупреждение",
     "critical": "Критично",
-    "Save audit settings": "Сохранить настройки аудита"
+    "Save audit settings": "Сохранить настройки аудита",
+    "Matched Context": "Контекст совпадения"
   }
 }

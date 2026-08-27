@@ -120,7 +120,7 @@ func inspectResponse(meta requestMeta, text string) {
 			RuleId:    hit.RuleId,
 			RuleName:  hit.RuleName,
 			Excerpt:   hit.Excerpt,
-			Detail:    common.MapToJsonStr(map[string]any{"count": hit.Count}),
+			Detail:    common.MapToJsonStr(map[string]any{"count": hit.Count, "context": hit.Context}),
 		}
 		fillEventMeta(event, meta)
 		if err := model.CreateAuditEvent(event); err != nil {
