@@ -5582,6 +5582,10 @@
     "Exclusive": "Exclusive",
     "Shared": "Shared",
     "Releases In": "Releases In",
-    "Idle": "Idle"
+    "Idle": "Idle",
+    "info": "info",
+    "warning": "warning",
+    "critical": "critical",
+    "Save audit settings": "Save audit settings"
   }
 }

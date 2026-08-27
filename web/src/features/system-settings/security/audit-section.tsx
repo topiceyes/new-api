@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -124,7 +124,11 @@ type NormalizedAuditValues = {
 }
 
 type AuditSectionProps = {
-  defaultValues: NormalizedAuditValues & {
+  defaultValues: Omit<
+    NormalizedAuditValues,
+    'audit.rules' | 'audit.group_store_prompt_modes'
+  > & {
+    // rules 与分组策略以原始 JSON 对象传入(后端存的是 JSON 数组),表单内转文本编辑。
     'audit.rules': unknown[]
     'audit.group_store_prompt_modes': unknown[]
   }
@@ -207,8 +211,10 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
     [defaultValues]
   )
 
+  // schema 的数字字段用 z.coerce(输入态 unknown),与表单值类型(output)不同,
+  // 这里按输出类型断言 resolver——校验时 coerce 自然处理字符串输入。
   const form = useForm<AuditFormValues>({
-    resolver: zodResolver(auditSchema),
+    resolver: zodResolver(auditSchema) as Resolver<AuditFormValues>,
     defaultValues: formDefaults,
   })
 
@@ -239,7 +245,7 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
         }
       }
     }
-    data.audit.rules = JSON.stringify(rules)
+    data.audit.rules = JSON.stringify(rules, null, 2)
 
     // 校验分组存储策略 JSON
     let groupPolicies: Array<{ group: string; mode: string }> = []
@@ -257,7 +263,7 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
         return
       }
     }
-    data.audit.group_store_prompt_modes = JSON.stringify(groupPolicies)
+    data.audit.group_store_prompt_modes = JSON.stringify(groupPolicies, null, 2)
 
     const normalized = normalizeFormValues(data)
     const updates = (
@@ -343,7 +349,15 @@ export function AuditSection({ defaultValues }: AuditSectionProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('Prompt Storage Mode')}</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      items={[
+                        { value: 'none', label: t('Do not store prompt content') },
+                        { value: 'hits', label: t('Store only when a rule hits') },
+                        { value: 'all', label: t('Store all prompts (high volume)') },
+                      ]}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />

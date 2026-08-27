@@ -5582,6 +5582,10 @@
     "Exclusive": "Exclusif",
     "Shared": "Partagé",
     "Releases In": "Libération dans",
-    "Idle": "Inactif"
+    "Idle": "Inactif",
+    "info": "Info",
+    "warning": "Avertissement",
+    "critical": "Critique",
+    "Save audit settings": "Enregistrer les paramètres d’audit"
   }
 }

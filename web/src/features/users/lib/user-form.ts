@@ -95,7 +95,17 @@ function mergeAdminManagedSetting(
   let obj: Record<string, unknown> = {}
   if (raw) {
     try {
-      obj = JSON.parse(raw)
+      const parsed: unknown = JSON.parse(raw)
+      // setting 列可能是任意合法 JSON(标量/数组/null),只有纯对象才能安全合并,
+      // 其他形状按"不可解析"处理,避免读/写原始值属性抛 TypeError。
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return undefined
+      }
+      obj = parsed as Record<string, unknown>
     } catch {
       return undefined
     }

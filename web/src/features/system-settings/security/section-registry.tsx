@@ -102,6 +102,19 @@ const SECURITY_SECTIONS = [
             settings['audit.key_share_rapid_ip_threshold'],
           'audit.key_share_suppress_hours':
             settings['audit.key_share_suppress_hours'],
+          'audit.response_scan_enabled':
+            settings['audit.response_scan_enabled'],
+          'audit.response_max_scan_bytes':
+            settings['audit.response_max_scan_bytes'],
+          'audit.geoip_db_path': settings['audit.geoip_db_path'],
+          'audit.group_store_prompt_modes':
+            settings['audit.group_store_prompt_modes'],
+          'audit.classify_enabled': settings['audit.classify_enabled'],
+          'audit.classify_channel_id': settings['audit.classify_channel_id'],
+          'audit.classify_model': settings['audit.classify_model'],
+          'audit.classify_interval_minutes':
+            settings['audit.classify_interval_minutes'],
+          'audit.classify_batch_size': settings['audit.classify_batch_size'],
           'audit.rules': settings['audit.rules'],
         }}
       />

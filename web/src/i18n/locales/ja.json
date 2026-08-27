@@ -5582,6 +5582,10 @@
     "Exclusive": "専有",
     "Shared": "共有",
     "Releases In": "解放まで",
-    "Idle": "アイドル"
+    "Idle": "アイドル",
+    "info": "情報",
+    "warning": "警告",
+    "critical": "重大",
+    "Save audit settings": "監査設定を保存"
   }
 }

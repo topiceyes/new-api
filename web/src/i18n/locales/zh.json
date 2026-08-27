@@ -5582,6 +5582,10 @@
     "Exclusive": "独占",
     "Shared": "共享",
     "Releases In": "剩余释放",
-    "Idle": "空闲"
+    "Idle": "空闲",
+    "info": "信息",
+    "warning": "警告",
+    "critical": "严重",
+    "Save audit settings": "保存审计设置"
   }
 }

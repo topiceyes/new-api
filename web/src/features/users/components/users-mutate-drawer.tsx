@@ -464,6 +464,12 @@ export function UsersMutateDrawer({
                         <Select
                           value={field.value || ''}
                           onValueChange={field.onChange}
+                          items={[
+                            { value: '', label: t('Follow global audit setting') },
+                            { value: 'none', label: t('Do not store prompt content') },
+                            { value: 'hits', label: t('Store only when a rule hits') },
+                            { value: 'all', label: t('Store all prompts (high volume)') },
+                          ]}
                         >
                           <FormControl>
                             <SelectTrigger>

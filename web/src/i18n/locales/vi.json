@@ -5582,6 +5582,10 @@
     "Exclusive": "Độc chiếm",
     "Shared": "Chung",
     "Releases In": "Giải phóng sau",
-    "Idle": "Nhàn rỗi"
+    "Idle": "Nhàn rỗi",
+    "info": "Thông tin",
+    "warning": "Cảnh báo",
+    "critical": "Nghiêm trọng",
+    "Save audit settings": "Lưu cài đặt kiểm toán"
   }
 }

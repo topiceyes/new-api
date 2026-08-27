@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next'
 
 import {
   SideDrawerSection,
+  SideDrawerSectionHeader,
   sideDrawerContentClassName,
   sideDrawerHeaderClassName,
 } from '@/components/drawer-layout'
@@ -78,7 +79,8 @@ export function AuditEventDetailSheet({ event, open, onOpenChange }: Props) {
         </SheetHeader>
         {detail && (
           <div className='space-y-4 overflow-y-auto px-4 pb-4'>
-            <SideDrawerSection title={t('Basic Info')}>
+            <SideDrawerSection>
+              <SideDrawerSectionHeader title={t('Basic Info')} />
               <DetailRow label={t('ID')} value={detail.id} />
               <DetailRow
                 label={t('Time')}
@@ -89,7 +91,8 @@ export function AuditEventDetailSheet({ event, open, onOpenChange }: Props) {
               <DetailRow label={t('Request ID')} value={detail.request_id} />
             </SideDrawerSection>
 
-            <SideDrawerSection title={t('Caller')}>
+            <SideDrawerSection>
+              <SideDrawerSectionHeader title={t('Caller')} />
               <DetailRow
                 label={t('Username')}
                 value={`${detail.username} (ID: ${detail.user_id})`}
@@ -108,7 +111,8 @@ export function AuditEventDetailSheet({ event, open, onOpenChange }: Props) {
             </SideDrawerSection>
 
             {(detail.rule_id || detail.excerpt) && (
-              <SideDrawerSection title={t('Rule Hit')}>
+              <SideDrawerSection>
+                <SideDrawerSectionHeader title={t('Rule Hit')} />
                 <DetailRow label={t('Rule')} value={detail.rule_name} />
                 <DetailRow label={t('Rule ID')} value={detail.rule_id} />
                 <DetailRow label={t('Excerpt')} value={detail.excerpt} />
@@ -122,14 +126,16 @@ export function AuditEventDetailSheet({ event, open, onOpenChange }: Props) {
             )}
 
             {detailObj && !detail.rule_id && (
-              <SideDrawerSection title={t('Signal Detail')}>
+              <SideDrawerSection>
+                <SideDrawerSectionHeader title={t('Signal Detail')} />
                 {Object.entries(detailObj).map(([key, value]) => (
                   <DetailRow key={key} label={key} value={String(value)} />
                 ))}
               </SideDrawerSection>
             )}
 
-            <SideDrawerSection title={t('Prompt Content')}>
+            <SideDrawerSection>
+              <SideDrawerSectionHeader title={t('Prompt Content')} />
               {detail.prompt ? (
                 <pre className='bg-muted max-h-[320px] overflow-auto rounded-md p-3 text-xs break-all whitespace-pre-wrap'>
                   {detail.prompt}

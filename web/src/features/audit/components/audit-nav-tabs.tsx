@@ -8,7 +8,7 @@ License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+MERCHANTABILITY or FITNESS FOR a PARTICULAR PURPOSE. See the
 GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
@@ -16,22 +16,30 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Link } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-/** 安全审计下的子页导航:事件列表 / skill 库。 */
+/** 安全审计下的子页导航:事件列表 / skill 库。Tabs 组件不支持 asChild,
+ * 用 onClick 导航代替 Link 包裹。 */
 export function AuditNavTabs({ active }: { active: 'events' | 'skills' }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   return (
     <Tabs value={active}>
       <TabsList>
-        <TabsTrigger value='events' asChild>
-          <Link to='/audit'>{t('Audit Events')}</Link>
+        <TabsTrigger
+          value='events'
+          onClick={() => navigate({ to: '/audit' })}
+        >
+          {t('Audit Events')}
         </TabsTrigger>
-        <TabsTrigger value='skills' asChild>
-          <Link to='/audit/skills'>{t('Skill Library')}</Link>
+        <TabsTrigger
+          value='skills'
+          onClick={() => navigate({ to: '/audit/skills' })}
+        >
+          {t('Skill Library')}
         </TabsTrigger>
       </TabsList>
     </Tabs>

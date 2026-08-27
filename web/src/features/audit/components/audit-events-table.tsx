@@ -102,9 +102,14 @@ export function AuditEventsTable({ onView }: Props) {
       <Select
         value={eventType}
         onValueChange={(value) => {
-          setEventType(value)
+          // Base UI 清空时回调可能给 null,回落到"全部"
+          setEventType(value ?? ALL_VALUE)
           setPagination((prev) => ({ ...prev, pageIndex: 0 }))
         }}
+        items={[
+          { value: ALL_VALUE, label: t('All Types') },
+          ...AUDIT_EVENT_TYPES.map((type) => ({ value: type, label: type })),
+        ]}
       >
         <SelectTrigger className='w-[180px]'>
           <SelectValue placeholder={t('Event Type')} />
@@ -121,9 +126,13 @@ export function AuditEventsTable({ onView }: Props) {
       <Select
         value={severity}
         onValueChange={(value) => {
-          setSeverity(value)
+          setSeverity(value ?? ALL_VALUE)
           setPagination((prev) => ({ ...prev, pageIndex: 0 }))
         }}
+        items={[
+          { value: ALL_VALUE, label: t('All Severities') },
+          ...AUDIT_SEVERITIES.map((item) => ({ value: item, label: t(item) })),
+        ]}
       >
         <SelectTrigger className='w-[140px]'>
           <SelectValue placeholder={t('Severity')} />

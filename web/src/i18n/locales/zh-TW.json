@@ -5582,6 +5582,10 @@
     "Exclusive": "獨佔",
     "Shared": "共享",
     "Releases In": "剩餘釋放",
-    "Idle": "閒置"
+    "Idle": "閒置",
+    "info": "資訊",
+    "warning": "警告",
+    "critical": "嚴重",
+    "Save audit settings": "儲存審計設定"
   }
 }
