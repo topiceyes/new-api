@@ -79,6 +79,7 @@ interface PlanMonitorFormValues {
   plan_name: string
   api_url: string
   api_key: string
+  user_agent: string
   refresh_interval_min: number
   sort_order: number
   alert_threshold: number
@@ -102,6 +103,7 @@ export function PlanMonitorMutateDrawer({
     provider: z.string().min(1, t('Please select a provider')),
     plan_name: z.string().min(1, t('Please enter plan name')),
     api_url: z.string(),
+    user_agent: z.string(),
     api_key: isEdit
       ? z.string()
       : z.string().min(1, t('Please enter API key')),
@@ -130,6 +132,7 @@ export function PlanMonitorMutateDrawer({
       plan_name: '',
       api_url: '',
       api_key: '',
+      user_agent: '',
       refresh_interval_min: 5,
       sort_order: 0,
       alert_threshold: 90,
@@ -148,6 +151,7 @@ export function PlanMonitorMutateDrawer({
         plan_name: currentRow.plan_name,
         api_url: currentRow.api_url,
         api_key: '',
+        user_agent: currentRow.user_agent || '',
         refresh_interval_min: currentRow.refresh_interval_min || 5,
         sort_order: currentRow.sort_order || 0,
         alert_threshold: currentRow.alert_threshold ?? 0,
@@ -161,6 +165,7 @@ export function PlanMonitorMutateDrawer({
         plan_name: '',
         api_url: '',
         api_key: '',
+        user_agent: '',
         refresh_interval_min: 5,
         sort_order: 0,
         alert_threshold: 90,
@@ -185,6 +190,7 @@ export function PlanMonitorMutateDrawer({
         plan_name: values.plan_name,
         api_url: values.api_url,
         api_key: values.api_key,
+        user_agent: values.user_agent || '',
         refresh_interval_min: Number(values.refresh_interval_min || 5),
         sort_order: Number(values.sort_order || 0),
         alert_threshold: Number(values.alert_threshold || 0),
@@ -349,6 +355,69 @@ export function PlanMonitorMutateDrawer({
                         {t('Leave empty to keep the current API key unchanged')}
                       </FormDescription>
                     )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='user_agent'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('User-Agent')}</FormLabel>
+                    <div className='flex gap-2'>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder={t('Default: Go-http-client')}
+                        />
+                      </FormControl>
+                      <Select
+                        value=''
+                        onValueChange={(value) => {
+                          if (value) {
+                            field.onChange(value.split('::')[1])
+                          }
+                        }}
+                        items={[
+                          {
+                            value: 'kimicli::KimiCLI/1.6',
+                            label: 'Kimi CLI',
+                          },
+                          {
+                            value: 'claude-cli::claude-cli/2.1.0 (external, cli)',
+                            label: 'Claude Code',
+                          },
+                          {
+                            value: 'codex-cli::codex-cli/0.46.0',
+                            label: 'Codex CLI',
+                          },
+                        ]}
+                      >
+                        <SelectTrigger className='w-36 shrink-0'>
+                          <SelectValue placeholder={t('Presets')} />
+                        </SelectTrigger>
+                        <SelectContent alignItemWithTrigger={false}>
+                          <SelectGroup>
+                            <SelectItem value='kimicli::KimiCLI/1.6'>
+                              Kimi CLI
+                            </SelectItem>
+                            <SelectItem value='claude-cli::claude-cli/2.1.0 (external, cli)'>
+                              Claude Code
+                            </SelectItem>
+                            <SelectItem value='codex-cli::codex-cli/0.46.0'>
+                              Codex CLI
+                            </SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <FormDescription>
+                      {t(
+                        'User-Agent sent when fetching plan usage. The default Go-http-client signature can identify the gateway to upstream risk control'
+                      )}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

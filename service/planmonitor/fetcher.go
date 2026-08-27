@@ -55,7 +55,7 @@ func RunFetchOnce(ctx context.Context) FetchSummary {
 			continue
 		}
 		fetchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		usages, err := provider.FetchUsage(fetchCtx, plan.ApiUrl, plan.ApiKey)
+		usages, err := provider.FetchUsage(fetchCtx, plan.ApiUrl, plan.ApiKey, plan.UserAgent)
 		cancel()
 		if err != nil {
 			summary.FailedCount++
@@ -203,7 +203,7 @@ func FetchOneNow(ctx context.Context, planId int64) error {
 	}
 	fetchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	usages, err := provider.FetchUsage(fetchCtx, plan.ApiUrl, plan.ApiKey)
+	usages, err := provider.FetchUsage(fetchCtx, plan.ApiUrl, plan.ApiKey, plan.UserAgent)
 	if err != nil {
 		recordFetchError(plan, err)
 		return err

@@ -42,7 +42,7 @@ func TestMiniMaxFetchUsage_ParsesRemainingIntoUsed(t *testing.T) {
 	}]}`
 	srv := newMiniMaxServer(t, http.StatusOK, body)
 
-	usages, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 2)
 
@@ -73,7 +73,7 @@ func TestMiniMaxFetchUsage_WeeklyOmittedWhenStatusNotOne(t *testing.T) {
 	}]}`
 	srv := newMiniMaxServer(t, http.StatusOK, body)
 
-	usages, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1, "weekly should be omitted when current_weekly_status != 1")
 	assert.Equal(t, model.PlanPeriod5Hour, usages[0].Period)
@@ -82,30 +82,30 @@ func TestMiniMaxFetchUsage_WeeklyOmittedWhenStatusNotOne(t *testing.T) {
 func TestMiniMaxFetchUsage_Errors(t *testing.T) {
 	t.Run("non-200 status", func(t *testing.T) {
 		srv := newMiniMaxServer(t, http.StatusUnauthorized, `{"error":"bad key"}`)
-		_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
 		srv := newMiniMaxServer(t, http.StatusOK, `{not-json`)
-		_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("empty model_remains", func(t *testing.T) {
 		srv := newMiniMaxServer(t, http.StatusOK, `{"model_remains":[]}`)
-		_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("empty api url", func(t *testing.T) {
-		_, err := miniMaxProvider{}.FetchUsage(context.Background(), "", "test-key")
+		_, err := miniMaxProvider{}.FetchUsage(context.Background(), "", "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("empty api key", func(t *testing.T) {
 		srv := newMiniMaxServer(t, http.StatusOK, `{}`)
-		_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "  ")
+		_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "  ", "")
 		require.Error(t, err)
 	})
 }
@@ -139,7 +139,7 @@ func TestMiniMaxFetchUsage_FallsBackToLegacyOn404(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	usages, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.InDelta(t, 60, usages[0].UsedPercent, 0.001, "used = 100 - remaining(40)")
@@ -153,7 +153,7 @@ func TestMiniMaxFetchUsage_Both404(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	_, err := miniMaxProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "404")
 }

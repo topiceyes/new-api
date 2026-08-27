@@ -5590,6 +5590,11 @@
     "Matched Context": "Contexte de correspondance",
     "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Les présélections appliquent aussi une empreinte client assortie (Accept / Accept-Language) à la requête amont",
     "Suppress Stream Options": "Supprimer stream_options",
-    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "N’envoie pas stream_options.include_usage en amont — un signe qui identifie les passerelles côté serveur. Les réponses en flux ne portent plus d’usage exact ; la facturation bascule sur estimation"
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "N’envoie pas stream_options.include_usage en amont — un signe qui identifie les passerelles côté serveur. Les réponses en flux ne portent plus d’usage exact ; la facturation bascule sur estimation",
+    "TLS Fingerprint": "Empreinte TLS",
+    "Off": "Désactivé",
+    "Randomized": "Aléatoire",
+    "Mimic a real client TLS ClientHello (JA3/JA4) on outbound HTTPS, hiding the Go handshake signature. HTTP/1.1 only; HTTP(S) proxies fall back to the default handshake": "Imite le ClientHello TLS d’un vrai client (JA3/JA4) sur le HTTPS sortant, masquant la signature de handshake Go. HTTP/1.1 uniquement ; les proxys HTTP(S) reviennent au handshake par défaut",
+    "User-Agent sent when fetching plan usage. The default Go-http-client signature can identify the gateway to upstream risk control": "User-Agent envoyé lors de la récupération de l’usage du forfait. La signature Go-http-client par défaut peut identifier la passerelle auprès du contrôle de risque amont"
   }
 }

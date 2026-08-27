@@ -25,7 +25,7 @@ type fakeProvider struct {
 }
 
 func (f *fakeProvider) Name() string { return f.name }
-func (f *fakeProvider) FetchUsage(ctx context.Context, apiUrl, apiKey string) ([]PeriodUsage, error) {
+func (f *fakeProvider) FetchUsage(ctx context.Context, apiUrl, apiKey, userAgent string) ([]PeriodUsage, error) {
 	f.calls++
 	if f.err != nil {
 		return nil, f.err

@@ -32,6 +32,7 @@ export interface PlanMonitorPlan {
   plan_name: string
   api_url: string
   api_key_masked: string
+  user_agent: string
   refresh_interval_min: number
   sort_order: number // 排序权重,越小越靠前
   alert_threshold: number // 用量告警阈值(百分比),0=不告警
@@ -60,6 +61,7 @@ export interface PlanMonitorPayload {
   plan_name: string
   api_url: string
   api_key: string // 编辑时留空表示不修改
+  user_agent: string
   refresh_interval_min: number
   sort_order: number
   alert_threshold: number

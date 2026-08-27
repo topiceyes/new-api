@@ -33,7 +33,7 @@ func TestBigmodelFetchUsage_ParsesFiveHourAndWeekly(t *testing.T) {
 	]}}`
 	srv := newBigmodelServer(t, http.StatusOK, body)
 
-	usages, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 2, "TIME_LIMIT(MCP 月配额)应被忽略")
 
@@ -61,7 +61,7 @@ func TestBigmodelFetchUsage_FiveHourOnly(t *testing.T) {
 	]}}`
 	srv := newBigmodelServer(t, http.StatusOK, body)
 
-	usages, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.Equal(t, model.PlanPeriod5Hour, usages[0].Period)
@@ -75,7 +75,7 @@ func TestBigmodelFetchUsage_FlattenedLimits(t *testing.T) {
 	]}`
 	srv := newBigmodelServer(t, http.StatusOK, body)
 
-	usages, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.InDelta(t, 20, usages[0].UsedPercent, 0.001)
@@ -88,7 +88,7 @@ func TestBigmodelFetchUsage_NoUnitFallback(t *testing.T) {
 	]}}`
 	srv := newBigmodelServer(t, http.StatusOK, body)
 
-	usages, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.Equal(t, model.PlanPeriod5Hour, usages[0].Period)
@@ -98,36 +98,36 @@ func TestBigmodelFetchUsage_NoUnitFallback(t *testing.T) {
 func TestBigmodelFetchUsage_Errors(t *testing.T) {
 	t.Run("non-200 status", func(t *testing.T) {
 		srv := newBigmodelServer(t, http.StatusUnauthorized, `{"error":"bad key"}`)
-		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
 		srv := newBigmodelServer(t, http.StatusOK, `{not-json`)
-		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("empty limits", func(t *testing.T) {
 		srv := newBigmodelServer(t, http.StatusOK, `{"data":{"limits":[]}}`)
-		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("no TOKENS_LIMIT", func(t *testing.T) {
 		srv := newBigmodelServer(t, http.StatusOK, `{"data":{"limits":[{"type":"TIME_LIMIT","percentage":10}]}}`)
-		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err, "只有 TIME_LIMIT 应视为无可用数据")
 	})
 
 	t.Run("empty api url", func(t *testing.T) {
-		_, err := bigmodelProvider{}.FetchUsage(context.Background(), "", "test-key")
+		_, err := bigmodelProvider{}.FetchUsage(context.Background(), "", "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("empty api key", func(t *testing.T) {
 		srv := newBigmodelServer(t, http.StatusOK, `{}`)
-		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "  ")
+		_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "  ", "")
 		require.Error(t, err)
 	})
 }
@@ -151,7 +151,7 @@ func TestBigmodelEnterpriseFetchUsage(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	cred := `{"token":"ent-jwt-token","org":"org-abc","project":"proj_xyz"}`
-	usages, err := bigmodelEnterpriseProvider{}.FetchUsage(context.Background(), srv.URL, cred)
+	usages, err := bigmodelEnterpriseProvider{}.FetchUsage(context.Background(), srv.URL, cred, "")
 	require.NoError(t, err)
 	require.Len(t, usages, 2, "TIME_LIMIT 应被忽略")
 
@@ -168,7 +168,7 @@ func TestBigmodelEnterpriseFetchUsage(t *testing.T) {
 // 个人版收到 JSON 凭证应报错(防止企业版凭证误配到个人版)。
 func TestBigmodelPersonalRejectsJSONCredential(t *testing.T) {
 	srv := newBigmodelServer(t, http.StatusOK, `{"data":{"limits":[{"type":"TOKENS_LIMIT","unit":3,"percentage":1,"nextResetTime":1786982400000}]}}`)
-	_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, `{"token":"jwt","org":"o"}`)
+	_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, `{"token":"jwt","org":"o"}`, "")
 	require.Error(t, err, "个人版凭证必须是 API key;JSON 凭证应引导用 bigmodel_enterprise")
 }
 
@@ -185,7 +185,7 @@ func TestBigmodelEntCred_MissingToken(t *testing.T) {
 // 业务错误:HTTP 200 但 success=false(如「当前用户不存在coding plan」)。个人/企业版共用解析。
 func TestBigmodelFetchUsage_BusinessError(t *testing.T) {
 	srv := newBigmodelServer(t, http.StatusOK, `{"code":500,"msg":"当前用户不存在coding plan","success":false}`)
-	_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	_, err := bigmodelProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "不存在coding plan")
 }

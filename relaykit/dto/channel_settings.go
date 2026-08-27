@@ -54,7 +54,25 @@ type ChannelSettings struct {
 	// bound: "busy" (default, reject with a server-busy error) or "share"
 	// (bind a random key without claiming exclusivity).
 	StickyKeyExhaustPolicy string `json:"sticky_key_exhaust_policy,omitempty"`
+	// TLSFingerprint mimics a real client's TLS ClientHello (JA3/JA4) on
+	// outbound HTTPS for this channel, hiding the Go-runtime handshake
+	// signature. Values: chrome / safari / ios / firefox / edge / android /
+	// randomized; empty disables. HTTP/1.1 only (ALPN restricted); HTTP(S)
+	// proxies fall back to the Go handshake since CONNECT tunneling is not
+	// uTLS-wired (SOCKS5 proxies are supported).
+	TLSFingerprint string `json:"tls_fingerprint,omitempty"`
 }
+
+// 渠道 TLS 指纹可选值(映射到出站 uTLS ClientHello 预设,见 service/http_client)。
+const (
+	TLSFingerprintChrome     = "chrome"
+	TLSFingerprintSafari     = "safari"
+	TLSFingerprintIOS        = "ios"
+	TLSFingerprintFirefox    = "firefox"
+	TLSFingerprintEdge       = "edge"
+	TLSFingerprintAndroid    = "android"
+	TLSFingerprintRandomized = "randomized"
+)
 
 const (
 	StickyKeyExhaustPolicyBusy  = "busy"

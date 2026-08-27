@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 
+	utls "github.com/refraction-networking/utls"
 	"golang.org/x/net/proxy"
 )
 
@@ -309,12 +310,97 @@ func newTransportFactory(proxyURL *url.URL, tlsConfig *tls.Config) (func() *http
 	}, nil
 }
 
+// applyUTLSFingerprint 把 uTLS 拨号挂到 transport 的 DialTLSContext 上,出站
+// HTTPS 握手即模拟所选客户端的 ClientHello(JA3/JA4)。仅 HTTP/1.1(ALPN 只协商
+// http/1.1,h2 over uTLS 需另行接管 http2.Transport,不在本期);http/https 代理
+// 走 CONNECT,其 TLS 在隧道另一端,保持 Go 默认握手并告警一次;socks5 代理的
+// DialContext 不受影响,uTLS 照常生效。
+func applyUTLSFingerprint(transport *http.Transport, policy HTTPTransportPolicy, proxyURL *url.URL) {
+	if policy.TLSFingerprint == "" {
+		return
+	}
+	if proxyURL != nil && (proxyURL.Scheme == "http" || proxyURL.Scheme == "https") {
+		warnHTTPTransportPolicyOnce("tls_fingerprint+http_proxy", proxyURL.Scheme)
+		return
+	}
+	helloID, ok := utlsClientHelloID(policy.TLSFingerprint)
+	if !ok {
+		return
+	}
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{}
+	}
+	baseTLS := transport.TLSClientConfig.Clone()
+	insecure := baseTLS.InsecureSkipVerify
+	transport.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+		// 复用 transport 的 DialContext(socks5 代理即走代理链路)。
+		rawConn, err := transport.DialContext(ctx, network, addr)
+		if err != nil {
+			return nil, err
+		}
+		// 继承原 TLSClientConfig 的信任链(RootCAs/客户端证书)与校验开关,
+		// 否则自定义 CA(企业代理/私有上游)与 insecure 配置会失效。
+		// 客户端证书经 GetClientCertificate 桥接(utls.Certificate 与
+		// crypto/tls.Certificate 类型不同,不能直接赋值)。
+		utlsConfig := &utls.Config{
+			ServerName:         host,
+			InsecureSkipVerify: insecure,
+			RootCAs:            baseTLS.RootCAs,
+			// 只协商 http/1.1:HTTP/2 over uTLS 需要接管 http2 流多路复用,
+			// 与现有 sharded transport 体系冲突,超本期范围。
+			NextProtos: []string{"http/1.1"},
+		}
+		if len(baseTLS.Certificates) > 0 || baseTLS.GetClientCertificate != nil {
+			certs := baseTLS.Certificates
+			fallback := baseTLS.GetClientCertificate
+			utlsConfig.GetClientCertificate = func(*utls.CertificateRequestInfo) (*utls.Certificate, error) {
+				var picked *tls.Certificate
+				if fallback != nil {
+					cert, err := fallback(nil)
+					if err != nil || cert == nil {
+						return nil, err
+					}
+					picked = cert
+				} else if len(certs) > 0 {
+					picked = &certs[0]
+				}
+				if picked == nil {
+					return nil, nil
+				}
+				converted := utls.Certificate{
+					Certificate: picked.Certificate,
+					PrivateKey:  picked.PrivateKey,
+					Leaf:        picked.Leaf,
+				}
+				return &converted, nil
+			}
+		}
+		tlsConn := utls.UClient(rawConn, utlsConfig, helloID)
+		if err := tlsConn.HandshakeContext(ctx); err != nil {
+			_ = rawConn.Close()
+			return nil, err
+		}
+		return tlsConn, nil
+	}
+	// 自定义 DialTLS 后 net/http 不再自动启用 h2。
+	transport.ForceAttemptHTTP2 = false
+}
+
 func newHTTPClientFromPolicy(policy HTTPTransportPolicy, proxyURL *url.URL, tlsConfig *tls.Config) (*http.Client, error) {
 	factory, err := newTransportFactory(proxyURL, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
-	return newHTTPClientFromTransportFactory(policy, factory), nil
+	fingerprintFactory := func() *http.Transport {
+		transport := factory()
+		applyUTLSFingerprint(transport, policy, proxyURL)
+		return transport
+	}
+	return newHTTPClientFromTransportFactory(policy, fingerprintFactory), nil
 }
 
 func newHTTPClientFromTransportFactory(policy HTTPTransportPolicy, factory func() *http.Transport) *http.Client {

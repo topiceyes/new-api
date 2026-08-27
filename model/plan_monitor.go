@@ -14,6 +14,7 @@ type PlanMonitor struct {
 	PlanName           string `json:"plan_name" gorm:"type:varchar(128)"`     // 套餐名称
 	ApiUrl             string `json:"api_url" gorm:"type:varchar(255)"`       // 查询用量接口的 base url
 	ApiKey             string `json:"api_key" gorm:"type:text"`               // 查询凭证,返回前端前脱敏
+	UserAgent          string `json:"user_agent" gorm:"type:varchar(255)"`   // 拉取用量时使用的 User-Agent,空=Go 默认(网关特征,有被上游风控识别的风险)
 	RefreshIntervalMin int    `json:"refresh_interval_min" gorm:"default:5"`  // 刷新间隔(分钟)
 	SortOrder          int    `json:"sort_order" gorm:"default:0"`            // 排序权重,越小越靠前(分组顺序取组内最小值)
 	AlertThreshold     int    `json:"alert_threshold" gorm:"default:0"`       // 用量告警阈值(百分比),0=不告警

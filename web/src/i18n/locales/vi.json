@@ -5590,6 +5590,11 @@
     "Matched Context": "Ngữ cảnh trùng khớp",
     "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Chọn sẵn cũng áp dụng dấu vân tay client tương ứng (Accept / Accept-Language) cho yêu cầu thượng nguồn",
     "Suppress Stream Options": "Bỏ stream_options",
-    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "Không gửi stream_options.include_usage lên thượng nguồn——dấu hiệu nhận diện gateway phía máy chủ. Phản hồi streaming không còn mang usage chính xác; tính phí chuyển sang ước lượng"
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "Không gửi stream_options.include_usage lên thượng nguồn——dấu hiệu nhận diện gateway phía máy chủ. Phản hồi streaming không còn mang usage chính xác; tính phí chuyển sang ước lượng",
+    "TLS Fingerprint": "Dấu vân tay TLS",
+    "Off": "Tắt",
+    "Randomized": "Ngẫu nhiên",
+    "Mimic a real client TLS ClientHello (JA3/JA4) on outbound HTTPS, hiding the Go handshake signature. HTTP/1.1 only; HTTP(S) proxies fall back to the default handshake": "Mô phỏng ClientHello TLS của client thật (JA3/JA4) trên HTTPS đi ra, ẩn chữ ký bắt tay của Go. Chỉ HTTP/1.1; proxy HTTP(S) quay về bắt tay mặc định",
+    "User-Agent sent when fetching plan usage. The default Go-http-client signature can identify the gateway to upstream risk control": "User-Agent gửi khi lấy用量 gói cước. Chữ ký Go-http-client mặc định có thể bị kiểm soát rủi ro thượng nguồn nhận diện là gateway"
   }
 }

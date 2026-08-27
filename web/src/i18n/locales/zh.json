@@ -5590,6 +5590,11 @@
     "Matched Context": "命中上下文",
     "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "选择预设会同时为上游请求应用配套的客户端指纹（Accept / Accept-Language）",
     "Suppress Stream Options": "抑制 stream_options",
-    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "不向上游发送 stream_options.include_usage——这是识别服务端网关的特征。流式响应将不再携带精确 usage，计费回退到估算"
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "不向上游发送 stream_options.include_usage——这是识别服务端网关的特征。流式响应将不再携带精确 usage，计费回退到估算",
+    "TLS Fingerprint": "TLS 指纹",
+    "Off": "关闭",
+    "Randomized": "随机",
+    "Mimic a real client TLS ClientHello (JA3/JA4) on outbound HTTPS, hiding the Go handshake signature. HTTP/1.1 only; HTTP(S) proxies fall back to the default handshake": "出站 HTTPS 握手模拟真实客户端的 TLS ClientHello（JA3/JA4），隐藏 Go 运行时的握手特征。仅支持 HTTP/1.1；HTTP(S) 代理将回退为默认握手",
+    "User-Agent sent when fetching plan usage. The default Go-http-client signature can identify the gateway to upstream risk control": "拉取套餐用量时发送的 User-Agent。默认的 Go-http-client 特征可能被上游风控识别为网关"
   }
 }

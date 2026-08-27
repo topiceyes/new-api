@@ -35,7 +35,7 @@ func TestOpencodeFetchUsage_ParsesAllPeriods(t *testing.T) {
 	}}`
 	srv := newOpencodeServer(t, http.StatusOK, body)
 
-	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 3)
 
@@ -64,7 +64,7 @@ func TestOpencodeFetchUsage_DataWrapper(t *testing.T) {
 	body := `{"data":{"rolling":{"percent":42,"resetsAt":"2026-08-12T02:00:00.000Z"}}}`
 	srv := newOpencodeServer(t, http.StatusOK, body)
 
-	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.InDelta(t, 42, usages[0].UsedPercent, 0.001)
@@ -76,7 +76,7 @@ func TestOpencodeFetchUsage_SerovalKeys(t *testing.T) {
 	srv := newOpencodeServer(t, http.StatusOK, body)
 
 	before := time.Now().Unix()
-	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.InDelta(t, 17, usages[0].UsedPercent, 0.001)
@@ -89,7 +89,7 @@ func TestOpencodeFetchUsage_Flattened(t *testing.T) {
 	body := `{"rolling":{"percent":5,"resetsAt":"2026-08-12T02:00:00.000Z"}}`
 	srv := newOpencodeServer(t, http.StatusOK, body)
 
-	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.InDelta(t, 5, usages[0].UsedPercent, 0.001)
@@ -100,7 +100,7 @@ func TestOpencodeFetchUsage_RollingOnly(t *testing.T) {
 	body := `{"usage":{"rolling":{"percent":60,"resetsAt":"2026-08-12T02:00:00.000Z"}}}`
 	srv := newOpencodeServer(t, http.StatusOK, body)
 
-	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.Equal(t, model.PlanPeriod5Hour, usages[0].Period)
@@ -115,36 +115,36 @@ func TestOpencodeFetchUsage_Errors(t *testing.T) {
 			_, _ = w.Write([]byte(`{"error":"unauthorized"}`))
 		}))
 		t.Cleanup(srv.Close)
-		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "bad-key")
+		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "bad-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
 		srv := newOpencodeServer(t, http.StatusOK, `{not-json`)
-		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("no usable windows", func(t *testing.T) {
 		srv := newOpencodeServer(t, http.StatusOK, `{"usage":{}}`)
-		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("window without percent", func(t *testing.T) {
 		srv := newOpencodeServer(t, http.StatusOK, `{"usage":{"rolling":{"resetsAt":"2026-08-12T02:00:00.000Z"}}}`)
-		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err, "窗口缺 percent/usagePercent 应无可用数据")
 	})
 
 	t.Run("empty api url", func(t *testing.T) {
-		_, err := opencodeProvider{}.FetchUsage(context.Background(), "", "test-key")
+		_, err := opencodeProvider{}.FetchUsage(context.Background(), "", "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("empty api key", func(t *testing.T) {
 		srv := newOpencodeServer(t, http.StatusOK, `{}`)
-		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "  ")
+		_, err := opencodeProvider{}.FetchUsage(context.Background(), srv.URL, "  ", "")
 		require.Error(t, err)
 	})
 }

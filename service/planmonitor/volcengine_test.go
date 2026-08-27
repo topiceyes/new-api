@@ -106,26 +106,26 @@ func TestArkSign_DeterministicAndSensitive(t *testing.T) {
 	q1 := arkCanonicalQuery("GetCodingPlanUsage", "cn-beijing")
 
 	req1, _ := http.NewRequest(http.MethodPost, "https://"+arkAPIHost+"/?"+q1, nil)
-	arkSign(req1, cred, q1, now)
+	arkSign(req1, cred, q1, now, "")
 	auth1 := req1.Header.Get("Authorization")
 	assert.Contains(t, auth1, "SignedHeaders=host;x-date;x-content-sha256;content-type")
 
 	// 同输入同签名。
 	req2, _ := http.NewRequest(http.MethodPost, "https://"+arkAPIHost+"/?"+q1, nil)
-	arkSign(req2, cred, q1, now)
+	arkSign(req2, cred, q1, now, "")
 	assert.Equal(t, auth1, req2.Header.Get("Authorization"))
 
 	// 换 SK 必变。
 	cred.SK = "sk-two"
 	req3, _ := http.NewRequest(http.MethodPost, "https://"+arkAPIHost+"/?"+q1, nil)
-	arkSign(req3, cred, q1, now)
+	arkSign(req3, cred, q1, now, "")
 	assert.NotEqual(t, auth1, req3.Header.Get("Authorization"))
 
 	// 换 Action(query 变)必变。
 	cred.SK = "sk-one"
 	q2 := arkCanonicalQuery("GetAFPUsage", "cn-beijing")
 	req4, _ := http.NewRequest(http.MethodPost, "https://"+arkAPIHost+"/?"+q2, nil)
-	arkSign(req4, cred, q2, now)
+	arkSign(req4, cred, q2, now, "")
 	assert.NotEqual(t, auth1, req4.Header.Get("Authorization"))
 }
 
@@ -186,7 +186,7 @@ func TestArkFetchUsage_AgentPlanHit(t *testing.T) {
 		calls = append(calls, action)
 		return []byte(`{"Result":{"PlanType":"Medium","AFPFiveHour":{"Quota":2000,"Used":500,"ResetTime":1787000000},"AFPWeekly":{"Quota":10000,"Used":6200,"ResetTime":1787500000},"AFPMonthly":{"Quota":250000,"Used":1000,"ResetTime":1789900000}}}`), nil
 	}
-	usages, err := arkProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`)
+	usages, err := arkProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`, "")
 	require.NoError(t, err)
 	require.Len(t, usages, 3)
 	assert.Equal(t, []string{"GetAFPUsage"}, calls, "volcengine 只应调 GetAFPUsage")
@@ -198,7 +198,7 @@ func TestArkFetchUsage_AgentPlanNoWindow(t *testing.T) {
 	arkCallHook = func(action string) ([]byte, error) {
 		return []byte(`{"Result":{"PlanType":"","AFPFiveHour":{"Quota":0,"Used":0}}}`), nil
 	}
-	_, err := arkProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`)
+	_, err := arkProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "volcengine_coding", "应引导改用 coding provider")
 }
@@ -211,7 +211,7 @@ func TestArkCodingFetchUsage_Hit(t *testing.T) {
 		calls = append(calls, action)
 		return []byte(`{"Result":{"Status":"active","QuotaUsage":[{"Level":"session","Percent":42,"ResetTimestamp":1787000000},{"Level":"weekly","Percent":17,"ResetTimestamp":1787500000}]}}`), nil
 	}
-	usages, err := arkCodingProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`)
+	usages, err := arkCodingProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`, "")
 	require.NoError(t, err)
 	require.Len(t, usages, 2)
 	assert.Equal(t, []string{"GetCodingPlanUsage"}, calls, "volcengine_coding 只应调 GetCodingPlanUsage")
@@ -229,7 +229,7 @@ func TestArkCodingFetchUsage_NoSubscription(t *testing.T) {
 	arkCallHook = func(action string) ([]byte, error) {
 		return []byte(`{"Result":{"Status":"inactive","QuotaUsage":[]}}`), nil
 	}
-	_, err := arkCodingProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`)
+	_, err := arkCodingProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "volcengine", "应引导改用 agent provider")
 }
@@ -240,6 +240,6 @@ func TestArkFetchUsage_EnvelopeError(t *testing.T) {
 	arkCallHook = func(action string) ([]byte, error) {
 		return nil, assert.AnError // 走 arkOpenAPICall 的错误路径,这里 hook 直接返回错误
 	}
-	_, err := arkProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`)
+	_, err := arkProvider{}.FetchUsage(context.Background(), "", `{"ak":"A","sk":"S"}`, "")
 	require.Error(t, err)
 }

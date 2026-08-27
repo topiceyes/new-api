@@ -356,6 +356,7 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
     (values.rate_limit_rpm != null && values.rate_limit_rpm > 0) ||
     values.user_agent?.trim() ||
     values.header_preset?.trim() ||
+    values.tls_fingerprint?.trim() ||
     values.suppress_stream_options ||
     values.sticky_token_key_binding ||
     values.claude_beta_query ||
@@ -4508,6 +4509,60 @@ export function ChannelMutateDrawer({
                                   <FormDescription>
                                     {t(
                                       'Auto negotiates HTTP/2 when available. HTTP/1.1 forces multiple keep-alive connections under concurrency.'
+                                    )}
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name='tls_fingerprint'
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t('TLS Fingerprint')}</FormLabel>
+                                  <Select
+                                    items={[
+                                      { value: '', label: t('Off') },
+                                      { value: 'chrome', label: 'Chrome' },
+                                      { value: 'safari', label: 'Safari' },
+                                      { value: 'ios', label: 'iOS' },
+                                      { value: 'firefox', label: 'Firefox' },
+                                      { value: 'edge', label: 'Edge' },
+                                      { value: 'android', label: 'Android (OkHttp)' },
+                                      { value: 'randomized', label: t('Randomized') },
+                                    ]}
+                                    value={field.value || ''}
+                                    onValueChange={field.onChange}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent alignItemWithTrigger={false}>
+                                      <SelectGroup>
+                                        <SelectItem value=''>
+                                          {t('Off')}
+                                        </SelectItem>
+                                        <SelectItem value='chrome'>Chrome</SelectItem>
+                                        <SelectItem value='safari'>Safari</SelectItem>
+                                        <SelectItem value='ios'>iOS</SelectItem>
+                                        <SelectItem value='firefox'>Firefox</SelectItem>
+                                        <SelectItem value='edge'>Edge</SelectItem>
+                                        <SelectItem value='android'>
+                                          Android (OkHttp)
+                                        </SelectItem>
+                                        <SelectItem value='randomized'>
+                                          {t('Randomized')}
+                                        </SelectItem>
+                                      </SelectGroup>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormDescription>
+                                    {t(
+                                      'Mimic a real client TLS ClientHello (JA3/JA4) on outbound HTTPS, hiding the Go handshake signature. HTTP/1.1 only; HTTP(S) proxies fall back to the default handshake'
                                     )}
                                   </FormDescription>
                                   <FormMessage />

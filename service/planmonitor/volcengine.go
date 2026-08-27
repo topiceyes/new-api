@@ -141,12 +141,12 @@ type arkCodingResult struct {
 }
 
 // FetchUsage Agent Plan(volcengine):只查 GetAFPUsage,绝对值 Quota/Used → 百分比。
-func (arkProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string) ([]PeriodUsage, error) {
+func (arkProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string, userAgent string) ([]PeriodUsage, error) {
 	cred, err := parseArkCred(apiKey)
 	if err != nil {
 		return nil, err
 	}
-	body, err := arkOpenAPICall(ctx, cred, "GetAFPUsage", time.Now().UTC())
+	body, err := arkOpenAPICall(ctx, cred, "GetAFPUsage", time.Now().UTC(), userAgent)
 	if err != nil {
 		return nil, err
 	}
@@ -162,12 +162,12 @@ func (arkProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string)
 }
 
 // FetchUsage Coding Plan(volcengine_coding):只查 GetCodingPlanUsage,Percent 即已用。
-func (arkCodingProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string) ([]PeriodUsage, error) {
+func (arkCodingProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string, userAgent string) ([]PeriodUsage, error) {
 	cred, err := parseArkCred(apiKey)
 	if err != nil {
 		return nil, err
 	}
-	body, err := arkOpenAPICall(ctx, cred, "GetCodingPlanUsage", time.Now().UTC())
+	body, err := arkOpenAPICall(ctx, cred, "GetCodingPlanUsage", time.Now().UTC(), userAgent)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +282,7 @@ func arkResultOf(body []byte) []byte {
 var arkCallHook func(action string) ([]byte, error)
 
 // arkOpenAPICall 发起一次签名后的 POST(空 body),校验信封业务错误,返回响应体。
-func arkOpenAPICall(ctx context.Context, cred arkCred, action string, now time.Time) ([]byte, error) {
+func arkOpenAPICall(ctx context.Context, cred arkCred, action string, now time.Time, userAgent string) ([]byte, error) {
 	if arkCallHook != nil {
 		return arkCallHook(action)
 	}
@@ -293,7 +293,7 @@ func arkOpenAPICall(ctx context.Context, cred arkCred, action string, now time.T
 	if err != nil {
 		return nil, err
 	}
-	arkSign(req, cred, canonicalQuery, now)
+	arkSign(req, cred, canonicalQuery, now, userAgent)
 
 	client := service.GetHttpClient()
 	if client == nil {
@@ -333,7 +333,7 @@ func arkOpenAPICall(ctx context.Context, cred arkCred, action string, now time.T
 }
 
 // arkSign 火山签名 V4。canonicalQuery 必须与实际请求 URL 的 query 逐字一致。
-func arkSign(req *http.Request, cred arkCred, canonicalQuery string, now time.Time) {
+func arkSign(req *http.Request, cred arkCred, canonicalQuery string, now time.Time, userAgent string) {
 	timestamp := now.Format("20060102T150405Z")
 	dateStamp := now.Format("20060102")
 	payloadHash := sha256Hex(nil)
@@ -363,6 +363,7 @@ func arkSign(req *http.Request, cred arkCred, canonicalQuery string, now time.Ti
 	req.Header.Set("Content-Type", arkContentType)
 	req.Header.Set("X-Date", timestamp)
 	req.Header.Set("X-Content-Sha256", payloadHash)
+	applyUserAgent(req, userAgent)
 	req.Header.Set("Authorization", arkAlgorithm+" Credential="+cred.AK+"/"+credentialScope+
 		", SignedHeaders="+arkSignedHeaders+", Signature="+signature)
 }

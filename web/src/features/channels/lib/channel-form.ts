@@ -289,6 +289,7 @@ export const channelFormSchema = z
     rate_limit_rpm: z.number().int().min(0).optional(),
     user_agent: z.string().optional(),
     header_preset: z.string().optional(),
+    tls_fingerprint: z.string().optional(),
     suppress_stream_options: z.boolean().optional(),
     sticky_token_key_binding: z.boolean().optional(),
     sticky_key_idle_minutes: z.coerce.number().int().min(1).max(1440).optional(),
@@ -472,6 +473,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   rate_limit_rpm: 0,
   user_agent: '',
   header_preset: '',
+  tls_fingerprint: '',
   suppress_stream_options: false,
   sticky_token_key_binding: false,
   sticky_key_idle_minutes: 10,
@@ -522,6 +524,7 @@ export function transformChannelToFormDefaults(
     rate_limit_rpm: 0,
     user_agent: '',
     header_preset: '',
+    tls_fingerprint: '',
     suppress_stream_options: false,
     sticky_token_key_binding: false,
     sticky_key_idle_minutes: 10,
@@ -551,6 +554,8 @@ export function transformChannelToFormDefaults(
           typeof parsed.user_agent === 'string' ? parsed.user_agent : '',
         header_preset:
           typeof parsed.header_preset === 'string' ? parsed.header_preset : '',
+        tls_fingerprint:
+          typeof parsed.tls_fingerprint === 'string' ? parsed.tls_fingerprint : '',
         suppress_stream_options: parsed.suppress_stream_options || false,
         sticky_token_key_binding: parsed.sticky_token_key_binding || false,
         sticky_key_idle_minutes: Number.isInteger(
@@ -740,6 +745,11 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
   const headerPreset = formData.header_preset?.trim()
   if (headerPreset) {
     settingObj.header_preset = headerPreset
+  }
+
+  const tlsFingerprint = formData.tls_fingerprint?.trim()
+  if (tlsFingerprint) {
+    settingObj.tls_fingerprint = tlsFingerprint
   }
 
   if (formData.suppress_stream_options) {

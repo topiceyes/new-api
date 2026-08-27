@@ -5590,6 +5590,11 @@
     "Matched Context": "一致コンテキスト",
     "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "プリセットを選択すると、上流リクエストに一致するクライアントフィンガープリント（Accept / Accept-Language）も適用されます",
     "Suppress Stream Options": "stream_options を抑制",
-    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "上流に stream_options.include_usage を送信しない——サーバー側ゲートウェイを識別する手がかり。ストリーミング応答に正確な usage が含まれなくなり、課金は推定に切り替わります"
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "上流に stream_options.include_usage を送信しない——サーバー側ゲートウェイを識別する手がかり。ストリーミング応答に正確な usage が含まれなくなり、課金は推定に切り替わります",
+    "TLS Fingerprint": "TLS フィンガープリント",
+    "Off": "オフ",
+    "Randomized": "ランダム",
+    "Mimic a real client TLS ClientHello (JA3/JA4) on outbound HTTPS, hiding the Go handshake signature. HTTP/1.1 only; HTTP(S) proxies fall back to the default handshake": "送信 HTTPS で実際のクライアントの TLS ClientHello（JA3/JA4）を模倣し、Go ランタイムのハンドシェイク署名を隠します。HTTP/1.1 専用。HTTP(S) プロキシはデフォルトのハンドシェイクにフォールバック",
+    "User-Agent sent when fetching plan usage. The default Go-http-client signature can identify the gateway to upstream risk control": "プラン使用量の取得時に送る User-Agent。デフォルトの Go-http-client 署名は、上流のリスク管理にゲートウェイとして識別される可能性があります"
   }
 }

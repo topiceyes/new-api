@@ -43,7 +43,7 @@ func TestKimiFetchUsage_ParsesFiveHourAndWeekly(t *testing.T) {
 	}`
 	srv := newKimiServer(t, http.StatusOK, body)
 
-	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 2)
 
@@ -76,7 +76,7 @@ func TestKimiFetchUsage_RemainingFallback(t *testing.T) {
 	}`
 	srv := newKimiServer(t, http.StatusOK, body)
 
-	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.InDelta(t, 60, usages[0].UsedPercent, 0.001, "used=1000-400=600 → 60%")
@@ -92,7 +92,7 @@ func TestKimiFetchUsage_NumericValues(t *testing.T) {
 	}`
 	srv := newKimiServer(t, http.StatusOK, body)
 
-	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.InDelta(t, 50, usages[0].UsedPercent, 0.001)
@@ -108,7 +108,7 @@ func TestKimiFetchUsage_NanoResetTime(t *testing.T) {
 	}`
 	srv := newKimiServer(t, http.StatusOK, body)
 
-	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	want, _ := time.Parse(time.RFC3339Nano, "2026-08-18T01:00:00.716839300Z")
@@ -127,7 +127,7 @@ func TestKimiFetchUsage_WeeklyWindowInLimits(t *testing.T) {
 	}`
 	srv := newKimiServer(t, http.StatusOK, body)
 
-	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	byPeriod := map[string]PeriodUsage{}
 	for _, u := range usages {
@@ -152,7 +152,7 @@ func TestKimiFetchUsage_FallsBackToUsageOn404(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+	usages, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 	require.NoError(t, err)
 	require.Len(t, usages, 1)
 	assert.Equal(t, model.PlanPeriodWeekly, usages[0].Period)
@@ -162,36 +162,36 @@ func TestKimiFetchUsage_FallsBackToUsageOn404(t *testing.T) {
 func TestKimiFetchUsage_Errors(t *testing.T) {
 	t.Run("non-200 status", func(t *testing.T) {
 		srv := newKimiServer(t, http.StatusUnauthorized, `{"error":"bad key"}`)
-		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("invalid json", func(t *testing.T) {
 		srv := newKimiServer(t, http.StatusOK, `{not-json`)
-		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("no usable data", func(t *testing.T) {
 		srv := newKimiServer(t, http.StatusOK, `{"usage": null, "limits": []}`)
-		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("zero limit skipped", func(t *testing.T) {
 		srv := newKimiServer(t, http.StatusOK, `{"limits":[{"window":{"duration":300,"timeUnit":"TIME_UNIT_MINUTE"},"detail":{"used":"10","limit":"0"}}]}`)
-		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key")
+		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "test-key", "")
 		require.Error(t, err, "limit=0 无法换算百分比,应无可用数据")
 	})
 
 	t.Run("empty api url", func(t *testing.T) {
-		_, err := kimiProvider{}.FetchUsage(context.Background(), "", "test-key")
+		_, err := kimiProvider{}.FetchUsage(context.Background(), "", "test-key", "")
 		require.Error(t, err)
 	})
 
 	t.Run("empty api key", func(t *testing.T) {
 		srv := newKimiServer(t, http.StatusOK, `{}`)
-		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "  ")
+		_, err := kimiProvider{}.FetchUsage(context.Background(), srv.URL, "  ", "")
 		require.Error(t, err)
 	})
 }

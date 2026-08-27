@@ -20,6 +20,7 @@ type planMonitorRequest struct {
 	PlanName           string `json:"plan_name"`
 	ApiUrl             string `json:"api_url"`
 	ApiKey             string `json:"api_key"` // 编辑时留空表示不修改
+	UserAgent          string `json:"user_agent"`
 	RefreshIntervalMin int    `json:"refresh_interval_min"`
 	SortOrder          int    `json:"sort_order"`
 	AlertThreshold     int    `json:"alert_threshold"`      // 用量告警阈值(百分比),0=不告警
@@ -35,6 +36,7 @@ type planMonitorResponse struct {
 	PlanName           string `json:"plan_name"`
 	ApiUrl             string `json:"api_url"`
 	ApiKeyMasked       string `json:"api_key_masked"`
+	UserAgent          string `json:"user_agent"`
 	RefreshIntervalMin int    `json:"refresh_interval_min"`
 	SortOrder          int    `json:"sort_order"`
 	AlertThreshold     int    `json:"alert_threshold"`
@@ -56,6 +58,7 @@ func toPlanMonitorResponse(p *model.PlanMonitor) planMonitorResponse {
 		PlanName:           p.PlanName,
 		ApiUrl:             p.ApiUrl,
 		ApiKeyMasked:       p.MaskApiKey(),
+		UserAgent:          p.UserAgent,
 		RefreshIntervalMin: p.RefreshIntervalMin,
 		SortOrder:          p.SortOrder,
 		AlertThreshold:     p.AlertThreshold,
@@ -130,6 +133,7 @@ func AdminCreatePlanMonitor(c *gin.Context) {
 		PlanName:           strings.TrimSpace(req.PlanName),
 		ApiUrl:             strings.TrimSpace(req.ApiUrl),
 		ApiKey:             strings.TrimSpace(req.ApiKey),
+		UserAgent:          strings.TrimSpace(req.UserAgent),
 		RefreshIntervalMin: req.RefreshIntervalMin,
 		SortOrder:          req.SortOrder,
 		AlertThreshold:     req.AlertThreshold,
@@ -181,6 +185,7 @@ func AdminUpdatePlanMonitor(c *gin.Context) {
 	existing.Enabled = req.Enabled
 	existing.IsPublic = req.IsPublic
 	// key 留空表示不修改
+	existing.UserAgent = strings.TrimSpace(req.UserAgent)
 	if k := strings.TrimSpace(req.ApiKey); k != "" {
 		existing.ApiKey = k
 	}

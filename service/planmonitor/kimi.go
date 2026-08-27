@@ -51,7 +51,7 @@ type kimiUsageEntry struct {
 	ResetTime string      `json:"resetTime"` // ISO8601,如 2026-01-09T15:23:13.716839300Z
 }
 
-func (kimiProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string) ([]PeriodUsage, error) {
+func (kimiProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string, userAgent string) ([]PeriodUsage, error) {
 	base, err := ResolveAPIURL("kimi", apiUrl)
 	if err != nil {
 		return nil, err
@@ -62,9 +62,9 @@ func (kimiProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string
 	}
 
 	// 先试 /usages,404 回退 /usage。
-	body, err := kimiGet(ctx, base+"/usages", key)
+	body, err := kimiGet(ctx, base+"/usages", key, userAgent)
 	if err != nil && is404Err(err) {
-		body, err = kimiGet(ctx, base+"/usage", key)
+		body, err = kimiGet(ctx, base+"/usage", key, userAgent)
 	}
 	if err != nil {
 		return nil, err
@@ -170,13 +170,14 @@ func kimiResetToSec(resetTime string) int64 {
 }
 
 // kimiGet 发起一次 GET 并返回响应体。Bearer 认证 + Kimi CLI UA;非 200 返回带状态码错误。
-func kimiGet(ctx context.Context, url string, apiKey string) ([]byte, error) {
+func kimiGet(ctx context.Context, url string, apiKey string, userAgent string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Accept", "application/json")
+	applyUserAgent(req, userAgent)
 	req.Header.Set("User-Agent", kimiUserAgent)
 
 	client := service.GetHttpClient()

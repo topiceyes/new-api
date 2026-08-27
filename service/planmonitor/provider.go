@@ -3,6 +3,7 @@ package planmonitor
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 )
 
@@ -18,8 +19,8 @@ type PeriodUsage struct {
 type Provider interface {
 	// Name 供应商标识,与 PlanMonitor.Provider 对应(如 "minimax")。
 	Name() string
-	// FetchUsage 调用供应商接口,返回各周期用量。
-	FetchUsage(ctx context.Context, apiUrl string, apiKey string) ([]PeriodUsage, error)
+	// FetchUsage 调用供应商接口,返回各周期用量。userAgent 为空时用 Go 默认 UA。
+	FetchUsage(ctx context.Context, apiUrl string, apiKey string, userAgent string) ([]PeriodUsage, error)
 }
 
 var providers = map[string]Provider{}
@@ -74,4 +75,12 @@ func SupportedProviders() []string {
 		names = append(names, name)
 	}
 	return names
+}
+
+// applyUserAgent 给套餐监控的出站请求打上配置的 User-Agent;空值保持 Go 默认。
+// 套餐用量拉取和 relay 一样会被上游风控看到,默认 Go-http-client UA 是网关特征。
+func applyUserAgent(req *http.Request, userAgent string) {
+	if ua := strings.TrimSpace(userAgent); ua != "" {
+		req.Header.Set("User-Agent", ua)
+	}
 }

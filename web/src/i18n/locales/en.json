@@ -5590,6 +5590,11 @@
     "Matched Context": "Matched Context",
     "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request",
     "Suppress Stream Options": "Suppress Stream Options",
-    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation"
+    "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation": "Do not send stream_options.include_usage upstream — a tell that identifies server-side gateways. Streaming responses no longer carry exact usage; billing falls back to estimation",
+    "TLS Fingerprint": "TLS Fingerprint",
+    "Off": "Off",
+    "Randomized": "Randomized",
+    "Mimic a real client TLS ClientHello (JA3/JA4) on outbound HTTPS, hiding the Go handshake signature. HTTP/1.1 only; HTTP(S) proxies fall back to the default handshake": "Mimic a real client TLS ClientHello (JA3/JA4) on outbound HTTPS, hiding the Go handshake signature. HTTP/1.1 only; HTTP(S) proxies fall back to the default handshake",
+    "User-Agent sent when fetching plan usage. The default Go-http-client signature can identify the gateway to upstream risk control": "User-Agent sent when fetching plan usage. The default Go-http-client signature can identify the gateway to upstream risk control"
   }
 }

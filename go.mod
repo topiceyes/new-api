@@ -166,6 +166,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.32.0
 	github.com/QuantumNous/new-api/relaykit v0.0.0
 	github.com/oschwald/maxminddb-golang v1.13.1
+	github.com/refraction-networking/utls v1.8.2
 )
 
 replace github.com/QuantumNous/new-api/relaykit => ./relaykit

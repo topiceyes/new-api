@@ -49,7 +49,7 @@ type bigmodelLimit struct {
 	NextResetTime int64   `json:"nextResetTime"` // 周期重置时间戳(毫秒)
 }
 
-func (bigmodelProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string) ([]PeriodUsage, error) {
+func (bigmodelProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string, userAgent string) ([]PeriodUsage, error) {
 	base, err := ResolveAPIURL("bigmodel", apiUrl)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (bigmodelProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey st
 		return nil, fmt.Errorf("bigmodel 个人版凭证应为 API key;企业版(团队版)请在 provider 选 bigmodel_enterprise")
 	}
 
-	body, err := bigmodelGet(ctx, base, key)
+	body, err := bigmodelGet(ctx, base, key, userAgent)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func parseBigmodelEntCred(apiKey string) (bigmodelEntCred, error) {
 	return cred, nil
 }
 
-func (bigmodelEnterpriseProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string) ([]PeriodUsage, error) {
+func (bigmodelEnterpriseProvider) FetchUsage(ctx context.Context, apiUrl string, apiKey string, userAgent string) ([]PeriodUsage, error) {
 	base, err := ResolveAPIURL("bigmodel_enterprise", apiUrl)
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func (bigmodelEnterpriseProvider) FetchUsage(ctx context.Context, apiUrl string,
 		return nil, err
 	}
 
-	body, err := bigmodelEntGet(ctx, base, cred)
+	body, err := bigmodelEntGet(ctx, base, cred, userAgent)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (bigmodelEnterpriseProvider) FetchUsage(ctx context.Context, apiUrl string,
 }
 
 // bigmodelEntGet 企业版请求:?type=2 + JWT + 组织/项目头。
-func bigmodelEntGet(ctx context.Context, base string, cred bigmodelEntCred) ([]byte, error) {
+func bigmodelEntGet(ctx context.Context, base string, cred bigmodelEntCred, userAgent string) ([]byte, error) {
 	url := base + "/api/monitor/usage/quota/limit?type=2"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -212,6 +212,7 @@ func bigmodelEntGet(ctx context.Context, base string, cred bigmodelEntCred) ([]b
 	}
 	req.Header.Set("Authorization", cred.Token)
 	req.Header.Set("Accept", "application/json")
+	applyUserAgent(req, userAgent)
 	if cred.Org != "" {
 		req.Header.Set("bigmodel-organization", cred.Org)
 	}
@@ -240,7 +241,7 @@ func bigmodelEntGet(ctx context.Context, base string, cred bigmodelEntCred) ([]b
 }
 
 // bigmodelGet 个人版请求:Authorization 直接放 API key(不带 Bearer),路径无 type 参数。
-func bigmodelGet(ctx context.Context, base string, key string) ([]byte, error) {
+func bigmodelGet(ctx context.Context, base string, key string, userAgent string) ([]byte, error) {
 	url := base + "/api/monitor/usage/quota/limit"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -248,6 +249,7 @@ func bigmodelGet(ctx context.Context, base string, key string) ([]byte, error) {
 	}
 	req.Header.Set("Authorization", key)
 	req.Header.Set("Accept", "application/json")
+	applyUserAgent(req, userAgent)
 	req.Header.Set("Content-Type", "application/json")
 
 	client := service.GetHttpClient()
