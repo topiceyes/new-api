@@ -162,7 +162,12 @@ func Distribute() func(c *gin.Context) {
 			}
 		}
 		common.SetContextKey(c, constant.ContextKeyRequestStartTime, time.Now())
-		SetupContextForSelectedChannel(c, channel, modelRequest.Model)
+		if setupErr := SetupContextForSelectedChannel(c, channel, modelRequest.Model); setupErr != nil {
+			// 选 key 失败(如粘性绑定 busy 拒绝):按错误自带的状态码终止请求,
+			// 不能落入 c.Next() 导致下游拿不到渠道上下文变成 500。
+			abortWithOpenAiMessage(c, setupErr.StatusCode, setupErr.Error(), setupErr.GetErrorCode())
+			return
+		}
 		c.Next()
 		if channel != nil && c.Writer != nil && c.Writer.Status() < http.StatusBadRequest {
 			service.RecordChannelAffinity(c, channel.Id)
@@ -438,6 +443,37 @@ func getTaskOriginModelName(c *gin.Context) string {
 	return ""
 }
 
+// selectChannelKey 选取本次请求使用的上游 key。多 Key 渠道开启「令牌粘性 Key 绑定」
+// 时,令牌固定复用同一个 key(空闲自动释放,见 service/channel_sticky_key.go);
+// 其余情况沿用原有轮询/随机逻辑。
+func selectChannelKey(c *gin.Context, channel *model.Channel) (string, int, *types.NewAPIError) {
+	setting := channel.GetSetting()
+	if channel.ChannelInfo.IsMultiKey && setting.StickyTokenKeyBinding {
+		enabledIdx := channel.GetEnabledKeyIndexes()
+		if len(enabledIdx) == 0 {
+			// 全部 key 已禁用,沿用原路径的明确错误(渠道应被标记禁用)。
+			return channel.GetNextEnabledKey()
+		}
+		tokenId := common.GetContextKeyInt(c, constant.ContextKeyTokenId)
+		idx, ok := service.BindTokenToChannelKey(tokenId, channel.Id, enabledIdx,
+			setting.StickyKeyIdleMinutes,
+			setting.StickyKeyExhaustPolicy == dto.StickyKeyExhaustPolicyShare)
+		if !ok {
+			// busy 策略:key 全被占用,告知稍后重试而不是共享。
+			return "", 0, types.NewErrorWithStatusCode(
+				errors.New("当前渠道绑定的 Key 已全部占用，请稍后重试"),
+				types.ErrorCodeChannelStickyKeyBusy, http.StatusTooManyRequests)
+		}
+		keys := channel.GetKeys()
+		if idx < 0 || idx >= len(keys) {
+			// 兜底:绑定下标越界(正常流程不会发生),回落原路径。
+			return channel.GetNextEnabledKey()
+		}
+		return keys[idx], idx, nil
+	}
+	return channel.GetNextEnabledKey()
+}
+
 func SetupContextForSelectedChannel(c *gin.Context, channel *model.Channel, modelName string) *types.NewAPIError {
 	c.Set("original_model", modelName) // for retry
 	if channel == nil {
@@ -463,7 +499,7 @@ func SetupContextForSelectedChannel(c *gin.Context, channel *model.Channel, mode
 	common.SetContextKey(c, constant.ContextKeyChannelModelMapping, channel.GetModelMapping())
 	common.SetContextKey(c, constant.ContextKeyChannelStatusCodeMapping, channel.GetStatusCodeMapping())
 
-	key, index, newAPIError := channel.GetNextEnabledKey()
+	key, index, newAPIError := selectChannelKey(c, channel)
 	if newAPIError != nil {
 		return newAPIError
 	}

@@ -197,6 +197,24 @@ func (channel *Channel) GetKeys() []string {
 	return keys
 }
 
+// GetEnabledKeyIndexes 返回多 Key 渠道中处于启用状态的 key 下标列表(缺省状态视为启用)。
+// 非多 Key 渠道返回空列表,由调用方按单 key 处理。
+func (channel *Channel) GetEnabledKeyIndexes() []int {
+	if !channel.ChannelInfo.IsMultiKey {
+		return nil
+	}
+	keys := channel.GetKeys()
+	statusList := channel.ChannelInfo.MultiKeyStatusList
+	enabledIdx := make([]int, 0, len(keys))
+	for i := range keys {
+		if status, ok := statusList[i]; ok && status != common.ChannelStatusEnabled {
+			continue
+		}
+		enabledIdx = append(enabledIdx, i)
+	}
+	return enabledIdx
+}
+
 func (channel *Channel) GetNextEnabledKey() (string, int, *types.NewAPIError) {
 	// If not in multi-key mode, return the original key string directly.
 	if !channel.ChannelInfo.IsMultiKey {

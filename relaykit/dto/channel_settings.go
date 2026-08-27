@@ -30,7 +30,23 @@ type ChannelSettings struct {
 	// for this channel. Empty means the Go default (Go-http-client/*).
 	// Explicit header_override entries still take precedence over this value.
 	UserAgent string `json:"user_agent,omitempty"`
+	// StickyTokenKeyBinding makes multi-key channels bind each token to one
+	// fixed upstream key (idle-released) instead of rotating keys, so every
+	// key's traffic profile stays close to a single client.
+	StickyTokenKeyBinding bool `json:"sticky_token_key_binding,omitempty"`
+	// StickyKeyIdleMinutes releases a binding after N idle minutes. Zero/unset
+	// means the default (10).
+	StickyKeyIdleMinutes int `json:"sticky_key_idle_minutes,omitempty"`
+	// StickyKeyExhaustPolicy decides what a new token gets when all keys are
+	// bound: "busy" (default, reject with a server-busy error) or "share"
+	// (bind a random key without claiming exclusivity).
+	StickyKeyExhaustPolicy string `json:"sticky_key_exhaust_policy,omitempty"`
 }
+
+const (
+	StickyKeyExhaustPolicyBusy  = "busy"
+	StickyKeyExhaustPolicyShare = "share"
+)
 
 const (
 	HTTPProtocolAuto         = "auto"
