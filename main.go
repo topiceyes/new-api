@@ -25,9 +25,11 @@ import (
 	"github.com/QuantumNous/new-api/oauth"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
 	"github.com/QuantumNous/new-api/relay"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	kitutil "github.com/QuantumNous/new-api/relaykit/relayconvert/kitutil"
 	"github.com/QuantumNous/new-api/router"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/audit"
 	"github.com/QuantumNous/new-api/service/authz"
 	_ "github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -158,6 +160,9 @@ func main() {
 	// switch are enforced inside the runner and each handler's Enabled().
 	controller.RegisterScheduledSystemTasks()
 	service.StartSystemTaskRunner()
+
+	// 安全审计旁路:relay/common 不能反向 import service,这里显式注入实现。
+	relaycommon.OnRelayInfoReady = audit.InspectRequest
 
 	if os.Getenv("BATCH_UPDATE_ENABLED") == "true" {
 		common.BatchUpdateEnabled = true

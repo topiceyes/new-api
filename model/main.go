@@ -297,6 +297,9 @@ func migrateDB() error {
 		&PlanMonitorUsageHistory{},
 		&OrgDepartment{},
 		&OrgMember{},
+		&AuditEvent{},
+		&SkillCandidate{},
+		&Skill{},
 	)
 	if err != nil {
 		return err

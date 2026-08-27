@@ -45,3 +45,4 @@ go.work.sum
 # Production migration docs (contain secrets) and scratch files
 docs/migration-old-to-new.md
 old_schema.sql
+*.mmdb

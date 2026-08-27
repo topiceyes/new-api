@@ -552,8 +552,17 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 		info.UserSetting = userSetting
 	}
 
+	if OnRelayInfoReady != nil {
+		OnRelayInfoReady(c, info)
+	}
+
 	return info
 }
+
+// OnRelayInfoReady 在 RelayInfo 构造完成、relay 发送前触发,用于挂接安全审计等
+// 旁路逻辑。本包不能 import service(会成环),故由 main.go 启动时显式注入实现。
+// 实现方必须只做轻量同步快照,重活走异步,不得修改 info 或阻塞主路径。
+var OnRelayInfoReady func(c *gin.Context, info *RelayInfo)
 
 func cloneRequestHeaders(c *gin.Context) map[string]string {
 	if c == nil || c.Request == nil {
