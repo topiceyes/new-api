@@ -5587,6 +5587,7 @@
     "warning": "Предупреждение",
     "critical": "Критично",
     "Save audit settings": "Сохранить настройки аудита",
-    "Matched Context": "Контекст совпадения"
+    "Matched Context": "Контекст совпадения",
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Пресеты также применяют соответствующий отпечаток клиента (Accept / Accept-Language) к исходящему запросу"
   }
 }

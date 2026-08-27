@@ -5587,6 +5587,7 @@
     "warning": "Avertissement",
     "critical": "Critique",
     "Save audit settings": "Enregistrer les paramètres d’audit",
-    "Matched Context": "Contexte de correspondance"
+    "Matched Context": "Contexte de correspondance",
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Les présélections appliquent aussi une empreinte client assortie (Accept / Accept-Language) à la requête amont"
   }
 }

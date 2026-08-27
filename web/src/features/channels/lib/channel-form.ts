@@ -288,6 +288,7 @@ export const channelFormSchema = z
     http2_connection_shards: z.number().int().optional(),
     rate_limit_rpm: z.number().int().min(0).optional(),
     user_agent: z.string().optional(),
+    header_preset: z.string().optional(),
     sticky_token_key_binding: z.boolean().optional(),
     sticky_key_idle_minutes: z.coerce.number().int().min(1).max(1440).optional(),
     sticky_key_exhaust_policy: z.enum(['busy', 'share']).optional(),
@@ -469,6 +470,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   http2_connection_shards: 1,
   rate_limit_rpm: 0,
   user_agent: '',
+  header_preset: '',
   sticky_token_key_binding: false,
   sticky_key_idle_minutes: 10,
   sticky_key_exhaust_policy: 'busy',
@@ -517,6 +519,7 @@ export function transformChannelToFormDefaults(
     http2_connection_shards: 1,
     rate_limit_rpm: 0,
     user_agent: '',
+    header_preset: '',
     sticky_token_key_binding: false,
     sticky_key_idle_minutes: 10,
     sticky_key_exhaust_policy: 'busy' as 'busy' | 'share',
@@ -543,6 +546,8 @@ export function transformChannelToFormDefaults(
           : 0,
         user_agent:
           typeof parsed.user_agent === 'string' ? parsed.user_agent : '',
+        header_preset:
+          typeof parsed.header_preset === 'string' ? parsed.header_preset : '',
         sticky_token_key_binding: parsed.sticky_token_key_binding || false,
         sticky_key_idle_minutes: Number.isInteger(
           parsed.sticky_key_idle_minutes
@@ -726,6 +731,11 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
   const userAgent = formData.user_agent?.trim()
   if (userAgent) {
     settingObj.user_agent = userAgent
+  }
+
+  const headerPreset = formData.header_preset?.trim()
+  if (headerPreset) {
+    settingObj.header_preset = headerPreset
   }
 
   // 令牌粘性 Key 绑定:默认值不落盘,与 user_agent 同策略。

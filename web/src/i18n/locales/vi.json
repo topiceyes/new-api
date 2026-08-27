@@ -5587,6 +5587,7 @@
     "warning": "Cảnh báo",
     "critical": "Nghiêm trọng",
     "Save audit settings": "Lưu cài đặt kiểm toán",
-    "Matched Context": "Ngữ cảnh trùng khớp"
+    "Matched Context": "Ngữ cảnh trùng khớp",
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Chọn sẵn cũng áp dụng dấu vân tay client tương ứng (Accept / Accept-Language) cho yêu cầu thượng nguồn"
   }
 }

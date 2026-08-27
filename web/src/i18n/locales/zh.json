@@ -5587,6 +5587,7 @@
     "warning": "警告",
     "critical": "严重",
     "Save audit settings": "保存审计设置",
-    "Matched Context": "命中上下文"
+    "Matched Context": "命中上下文",
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "选择预设会同时为上游请求应用配套的客户端指纹（Accept / Accept-Language）"
   }
 }

@@ -203,7 +203,7 @@ func TestApplyChannelUserAgent_SetsConfiguredValue(t *testing.T) {
 		},
 	}
 
-	applyChannelUserAgent(header, info)
+	applyChannelClientHeaders(header, info)
 	require.Equal(t, "claude-cli/2.1.0 (external, cli)", header.Get("User-Agent"))
 }
 
@@ -218,7 +218,7 @@ func TestApplyChannelUserAgent_EmptyKeepsAdaptorDefault(t *testing.T) {
 		},
 	}
 
-	applyChannelUserAgent(header, info)
+	applyChannelClientHeaders(header, info)
 	require.Equal(t, "codex-cli/0.46.0", header.Get("User-Agent"))
 }
 
@@ -235,10 +235,68 @@ func TestApplyChannelUserAgent_HeaderOverrideStillWins(t *testing.T) {
 		},
 	}
 
-	applyChannelUserAgent(header, info)
+	applyChannelClientHeaders(header, info)
 	require.Equal(t, "KimiCLI/1.6", header.Get("User-Agent"))
 
 	req := &http.Request{Header: header}
 	applyHeaderOverrideToRequest(req, map[string]string{"user-agent": "custom-ua/9.9"})
 	require.Equal(t, "custom-ua/9.9", req.Header.Get("User-Agent"))
+}
+
+// TestApplyChannelClientHeaders 客户端指纹预设:UA 回退/Accept-Language/Accept
+// (流式保持 event-stream)/显式 UA 与 header_override 的优先级。
+func TestApplyChannelClientHeaders(t *testing.T) {
+	t.Parallel()
+
+	newInfo := func(preset string, ua string, isStream bool) *relaycommon.RelayInfo {
+		return &relaycommon.RelayInfo{
+			IsStream: isStream,
+			ChannelMeta: &relaycommon.ChannelMeta{
+				ChannelSetting: dto.ChannelSettings{
+					UserAgent:    ua,
+					HeaderPreset: preset,
+				},
+			},
+		}
+	}
+
+	t.Run("preset applies fingerprint headers", func(t *testing.T) {
+		h := http.Header{}
+		applyChannelClientHeaders(h, newInfo("kimicli", "", false))
+		require.Equal(t, "KimiCLI/1.6", h.Get("User-Agent"))
+		require.Equal(t, "application/json", h.Get("Accept"))
+		require.Equal(t, "zh-CN,zh;q=0.9,en;q=0.8", h.Get("Accept-Language"))
+		require.Empty(t, h.Get("Accept-Encoding"), "不得预设 Accept-Encoding(会关闭透明 gzip 解压)")
+	})
+
+	t.Run("explicit user agent wins over preset", func(t *testing.T) {
+		h := http.Header{}
+		applyChannelClientHeaders(h, newInfo("kimicli", "MyCLI/9.9", false))
+		require.Equal(t, "MyCLI/9.9", h.Get("User-Agent"))
+		require.Equal(t, "zh-CN,zh;q=0.9,en;q=0.8", h.Get("Accept-Language"), "预设其余头仍生效")
+	})
+
+	t.Run("stream keeps text/event-stream accept", func(t *testing.T) {
+		h := http.Header{}
+		h.Set("Accept", "text/event-stream")
+		applyChannelClientHeaders(h, newInfo("kimicli", "", true))
+		require.Equal(t, "text/event-stream", h.Get("Accept"))
+		require.Equal(t, "zh-CN,zh;q=0.9,en;q=0.8", h.Get("Accept-Language"))
+	})
+
+	t.Run("unknown preset only applies explicit ua", func(t *testing.T) {
+		h := http.Header{}
+		applyChannelClientHeaders(h, newInfo("nonexistent", "MyCLI/1.0", false))
+		require.Equal(t, "MyCLI/1.0", h.Get("User-Agent"))
+		require.Empty(t, h.Get("Accept-Language"))
+		require.Empty(t, h.Get("Accept"))
+	})
+
+	t.Run("no preset no ua leaves defaults", func(t *testing.T) {
+		h := http.Header{}
+		h.Set("Accept", "application/json")
+		applyChannelClientHeaders(h, newInfo("", "", false))
+		require.Empty(t, h.Get("User-Agent"))
+		require.Equal(t, "application/json", h.Get("Accept"))
+	})
 }

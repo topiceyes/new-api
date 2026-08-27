@@ -355,6 +355,7 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
       values.http2_connection_shards > 1) ||
     (values.rate_limit_rpm != null && values.rate_limit_rpm > 0) ||
     values.user_agent?.trim() ||
+    values.header_preset?.trim() ||
     values.sticky_token_key_binding ||
     values.claude_beta_query ||
     values.upstream_model_update_check_enabled ||
@@ -4369,20 +4370,26 @@ export function ChannelMutateDrawer({
                                       value=''
                                       onValueChange={(value) => {
                                         if (value) {
-                                          field.onChange(value)
+                                          const [presetId, ua] =
+                                            value.split('::')
+                                          field.onChange(ua)
+                                          form.setValue(
+                                            'header_preset',
+                                            presetId
+                                          )
                                         }
                                       }}
                                       items={[
                                         {
-                                          value: 'claude-cli/2.1.0 (external, cli)',
+                                          value: 'claude-cli::claude-cli/2.1.0 (external, cli)',
                                           label: 'Claude Code',
                                         },
                                         {
-                                          value: 'codex-cli/0.46.0',
+                                          value: 'codex-cli::codex-cli/0.46.0',
                                           label: 'Codex CLI',
                                         },
                                         {
-                                          value: 'KimiCLI/1.6',
+                                          value: 'kimicli::KimiCLI/1.6',
                                           label: 'Kimi CLI',
                                         },
                                       ]}
@@ -4394,13 +4401,13 @@ export function ChannelMutateDrawer({
                                       </SelectTrigger>
                                       <SelectContent alignItemWithTrigger={false}>
                                         <SelectGroup>
-                                          <SelectItem value='claude-cli/2.1.0 (external, cli)'>
+                                          <SelectItem value='claude-cli::claude-cli/2.1.0 (external, cli)'>
                                             Claude Code
                                           </SelectItem>
-                                          <SelectItem value='codex-cli/0.46.0'>
+                                          <SelectItem value='codex-cli::codex-cli/0.46.0'>
                                             Codex CLI
                                           </SelectItem>
-                                          <SelectItem value='KimiCLI/1.6'>
+                                          <SelectItem value='kimicli::KimiCLI/1.6'>
                                             Kimi CLI
                                           </SelectItem>
                                         </SelectGroup>
@@ -4410,6 +4417,11 @@ export function ChannelMutateDrawer({
                                   <FormDescription>
                                     {t(
                                       'User-Agent header sent to the upstream provider for this channel. Explicit header overrides still take precedence'
+                                    )}
+                                  </FormDescription>
+                                  <FormDescription>
+                                    {t(
+                                      'Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request'
                                     )}
                                   </FormDescription>
                                   <FormMessage />

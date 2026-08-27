@@ -310,15 +310,57 @@ func applyHeaderOverrideToRequest(req *http.Request, headerOverride map[string]s
 	}
 }
 
-// applyChannelUserAgent sets the per-channel User-Agent on outbound upstream
-// requests. It runs after SetupRequestHeader so it wins over adaptor defaults,
-// and before header_override processing so an explicit override still wins.
-func applyChannelUserAgent(header http.Header, info *common.RelayInfo) {
-	ua := strings.TrimSpace(info.ChannelSetting.UserAgent)
-	if ua == "" {
+// channelHeaderPreset 客户端指纹预设:把出站请求头组合对齐到真实客户端,
+// 避免网关以 Go 默认指纹(Accept: */*、无 Accept-Language)示人。
+// 注意 Accept-Encoding 不能预设:手动设置会关闭 Go 传输层的透明 gzip 解压,
+// 上游一旦压缩会破坏 SSE/JSON 解析;Go 默认发的 "gzip" 与真实客户端一致。
+type channelHeaderPreset struct {
+	userAgent     string
+	accept        string // 非流式请求的 Accept;流式固定 text/event-stream
+	acceptLanguage string
+}
+
+var channelHeaderPresets = map[string]channelHeaderPreset{
+	"kimicli": {
+		userAgent:      "KimiCLI/1.6",
+		accept:         "application/json",
+		acceptLanguage: "zh-CN,zh;q=0.9,en;q=0.8",
+	},
+	"claude-cli": {
+		userAgent:      "claude-cli/2.1.0 (external, cli)",
+		accept:         "application/json",
+		acceptLanguage: "en-US,en;q=0.9",
+	},
+	"codex-cli": {
+		userAgent:      "codex-cli/0.46.0",
+		accept:         "application/json",
+		acceptLanguage: "en-US,en;q=0.9",
+	},
+}
+
+// applyChannelClientHeaders sets the per-channel client fingerprint headers
+// (header_preset bundle + explicit User-Agent) on outbound upstream requests.
+// It runs after SetupRequestHeader so it wins over adaptor defaults, and
+// before header_override processing so an explicit override still wins.
+// Streaming requests keep Accept: text/event-stream regardless of preset —
+// the Accept header participates in SSE negotiation with some upstreams.
+func applyChannelClientHeaders(header http.Header, info *common.RelayInfo) {
+	setting := info.ChannelSetting
+	preset, hasPreset := channelHeaderPresets[strings.TrimSpace(setting.HeaderPreset)]
+	ua := strings.TrimSpace(setting.UserAgent)
+	if ua == "" && hasPreset {
+		ua = preset.userAgent
+	}
+	if ua != "" {
+		header.Set("User-Agent", ua)
+	}
+	if !hasPreset {
 		return
 	}
-	header.Set("User-Agent", ua)
+	header.Set("Accept-Language", preset.acceptLanguage)
+	if !info.IsStream {
+		header.Set("Accept", preset.accept)
+	}
 }
 
 func DoApiRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody io.Reader) (*http.Response, error) {
@@ -337,7 +379,7 @@ func DoApiRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 	if err != nil {
 		return nil, fmt.Errorf("setup request header failed: %w", err)
 	}
-	applyChannelUserAgent(req.Header, info)
+	applyChannelClientHeaders(req.Header, info)
 	// 在 SetupRequestHeader 之后应用 Header Override，确保用户设置优先级最高
 	// 这样可以覆盖默认的 Authorization header 设置
 	headerOverride, err := processHeaderOverride(info, c)
@@ -370,7 +412,7 @@ func DoFormRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBod
 	if err != nil {
 		return nil, fmt.Errorf("setup request header failed: %w", err)
 	}
-	applyChannelUserAgent(req.Header, info)
+	applyChannelClientHeaders(req.Header, info)
 	// 在 SetupRequestHeader 之后应用 Header Override，确保用户设置优先级最高
 	// 这样可以覆盖默认的 Authorization header 设置
 	headerOverride, err := processHeaderOverride(info, c)
@@ -395,7 +437,7 @@ func DoWssRequest(a Adaptor, c *gin.Context, info *common.RelayInfo, requestBody
 	if err != nil {
 		return nil, fmt.Errorf("setup request header failed: %w", err)
 	}
-	applyChannelUserAgent(targetHeader, info)
+	applyChannelClientHeaders(targetHeader, info)
 	// 在 SetupRequestHeader 之后应用 Header Override，确保用户设置优先级最高
 	// 这样可以覆盖默认的 Authorization header 设置
 	headerOverride, err := processHeaderOverride(info, c)

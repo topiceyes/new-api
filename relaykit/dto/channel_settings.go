@@ -30,6 +30,12 @@ type ChannelSettings struct {
 	// for this channel. Empty means the Go default (Go-http-client/*).
 	// Explicit header_override entries still take precedence over this value.
 	UserAgent string `json:"user_agent,omitempty"`
+	// HeaderPreset applies a bundled client-fingerprint header set (User-Agent
+	// fallback, Accept, Accept-Language) matching a real client, so the gateway
+	// stops announcing Go defaults (*/*, no Accept-Language) on every request.
+	// Presets are defined in relay/channel; unknown values are ignored.
+	// Explicit UserAgent and header_override entries still take precedence.
+	HeaderPreset string `json:"header_preset,omitempty"`
 	// StickyTokenKeyBinding makes multi-key channels bind each token to one
 	// fixed upstream key (idle-released) instead of rotating keys, so every
 	// key's traffic profile stays close to a single client.

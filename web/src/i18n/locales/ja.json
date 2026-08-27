@@ -5587,6 +5587,7 @@
     "warning": "警告",
     "critical": "重大",
     "Save audit settings": "監査設定を保存",
-    "Matched Context": "一致コンテキスト"
+    "Matched Context": "一致コンテキスト",
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "プリセットを選択すると、上流リクエストに一致するクライアントフィンガープリント（Accept / Accept-Language）も適用されます"
   }
 }

@@ -5587,6 +5587,7 @@
     "warning": "warning",
     "critical": "critical",
     "Save audit settings": "Save audit settings",
-    "Matched Context": "Matched Context"
+    "Matched Context": "Matched Context",
+    "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request": "Presets also apply a matching client fingerprint (Accept / Accept-Language) to the upstream request"
   }
 }
