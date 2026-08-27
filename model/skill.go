@@ -96,7 +96,8 @@ func UpsertSkillCandidate(title string, category string, samplePrompt string, us
 	}
 	userIdsData, _ := common.Marshal(userIds)
 	updates := map[string]any{
-		"occurrence_count": candidate.OccurrenceCount + 1,
+		// 原子自增防并发丢更新(读-改-写在多实例下会互相覆盖)。
+		"occurrence_count": gorm.Expr("occurrence_count + 1"),
 		"user_ids":         string(userIdsData),
 		"user_count":       len(userIds),
 		"updated_at":       now,

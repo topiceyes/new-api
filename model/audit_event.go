@@ -135,9 +135,11 @@ func DeleteExpiredAuditEvents(retentionDays int, now int64) (int64, error) {
 }
 
 // GetUnclassifiedPromptEvents 取带 prompt 原文且尚未分类的事件,供 LLM 分类任务。
+// 只取 prompt_snapshot(hits 模式下 pii_hit 存的恰恰是命中密钥/证件的敏感原文,
+// 不应整段送第三方分类渠道);已标 classify_failed 的不再重试,防"毒批"队头阻塞。
 func GetUnclassifiedPromptEvents(batchSize int) ([]*AuditEvent, error) {
 	var events []*AuditEvent
-	err := DB.Where("prompt != '' AND category = ''").
+	err := DB.Where("prompt != '' AND category = '' AND event_type = ?", AuditEventTypePromptSnapshot).
 		Select("id", "user_id", "prompt").
 		Order("id asc").Limit(batchSize).Find(&events).Error
 	return events, err

@@ -36,10 +36,23 @@ type requestMeta struct {
 	userAgent string
 }
 
+// auditSettingsSnapshot 返回配置的值拷贝。GetAuditSettings 返回的是共享指针,
+// 配置热更新(UpdateConfigFromMap reflect 原地改写)时把指针传进异步闭包构成
+// 数据竞争,且一次扫描内多次读可能拿到半新半旧的撕裂配置;入口处拷贝快照。
+func auditSettingsSnapshot() *system_setting.AuditSettings {
+	settings := *system_setting.GetAuditSettings()
+	// key_share_suppress_hours 两条路径对 0 的语义相反(Redis 0 TTL=永久抑制,
+	// 内存 0=每条都报),钳制下限统一为 1 小时。
+	if settings.KeyShareSuppressHours < 1 {
+		settings.KeyShareSuppressHours = 1
+	}
+	return &settings
+}
+
 // InspectRequest 安全审计入口,由 relaycommon.OnRelayInfoReady 回调触发。
 // 只做轻量同步快照,扫描/追踪/写库全部异步,不阻塞 relay 主路径。
 func InspectRequest(c *gin.Context, info *relaycommon.RelayInfo) {
-	settings := system_setting.GetAuditSettings()
+	settings := auditSettingsSnapshot()
 	if !settings.Enabled {
 		return
 	}

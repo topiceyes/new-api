@@ -74,6 +74,10 @@ func GetPageQuery(c *gin.Context) *PageInfo {
 		}
 	}
 
+	// 负值必须钳回默认:GORM 对负数 Limit 不生成 LIMIT 子句,会变成无上限全表查询。
+	if pageInfo.PageSize < 1 {
+		pageInfo.PageSize = ItemsPerPage
+	}
 	if pageInfo.PageSize > 100 {
 		pageInfo.PageSize = 100
 	}

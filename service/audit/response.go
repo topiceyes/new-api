@@ -51,7 +51,7 @@ func (c *captureReader) Close() error {
 // 审计未启用 / 响应扫描关闭 / 响应为空时返回 nil,调用方零开销。
 // gin.Context 只在本函数内同步读,异步扫描不持有 c。
 func CaptureResponse(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (finish func()) {
-	settings := system_setting.GetAuditSettings()
+	settings := auditSettingsSnapshot()
 	if !settings.Enabled || !settings.ResponseScanEnabled {
 		return nil
 	}
@@ -127,7 +127,7 @@ func inspectResponse(meta requestMeta, text string) {
 			common.SysError("audit: failed to create response event: " + err.Error())
 			continue
 		}
-		if hit.Severity == system_setting.AuditSeverityCritical && system_setting.GetAuditSettings().AlertEnabled {
+		if hit.Severity == system_setting.AuditSeverityCritical && auditSettingsSnapshot().AlertEnabled {
 			alertCriticalResponseHit(meta, hit)
 		}
 	}

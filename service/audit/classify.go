@@ -121,7 +121,7 @@ func callClassifyLLM(url string, key string, modelName string, prompt string) (s
 }
 
 // parseClassifyResponse 从模型输出中提取 JSON 数组并校验。
-// 容错:截取首个 [ 到末个 ],忽略缺 idx/越界 idx/非法 category 的条目。
+// 容错:截取首个 [ 到末个 ],忽略缺 idx/越界 idx/非法 category 的条目;同 idx 重复只留首条。
 func parseClassifyResponse(content string, batchSize int) []classifyResult {
 	start := strings.Index(content, "[")
 	end := strings.LastIndex(content, "]")
@@ -132,6 +132,7 @@ func parseClassifyResponse(content string, batchSize int) []classifyResult {
 	if err := common.UnmarshalJsonStr(content[start:end+1], &raw); err != nil {
 		return nil
 	}
+	seen := make(map[int]bool, len(raw))
 	results := make([]classifyResult, 0, len(raw))
 	for _, r := range raw {
 		if r.Idx < 1 || r.Idx > batchSize {
@@ -140,6 +141,10 @@ func parseClassifyResponse(content string, batchSize int) []classifyResult {
 		if !isValidClassifyCategory(r.Category) {
 			continue
 		}
+		if seen[r.Idx] {
+			continue
+		}
+		seen[r.Idx] = true
 		r.SkillTitle = strings.TrimSpace(truncateRunes(r.SkillTitle, 60))
 		results = append(results, r)
 	}
@@ -149,7 +154,7 @@ func parseClassifyResponse(content string, batchSize int) []classifyResult {
 // ClassifyPendingEvents 执行一轮分类,返回处理/成功条数。供 SystemTask 调用。
 // 任何一步失败只记日志并跳过该轮,不影响其他功能(安静降级)。
 func ClassifyPendingEvents() (processed int, classified int, err error) {
-	settings := system_setting.GetAuditSettings()
+	settings := auditSettingsSnapshot()
 	if !settings.Enabled || !settings.ClassifyEnabled {
 		return 0, 0, nil
 	}
@@ -185,7 +190,9 @@ func ClassifyPendingEvents() (processed int, classified int, err error) {
 
 	results := parseClassifyResponse(content, len(events))
 	now := time.Now().Unix()
+	classifiedIdx := make(map[int]bool, len(results))
 	for _, r := range results {
+		classifiedIdx[r.Idx] = true
 		event := events[r.Idx-1]
 		if err := model.UpdateAuditEventCategory(event.Id, r.Category); err != nil {
 			common.SysError(fmt.Sprintf("audit classify: update event %d category failed: %s", event.Id, err.Error()))
@@ -198,6 +205,17 @@ func ClassifyPendingEvents() (processed int, classified int, err error) {
 		sample := truncateRunes(event.Prompt, classifyPromptSampleMaxBytes)
 		if _, err := model.UpsertSkillCandidate(r.SkillTitle, r.Category, sample, event.UserId, now); err != nil {
 			common.SysError("audit classify: upsert candidate failed: " + err.Error())
+		}
+	}
+	// LLM 调用成功但模型没给出合法结果的条目(拒答/漏项),标 classify_failed
+	// 防止队头阻塞:这批事件每轮都被取走重新计费,后面的新事件永远排不上。
+	// 暂时性失败(网络/非 200)在上面已提前返回,不会走到这里。
+	for i, event := range events {
+		if classifiedIdx[i+1] {
+			continue
+		}
+		if err := model.UpdateAuditEventCategory(event.Id, "classify_failed"); err != nil {
+			common.SysError(fmt.Sprintf("audit classify: mark event %d failed failed: %s", event.Id, err.Error()))
 		}
 	}
 	return processed, classified, nil
