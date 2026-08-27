@@ -32,6 +32,7 @@ import {
   Radio,
   ServerCog,
   Settings,
+  ShieldCheck,
   Ticket,
   User,
   Users,
@@ -162,6 +163,12 @@ export function useSidebarData(): SidebarData {
             url: '/plan-monitor/overview',
             activeUrls: ['/plan-monitor'],
             icon: Gauge,
+          },
+          {
+            title: t('Security Audit'),
+            url: '/audit',
+            activeUrls: ['/audit', '/audit/skills'],
+            icon: ShieldCheck,
           },
           {
             title: t('System Info'),

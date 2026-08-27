@@ -457,6 +457,46 @@ export function UsersMutateDrawer({
 
                   <FormField
                     control={form.control}
+                    name='audit_store_prompt_mode'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Prompt Storage Policy')}</FormLabel>
+                        <Select
+                          value={field.value || ''}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value=''>
+                              {t('Follow global audit setting')}
+                            </SelectItem>
+                            <SelectItem value='none'>
+                              {t('Do not store prompt content')}
+                            </SelectItem>
+                            <SelectItem value='hits'>
+                              {t('Store only when a rule hits')}
+                            </SelectItem>
+                            <SelectItem value='all'>
+                              {t('Store all prompts (high volume)')}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {t(
+                            'Overrides the global and group-level prompt storage policy for this user in security audit'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name='remark'
                     render={({ field }) => (
                       <FormItem>

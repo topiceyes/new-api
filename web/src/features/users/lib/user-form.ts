@@ -44,6 +44,9 @@ export const userFormSchema = z.object({
   // Admin-managed per-user API rate limit; 0 = unlimited. Lives in the user's
   // setting JSON, not a top-level column.
   rate_limit_rpm: z.number().int().min(0).optional(),
+  // Admin-managed per-user prompt storage policy; '' = follow the global audit
+  // setting. Lives in the user's setting JSON, not a top-level column.
+  audit_store_prompt_mode: z.enum(['', 'none', 'hits', 'all']).optional(),
   // Raw setting JSON of the row being edited, kept so the RPM value can be
   // merged without dropping unrelated keys.
   setting: z.string().optional(),
@@ -67,6 +70,7 @@ export const USER_FORM_DEFAULT_VALUES: UserFormValues = {
   group: DEFAULT_GROUP,
   remark: '',
   rate_limit_rpm: 0,
+  audit_store_prompt_mode: '',
   setting: '',
   // Filled against the backend catalog at render time; see UsersMutateDrawer.
   admin_permissions: {},
@@ -77,14 +81,16 @@ export const USER_FORM_DEFAULT_VALUES: UserFormValues = {
 // ============================================================================
 
 /**
- * Merge the admin-configured RPM into the user's setting JSON. Returns
- * undefined when nothing should be sent (no change needed, or the existing
- * setting is unparseable — in that case we leave the server value untouched
- * rather than risk dropping the user's other settings).
+ * Merge admin-managed values (RPM limit, prompt storage policy) into the
+ * user's setting JSON. Returns undefined when nothing should be sent (no
+ * change needed, or the existing setting is unparseable — in that case we
+ * leave the server value untouched rather than risk dropping the user's
+ * other settings).
  */
-function mergeRateLimitRpmSetting(
+function mergeAdminManagedSetting(
   raw: string | undefined,
-  rpm: number
+  rpm: number,
+  auditStorePromptMode: string
 ): string | undefined {
   let obj: Record<string, unknown> = {}
   if (raw) {
@@ -94,14 +100,23 @@ function mergeRateLimitRpmSetting(
       return undefined
     }
   }
-  const prev = typeof obj.rate_limit_rpm === 'number' ? obj.rate_limit_rpm : 0
-  if (prev === rpm) {
+  const prevRpm = typeof obj.rate_limit_rpm === 'number' ? obj.rate_limit_rpm : 0
+  const prevMode =
+    typeof obj.audit_store_prompt_mode === 'string'
+      ? obj.audit_store_prompt_mode
+      : ''
+  if (prevRpm === rpm && prevMode === auditStorePromptMode) {
     return undefined
   }
   if (rpm > 0) {
     obj.rate_limit_rpm = rpm
   } else {
     delete obj.rate_limit_rpm
+  }
+  if (auditStorePromptMode !== '') {
+    obj.audit_store_prompt_mode = auditStorePromptMode
+  } else {
+    delete obj.audit_store_prompt_mode
   }
   return JSON.stringify(obj)
 }
@@ -135,15 +150,26 @@ export function transformFormDataToPayload(
   // For create: only send required fields
   if (userId === undefined) {
     payload.role = role
+    const setting: Record<string, unknown> = {}
     if (data.rate_limit_rpm && data.rate_limit_rpm > 0) {
-      payload.setting = JSON.stringify({ rate_limit_rpm: data.rate_limit_rpm })
+      setting.rate_limit_rpm = data.rate_limit_rpm
+    }
+    if (data.audit_store_prompt_mode) {
+      setting.audit_store_prompt_mode = data.audit_store_prompt_mode
+    }
+    if (Object.keys(setting).length > 0) {
+      payload.setting = JSON.stringify(setting)
     }
   } else {
     // For update: quota is adjusted atomically via /api/user/manage, not sent here
     payload.group = data.group
     payload.remark = data.remark || undefined
     payload.id = userId
-    const setting = mergeRateLimitRpmSetting(data.setting, data.rate_limit_rpm ?? 0)
+    const setting = mergeAdminManagedSetting(
+      data.setting,
+      data.rate_limit_rpm ?? 0,
+      data.audit_store_prompt_mode ?? ''
+    )
     if (setting !== undefined) {
       payload.setting = setting
     }
@@ -159,15 +185,23 @@ export function transformFormDataToPayload(
  */
 export function transformUserToFormDefaults(user: User): UserFormValues {
   let rateLimitRPM = 0
+  let auditStorePromptMode: '' | 'none' | 'hits' | 'all' = ''
   if (user.setting) {
     try {
       const parsed = JSON.parse(user.setting) as Record<string, unknown>
       if (typeof parsed.rate_limit_rpm === 'number' && parsed.rate_limit_rpm > 0) {
         rateLimitRPM = parsed.rate_limit_rpm
       }
+      if (
+        parsed.audit_store_prompt_mode === 'none' ||
+        parsed.audit_store_prompt_mode === 'hits' ||
+        parsed.audit_store_prompt_mode === 'all'
+      ) {
+        auditStorePromptMode = parsed.audit_store_prompt_mode
+      }
     } catch {
-      // Unparseable setting JSON: leave RPM at 0 and keep the raw string so a
-      // save without RPM changes does not rewrite it.
+      // Unparseable setting JSON: leave admin-managed fields at defaults and keep
+      // the raw string so a save without changes does not rewrite it.
     }
   }
   return {
@@ -179,6 +213,7 @@ export function transformUserToFormDefaults(user: User): UserFormValues {
     group: user.group || DEFAULT_GROUP,
     remark: user.remark || '',
     rate_limit_rpm: rateLimitRPM,
+    audit_store_prompt_mode: auditStorePromptMode,
     setting: user.setting || '',
     admin_permissions: user.admin_permissions ?? {},
   }

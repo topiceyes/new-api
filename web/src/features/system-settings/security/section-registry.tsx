@@ -22,6 +22,7 @@ import { SSRFSection } from '../request-limits/ssrf-section'
 import { TokenLimitSection } from '../request-limits/token-limit-section'
 import type { SecuritySettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { AuditSection } from './audit-section'
 
 const SECURITY_SECTIONS = [
   {
@@ -74,6 +75,34 @@ const SECURITY_SECTIONS = [
             settings['fetch_setting.allowed_ports'],
           'fetch_setting.apply_ip_filter_for_domain':
             settings['fetch_setting.apply_ip_filter_for_domain'],
+        }}
+      />
+    ),
+  },
+  {
+    id: 'audit',
+    titleKey: 'Security Audit',
+    build: (settings: SecuritySettings) => (
+      <AuditSection
+        defaultValues={{
+          'audit.enabled': settings['audit.enabled'],
+          'audit.prompt_scan_enabled': settings['audit.prompt_scan_enabled'],
+          'audit.store_prompt_mode': settings['audit.store_prompt_mode'],
+          'audit.max_scan_bytes': settings['audit.max_scan_bytes'],
+          'audit.alert_enabled': settings['audit.alert_enabled'],
+          'audit.retention_days': settings['audit.retention_days'],
+          'audit.key_share_enabled': settings['audit.key_share_enabled'],
+          'audit.key_share_window_minutes':
+            settings['audit.key_share_window_minutes'],
+          'audit.key_share_distinct_ip_threshold':
+            settings['audit.key_share_distinct_ip_threshold'],
+          'audit.key_share_rapid_window_minutes':
+            settings['audit.key_share_rapid_window_minutes'],
+          'audit.key_share_rapid_ip_threshold':
+            settings['audit.key_share_rapid_ip_threshold'],
+          'audit.key_share_suppress_hours':
+            settings['audit.key_share_suppress_hours'],
+          'audit.rules': settings['audit.rules'],
         }}
       />
     ),

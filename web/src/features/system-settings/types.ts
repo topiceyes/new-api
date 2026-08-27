@@ -447,6 +447,28 @@ export type SecuritySettings = {
   'fetch_setting.allowed_ports': number[]
   'fetch_setting.apply_ip_filter_for_domain': boolean
   'token_setting.max_user_tokens': number
+  'audit.enabled': boolean
+  'audit.prompt_scan_enabled': boolean
+  'audit.store_prompt_mode': string
+  'audit.max_scan_bytes': number
+  'audit.alert_enabled': boolean
+  'audit.retention_days': number
+  'audit.key_share_enabled': boolean
+  'audit.key_share_window_minutes': number
+  'audit.key_share_distinct_ip_threshold': number
+  'audit.key_share_rapid_window_minutes': number
+  'audit.key_share_rapid_ip_threshold': number
+  'audit.key_share_suppress_hours': number
+  'audit.response_scan_enabled': boolean
+  'audit.response_max_scan_bytes': number
+  'audit.rules': unknown[]
+  'audit.group_store_prompt_modes': unknown[]
+  'audit.geoip_db_path': string
+  'audit.classify_enabled': boolean
+  'audit.classify_channel_id': number
+  'audit.classify_model': string
+  'audit.classify_interval_minutes': number
+  'audit.classify_batch_size': number
 }
 
 export type UpstreamChannel = {
