@@ -162,11 +162,15 @@ func Distribute() func(c *gin.Context) {
 			}
 		}
 		common.SetContextKey(c, constant.ContextKeyRequestStartTime, time.Now())
-		if setupErr := SetupContextForSelectedChannel(c, channel, modelRequest.Model); setupErr != nil {
-			// 选 key 失败(如粘性绑定 busy 拒绝):按错误自带的状态码终止请求,
-			// 不能落入 c.Next() 导致下游拿不到渠道上下文变成 500。
-			abortWithOpenAiMessage(c, setupErr.StatusCode, setupErr.Error(), setupErr.GetErrorCode())
-			return
+		// 任务查询类端点(fetch/task list)不选渠道,channel 为 nil——它们不依赖
+		// 渠道上下文,必须继续 Next(历史上就是靠"忽略错误"工作的)。
+		// 仅当选到了渠道且选 key 失败(如粘性绑定 busy 拒绝)才按错误状态码终止,
+		// 否则下游拿不到渠道上下文会变成 500。
+		if channel != nil {
+			if setupErr := SetupContextForSelectedChannel(c, channel, modelRequest.Model); setupErr != nil {
+				abortWithOpenAiMessage(c, setupErr.StatusCode, setupErr.Error(), setupErr.GetErrorCode())
+				return
+			}
 		}
 		c.Next()
 		if channel != nil && c.Writer != nil && c.Writer.Status() < http.StatusBadRequest {

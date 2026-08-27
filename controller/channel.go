@@ -1910,6 +1910,8 @@ func ManageMultiKeys(c *gin.Context) {
 		}
 
 		model.InitChannelCache()
+		// key 删除后剩余 key 重新编号,粘性绑定存的下标已指向别的物理 key,清空重绑。
+		service.ClearChannelStickyBindings(channel.Id)
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 			"message": "密钥已删除",
@@ -1996,6 +1998,11 @@ func ManageMultiKeys(c *gin.Context) {
 		}
 		bindings := service.ListChannelStickyBindings(channel.Id, setting.StickyKeyIdleMinutes)
 		keys := channel.GetKeys()
+		// 引擎对 0 走默认 10 分钟,返回给前端时同样归一,否则徽标永远不显示。
+		idleMinutes := setting.StickyKeyIdleMinutes
+		if idleMinutes <= 0 {
+			idleMinutes = 10
+		}
 		items := make([]StickyBindingItem, 0, len(bindings))
 		for _, b := range bindings {
 			item := StickyBindingItem{
@@ -2034,7 +2041,7 @@ func ManageMultiKeys(c *gin.Context) {
 			"success": true,
 			"data": gin.H{
 				"bindings":       items,
-				"idle_minutes":   setting.StickyKeyIdleMinutes,
+				"idle_minutes":   idleMinutes,
 				"exhaust_policy": setting.StickyKeyExhaustPolicy,
 			},
 		})

@@ -51,7 +51,11 @@ import {
   useCallback,
   useRef,
 } from 'react'
-import { type SubmitErrorHandler, useForm } from 'react-hook-form'
+import {
+  type Resolver,
+  type SubmitErrorHandler,
+  useForm,
+} from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -717,8 +721,10 @@ export function ChannelMutateDrawer({
     isEditing && channelData?.data?.channel_info?.is_multi_key === true
 
   // Form setup
+  // schema 的 sticky 数字字段用 z.coerce(输入态 unknown),与表单值类型不同,
+  // 按输出类型断言 resolver,校验时 coerce 自然处理字符串输入。
   const form = useForm<ChannelFormValues>({
-    resolver: zodResolver(channelFormSchema),
+    resolver: zodResolver(channelFormSchema) as Resolver<ChannelFormValues>,
     defaultValues: CHANNEL_FORM_DEFAULT_VALUES,
   })
 

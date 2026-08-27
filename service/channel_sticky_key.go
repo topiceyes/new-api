@@ -46,12 +46,14 @@ func stickyIdleDuration(idleMinutes int) time.Duration {
 	return time.Duration(idleMinutes) * time.Minute
 }
 
+// channelId 打 hash tag:同一渠道的 t/k key 落同一 slot,Redis Cluster 下
+// Lua 多 key 操作才不会 CROSSSLOT。
 func stickyTokenKey(channelId, tokenId int) string {
-	return fmt.Sprintf("sticky:ch:%d:t:%d", channelId, tokenId)
+	return fmt.Sprintf("sticky:ch:{%d}:t:%d", channelId, tokenId)
 }
 
 func stickyOwnerKey(channelId, keyIdx int) string {
-	return fmt.Sprintf("sticky:ch:%d:k:%d", channelId, keyIdx)
+	return fmt.Sprintf("sticky:ch:{%d}:k:%d", channelId, keyIdx)
 }
 
 // stickyBindLua 原子独占绑定:若令牌已有绑定直接返回(防 Go 侧检查与写入间的
@@ -111,8 +113,10 @@ func bindTokenRedis(tokenId, channelId int, enabledIdx []int, idle time.Duration
 			return idx, true, nil
 		}
 		// 绑定的 key 已禁用/越界(管理员删了 key):清掉重绑。
+		// owner key 只有属主是自己时才删——share 绑定的 key 属主是别人,
+		// 不能顺手抹掉对方的独占登记。
 		if idx, perr := strconv.Atoi(v); perr == nil {
-			common.RDB.Del(ctx, tKey, stickyOwnerKey(channelId, idx))
+			delStickyOwn(ctx, channelId, tokenId, idx, tKey)
 		} else {
 			common.RDB.Del(ctx, tKey)
 		}
@@ -132,27 +136,48 @@ func bindTokenRedis(tokenId, channelId int, enabledIdx []int, idle time.Duration
 	if err != nil {
 		return 0, false, err
 	}
-	bound, _ := res.(int64)
+	bound, isInt := res.(int64)
+	if !isInt {
+		// 回复类型异常(客户端升级/损坏值),不能静默当作下标 0。
+		return 0, false, fmt.Errorf("sticky bind lua returned non-integer: %T", res)
+	}
 	// Lua 快路径可能返回了未校验启用状态的老绑定,失效则清理后重试一次。
 	if bound >= 0 && !enabledSet[int(bound)] {
-		common.RDB.Del(ctx, tKey, stickyOwnerKey(channelId, int(bound)))
+		delStickyOwn(ctx, channelId, tokenId, int(bound), tKey)
 		res2, err2 := common.RDB.Eval(ctx, stickyBindLua, keys, args...).Result()
 		if err2 != nil {
 			return 0, false, err2
 		}
-		bound, _ = res2.(int64)
+		var isInt2 bool
+		bound, isInt2 = res2.(int64)
+		if !isInt2 {
+			return 0, false, fmt.Errorf("sticky bind lua retry returned non-integer: %T", res2)
+		}
 	}
 	if bound < 0 {
 		return stickyShareRedis(ctx, tKey, enabledIdx, idle, allowShare)
 	}
-	// Lua 快路径命中老绑定时未刷新 TTL,这里统一补上。
+	// Lua 快路径命中老绑定时未刷新 TTL,这里统一补上;owner key 仅在属主
+	// 是自己时续命,share 使用者不应给他人独占登记续 TTL。
 	pipe := common.RDB.TxPipeline()
 	pipe.Expire(ctx, tKey, idle)
-	pipe.Expire(ctx, stickyOwnerKey(channelId, int(bound)), idle)
+	if owner, oerr := common.RDB.Get(ctx, stickyOwnerKey(channelId, int(bound))).Result(); oerr == nil && owner == strconv.Itoa(tokenId) {
+		pipe.Expire(ctx, stickyOwnerKey(channelId, int(bound)), idle)
+	}
 	if _, err := pipe.Exec(ctx); err != nil {
 		return 0, false, err
 	}
 	return int(bound), true, nil
+}
+
+// delStickyOwn 删除令牌绑定;owner key 仅当属主是该令牌时才删,防误删他人独占登记。
+func delStickyOwn(ctx context.Context, channelId, tokenId, idx int, tKey string) {
+	ownerKey := stickyOwnerKey(channelId, idx)
+	if owner, err := common.RDB.Get(ctx, ownerKey).Result(); err == nil && owner == strconv.Itoa(tokenId) {
+		common.RDB.Del(ctx, tKey, ownerKey)
+		return
+	}
+	common.RDB.Del(ctx, tKey)
 }
 
 // stickyShareRedis 全占时的 share 策略:随机挑一个启用 key 单向绑定(不占独占表)。
@@ -186,6 +211,44 @@ func ReleaseChannelStickyBinding(channelId, tokenId int) {
 		}
 	}
 	releaseStickyMemory(channelId, tokenId)
+}
+
+// ClearChannelStickyBindings 清空渠道全部粘性绑定。管理员删除/重排 key 后调用:
+// 绑定存的是下标,重排后下标指向的物理 key 已变,保留旧绑定会让令牌静默
+// 换到相邻的其他 key 上,破坏"单客户端画像";清空后各令牌下次请求重新绑定。
+func ClearChannelStickyBindings(channelId int) {
+	if common.RedisEnabled {
+		if ok := clearStickyRedis(channelId); ok {
+			return
+		}
+	}
+	stickyMem.Delete(channelId)
+}
+
+func clearStickyRedis(channelId int) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	for _, pattern := range []string{
+		fmt.Sprintf("sticky:ch:{%d}:t:*", channelId),
+		fmt.Sprintf("sticky:ch:{%d}:k:*", channelId),
+	} {
+		var cursor uint64
+		for {
+			keys, next, err := common.RDB.Scan(ctx, cursor, pattern, 100).Result()
+			if err != nil {
+				common.SysError(fmt.Sprintf("sticky clear scan failed for channel %d: %v", channelId, err))
+				return false
+			}
+			if len(keys) > 0 {
+				common.RDB.Del(ctx, keys...)
+			}
+			if next == 0 {
+				break
+			}
+			cursor = next
+		}
+	}
+	return true
 }
 
 // ---------------------------------------------------------------- 内存路径
@@ -309,7 +372,7 @@ func listStickyRedis(channelId int, idle time.Duration) ([]StickyBinding, error)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	pattern := fmt.Sprintf("sticky:ch:%d:t:*", channelId)
+	pattern := fmt.Sprintf("sticky:ch:{%d}:t:*", channelId)
 	seen := make(map[string]bool)
 	var list []StickyBinding
 	var cursor uint64

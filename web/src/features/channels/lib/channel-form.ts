@@ -519,7 +519,7 @@ export function transformChannelToFormDefaults(
     user_agent: '',
     sticky_token_key_binding: false,
     sticky_key_idle_minutes: 10,
-    sticky_key_exhaust_policy: 'busy',
+    sticky_key_exhaust_policy: 'busy' as 'busy' | 'share',
     pass_through_body_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
@@ -732,7 +732,12 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
   if (formData.sticky_token_key_binding) {
     settingObj.sticky_token_key_binding = true
     const idleMinutes = formData.sticky_key_idle_minutes
-    if (Number.isInteger(idleMinutes) && idleMinutes > 0 && idleMinutes !== 10) {
+    if (
+      idleMinutes != null &&
+      Number.isInteger(idleMinutes) &&
+      idleMinutes > 0 &&
+      idleMinutes !== 10
+    ) {
       settingObj.sticky_key_idle_minutes = idleMinutes
     }
     if (formData.sticky_key_exhaust_policy === 'share') {

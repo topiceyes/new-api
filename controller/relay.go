@@ -628,7 +628,9 @@ func RelayTask(c *gin.Context) {
 
 // respondTaskError 统一输出 Task 错误响应（含 429 限流提示改写）
 func respondTaskError(c *gin.Context, taskErr *taskdto.TaskError) {
-	if taskErr.StatusCode == http.StatusTooManyRequests {
+	// 粘性绑定 busy 拒绝的 429 有明确原因文案,不改写成"负载饱和"误导排障。
+	if taskErr.StatusCode == http.StatusTooManyRequests &&
+		taskErr.Code != "channel:sticky_key_busy" {
 		taskErr.Message = "当前分组上游负载已饱和，请稍后再试"
 	}
 	c.JSON(taskErr.StatusCode, taskErr)
