@@ -448,28 +448,32 @@ func getTaskOriginModelName(c *gin.Context) string {
 // 其余情况沿用原有轮询/随机逻辑。
 func selectChannelKey(c *gin.Context, channel *model.Channel) (string, int, *types.NewAPIError) {
 	setting := channel.GetSetting()
+	// 渠道测试等非转发路径没有令牌(tokenId=0),不参与粘性绑定——
+	// 否则会给"token 0"占一个独占槽,还可能在 key 占满时让测试吃 429。
 	if channel.ChannelInfo.IsMultiKey && setting.StickyTokenKeyBinding {
-		enabledIdx := channel.GetEnabledKeyIndexes()
-		if len(enabledIdx) == 0 {
-			// 全部 key 已禁用,沿用原路径的明确错误(渠道应被标记禁用)。
-			return channel.GetNextEnabledKey()
-		}
 		tokenId := common.GetContextKeyInt(c, constant.ContextKeyTokenId)
-		idx, ok := service.BindTokenToChannelKey(tokenId, channel.Id, enabledIdx,
-			setting.StickyKeyIdleMinutes,
-			setting.StickyKeyExhaustPolicy == dto.StickyKeyExhaustPolicyShare)
-		if !ok {
-			// busy 策略:key 全被占用,告知稍后重试而不是共享。
-			return "", 0, types.NewErrorWithStatusCode(
-				errors.New("当前渠道绑定的 Key 已全部占用，请稍后重试"),
-				types.ErrorCodeChannelStickyKeyBusy, http.StatusTooManyRequests)
+		if tokenId > 0 {
+			enabledIdx := channel.GetEnabledKeyIndexes()
+			if len(enabledIdx) == 0 {
+				// 全部 key 已禁用,沿用原路径的明确错误(渠道应被标记禁用)。
+				return channel.GetNextEnabledKey()
+			}
+			idx, ok := service.BindTokenToChannelKey(tokenId, channel.Id, enabledIdx,
+				setting.StickyKeyIdleMinutes,
+				setting.StickyKeyExhaustPolicy == dto.StickyKeyExhaustPolicyShare)
+			if !ok {
+				// busy 策略:key 全被占用,告知稍后重试而不是共享。
+				return "", 0, types.NewErrorWithStatusCode(
+					errors.New("当前渠道绑定的 Key 已全部占用，请稍后重试"),
+					types.ErrorCodeChannelStickyKeyBusy, http.StatusTooManyRequests)
+			}
+			keys := channel.GetKeys()
+			if idx < 0 || idx >= len(keys) {
+				// 兜底:绑定下标越界(正常流程不会发生),回落原路径。
+				return channel.GetNextEnabledKey()
+			}
+			return keys[idx], idx, nil
 		}
-		keys := channel.GetKeys()
-		if idx < 0 || idx >= len(keys) {
-			// 兜底:绑定下标越界(正常流程不会发生),回落原路径。
-			return channel.GetNextEnabledKey()
-		}
-		return keys[idx], idx, nil
 	}
 	return channel.GetNextEnabledKey()
 }
