@@ -9,8 +9,10 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/audit"
 	"github.com/QuantumNous/new-api/service/planmonitor"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 )
 
 // RegisterScheduledSystemTasks wires the periodic channel test, upstream model
@@ -26,6 +28,8 @@ func RegisterScheduledSystemTasks() {
 	service.RegisterSystemTaskHandler(channelScheduleHandler{})
 	service.RegisterSystemTaskHandler(planMonitorHandler{})
 	service.RegisterSystemTaskHandler(orgSyncHandler{})
+	service.RegisterSystemTaskHandler(auditCleanupHandler{})
+	service.RegisterSystemTaskHandler(auditClassifyHandler{})
 }
 
 // channelTestHandler runs the scheduled "test all channels" job. Enablement and
@@ -174,7 +178,7 @@ func finishSystemTaskHandler(task *model.SystemTask, runnerID string, status mod
 // Interval() so the run history stays auditable in the system-tasks panel.
 type channelScheduleHandler struct{}
 
-func (channelScheduleHandler) Type() string { return model.SystemTaskTypeChannelSchedule }
+func (channelScheduleHandler) Type() string  { return model.SystemTaskTypeChannelSchedule }
 func (channelScheduleHandler) Enabled() bool { return true }
 func (channelScheduleHandler) Interval() time.Duration {
 	return 30 * time.Second
@@ -193,7 +197,7 @@ func (channelScheduleHandler) Run(ctx context.Context, task *model.SystemTask, r
 // execution is deduped by the per-type DB lease.
 type planMonitorHandler struct{}
 
-func (planMonitorHandler) Type() string { return model.SystemTaskTypePlanMonitor }
+func (planMonitorHandler) Type() string  { return model.SystemTaskTypePlanMonitor }
 func (planMonitorHandler) Enabled() bool { return true }
 func (planMonitorHandler) Interval() time.Duration {
 	return 60 * time.Second
@@ -230,4 +234,59 @@ func (orgSyncHandler) Run(ctx context.Context, task *model.SystemTask, runnerID 
 		return
 	}
 	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, summary, nil)
+}
+
+// auditCleanupHandler 每日清理超过保留期(RetentionDays)的安全审计事件。
+// 仅在审计总开关开启时调度,避免未启用审计的部署产生空跑任务行。
+type auditCleanupHandler struct{}
+
+func (auditCleanupHandler) Type() string { return model.SystemTaskTypeAuditCleanup }
+func (auditCleanupHandler) Enabled() bool {
+	return system_setting.GetAuditSettings().Enabled
+}
+func (auditCleanupHandler) Interval() time.Duration { return 24 * time.Hour }
+func (auditCleanupHandler) NewPayload() any         { return nil }
+
+func (auditCleanupHandler) Run(ctx context.Context, task *model.SystemTask, runnerID string) {
+	retentionDays := system_setting.GetAuditSettings().RetentionDays
+	affected, err := model.DeleteExpiredAuditEvents(retentionDays, time.Now().Unix())
+	if err != nil {
+		finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusFailed, nil, err)
+		return
+	}
+	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, map[string]any{
+		"retention_days": retentionDays,
+		"deleted":        affected,
+	}, nil)
+}
+
+// auditClassifyHandler 按配置间隔对带 prompt 原文的未分类审计事件做 LLM 分类
+// 并归并 skill 候选。分类未启用或渠道未配置时不调度(Enabled 返回 false)。
+type auditClassifyHandler struct{}
+
+func (auditClassifyHandler) Type() string { return model.SystemTaskTypeAuditClassify }
+func (auditClassifyHandler) Enabled() bool {
+	settings := system_setting.GetAuditSettings()
+	return settings.Enabled && settings.ClassifyEnabled &&
+		settings.ClassifyChannelId != 0 && settings.ClassifyModel != ""
+}
+func (auditClassifyHandler) Interval() time.Duration {
+	minutes := system_setting.GetAuditSettings().ClassifyIntervalMinutes
+	if minutes <= 0 {
+		minutes = 60
+	}
+	return time.Duration(minutes) * time.Minute
+}
+func (auditClassifyHandler) NewPayload() any { return nil }
+
+func (auditClassifyHandler) Run(ctx context.Context, task *model.SystemTask, runnerID string) {
+	processed, classified, err := audit.ClassifyPendingEvents()
+	if err != nil {
+		finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusFailed, nil, err)
+		return
+	}
+	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, map[string]any{
+		"processed":  processed,
+		"classified": classified,
+	}, nil)
 }

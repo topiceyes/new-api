@@ -206,6 +206,22 @@ func SetApiRouter(router *gin.Engine) {
 			planMonitorAdminRoute.GET("/overview", controller.AdminGetPlanMonitorOverview)
 		}
 
+		// Security audit (admin) — 安全/行为审计事件查询(observe-only,一期无处置动作)
+		auditRoute := apiRouter.Group("/audit")
+		auditRoute.Use(middleware.AdminAuth())
+		{
+			auditRoute.GET("/events", controller.GetAuditEvents)
+			auditRoute.GET("/events/:id", controller.GetAuditEvent)
+			auditRoute.GET("/stats", controller.GetAuditEventStats)
+			// skill 库(二期②):候选审核 + 已发布条目管理
+			auditRoute.GET("/skills/candidates", controller.GetSkillCandidates)
+			auditRoute.POST("/skills/candidates/:id/approve", controller.ApproveSkillCandidate)
+			auditRoute.POST("/skills/candidates/:id/reject", controller.RejectSkillCandidate)
+			auditRoute.GET("/skills", controller.GetSkills)
+			auditRoute.PUT("/skills/:id", controller.UpdateSkill)
+			auditRoute.POST("/skills/:id/archive", controller.ArchiveSkill)
+		}
+
 		// Subscription payment callbacks (no auth)
 		apiRouter.POST("/subscription/epay/notify", anonymousRequestBodyLimit, controller.SubscriptionEpayNotify)
 		apiRouter.GET("/subscription/epay/notify", controller.SubscriptionEpayNotify)

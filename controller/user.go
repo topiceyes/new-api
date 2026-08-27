@@ -1521,6 +1521,10 @@ func UpdateUserSetting(c *gin.Context) {
 		UpstreamModelUpdateNotifyEnabled: upstreamModelUpdateNotifyEnabled,
 		AcceptUnsetRatioModel:            req.AcceptUnsetModelRatioModel,
 		RecordIpLog:                      req.RecordIpLog,
+		// 管理员配置字段(RPM 上限、prompt 存储策略)不在自助设置表单里,
+		// 必须原样保留,否则用户保存一次通知设置就会把它们冲掉。
+		RateLimitRPM:         existingSettings.RateLimitRPM,
+		AuditStorePromptMode: existingSettings.AuditStorePromptMode,
 	}
 
 	// 如果是webhook类型,添加webhook相关设置
