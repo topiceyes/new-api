@@ -1100,6 +1100,13 @@ func UpdateChannel(c *gin.Context) {
 		return
 	}
 	model.InitChannelCache()
+	// 多 Key 渠道 key 列表整体替换(replace/直接带新 key)会重排下标,粘性绑定
+	// 存的下标已指向别的物理 key,与 delete_key 同理需要清空重绑。
+	// append 模式只在尾部追加、不重排,无需清。
+	if channel.ChannelInfo.IsMultiKey && channel.Key != originChannel.Key &&
+		(channel.KeyMode == nil || *channel.KeyMode != "append") {
+		service.ClearChannelStickyBindings(channel.Id)
+	}
 	if proxyChanged {
 		service.InvalidateProxyClient(originProxy)
 	}
