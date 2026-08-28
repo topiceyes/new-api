@@ -327,6 +327,21 @@ func applyUTLSFingerprint(transport *http.Transport, policy HTTPTransportPolicy,
 	if !ok {
 		return
 	}
+	// 预设指纹(Chrome/Safari 等)的 ClientHello 自带 ALPN 扩展(h2+http/1.1),
+	// 优先级高于 utls.Config.NextProtos——上游会协商出 h2,而自定义
+	// DialTLSContext 后 transport 只会说 HTTP/1.1,于是把上游的 HTTP/2
+	// SETTINGS 帧当成畸形响应直接断连。对固定预设做 spec 手术,把 ALPN
+	// 替换为仅 http/1.1;HelloRandomized 无固定 spec,ALPN 由
+	// config.NextProtos 生成,不受影响。
+	var presetSpec *utls.ClientHelloSpec
+	if spec, err := utls.UTLSIdToSpec(helloID); err == nil {
+		for i, ext := range spec.Extensions {
+			if _, isALPN := ext.(*utls.ALPNExtension); isALPN {
+				spec.Extensions[i] = &utls.ALPNExtension{AlpnProtocols: []string{"http/1.1"}}
+			}
+		}
+		presetSpec = &spec
+	}
 	if transport.TLSClientConfig == nil {
 		transport.TLSClientConfig = &tls.Config{}
 	}
@@ -379,7 +394,16 @@ func applyUTLSFingerprint(transport *http.Transport, policy HTTPTransportPolicy,
 				return &converted, nil
 			}
 		}
-		tlsConn := utls.UClient(rawConn, utlsConfig, helloID)
+		var tlsConn *utls.UConn
+		if presetSpec != nil {
+			tlsConn = utls.UClient(rawConn, utlsConfig, utls.HelloCustom)
+			if err := tlsConn.ApplyPreset(presetSpec); err != nil {
+				_ = rawConn.Close()
+				return nil, err
+			}
+		} else {
+			tlsConn = utls.UClient(rawConn, utlsConfig, helloID)
+		}
 		if err := tlsConn.HandshakeContext(ctx); err != nil {
 			_ = rawConn.Close()
 			return nil, err
