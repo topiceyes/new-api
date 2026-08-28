@@ -99,6 +99,7 @@ func UpdatePlanMonitor(p *PlanMonitor) error {
 		"plan_name":            p.PlanName,
 		"api_url":              p.ApiUrl,
 		"api_key":              p.ApiKey,
+		"user_agent":           p.UserAgent,
 		"refresh_interval_min": p.RefreshIntervalMin,
 		"sort_order":           p.SortOrder,
 		"alert_threshold":      p.AlertThreshold,
