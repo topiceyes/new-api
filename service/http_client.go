@@ -333,14 +333,17 @@ func applyUTLSFingerprint(transport *http.Transport, policy HTTPTransportPolicy,
 	// SETTINGS 帧当成畸形响应直接断连。对固定预设做 spec 手术,把 ALPN
 	// 替换为仅 http/1.1;HelloRandomized 无固定 spec,ALPN 由
 	// config.NextProtos 生成,不受影响。
-	var presetSpec *utls.ClientHelloSpec
-	if spec, err := utls.UTLSIdToSpec(helloID); err == nil {
-		for i, ext := range spec.Extensions {
-			if _, isALPN := ext.(*utls.ALPNExtension); isALPN {
-				spec.Extensions[i] = &utls.ALPNExtension{AlpnProtocols: []string{"http/1.1"}}
-			}
-		}
-		presetSpec = &spec
+	// 注意:spec 必须在每次握手时重新生成——ApplyPreset 会让 uconn 持有
+	// spec 内的扩展指针并就地改写,共享同一个 spec 第二次握手即
+	// tls: internal error(实测复现)。
+	presetSupported := false
+	if _, err := utls.UTLSIdToSpec(helloID); err == nil {
+		presetSupported = true
+	}
+	// HelloRandomized 走 ApplyPreset(HelloRandomized) 等价路径:直接让 uTLS
+	// 内置随机化,不经过 HelloCustom。
+	if helloID == utls.HelloRandomized || helloID == utls.HelloRandomizedALPN || helloID == utls.HelloRandomizedNoALPN {
+		presetSupported = false
 	}
 	if transport.TLSClientConfig == nil {
 		transport.TLSClientConfig = &tls.Config{}
@@ -395,9 +398,19 @@ func applyUTLSFingerprint(transport *http.Transport, policy HTTPTransportPolicy,
 			}
 		}
 		var tlsConn *utls.UConn
-		if presetSpec != nil {
+		if presetSupported {
+			spec, err := utls.UTLSIdToSpec(helloID)
+			if err != nil {
+				_ = rawConn.Close()
+				return nil, err
+			}
+			for i, ext := range spec.Extensions {
+				if _, isALPN := ext.(*utls.ALPNExtension); isALPN {
+					spec.Extensions[i] = &utls.ALPNExtension{AlpnProtocols: []string{"http/1.1"}}
+				}
+			}
 			tlsConn = utls.UClient(rawConn, utlsConfig, utls.HelloCustom)
-			if err := tlsConn.ApplyPreset(presetSpec); err != nil {
+			if err := tlsConn.ApplyPreset(&spec); err != nil {
 				_ = rawConn.Close()
 				return nil, err
 			}

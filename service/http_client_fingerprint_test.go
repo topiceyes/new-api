@@ -85,3 +85,25 @@ func TestUTLSFingerprintNegotiatesHTTP1Only(t *testing.T) {
 		})
 	}
 }
+
+// TestUTLSFingerprintRepeatedHandshakes 回归:presetSpec 不能共享——ApplyPreset
+// 让 uconn 持有 spec 扩展指针并就地改写,共享 spec 时第二次握手必炸
+// (tls: internal error,生产实测:首请求成功,后续全部失败)。同一 transport
+// 的 DialTLSContext 连续 3 次握手必须全部成功。
+func TestUTLSFingerprintRepeatedHandshakes(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	transport := newRelayHTTPTransport()
+	transport.TLSClientConfig = srv.Client().Transport.(*http.Transport).TLSClientConfig.Clone()
+	applyUTLSFingerprint(transport, HTTPTransportPolicy{Protocol: dto.HTTPProtocolAuto, Shards: 1, TLSFingerprint: dto.TLSFingerprintChrome}, nil)
+	require.NotNil(t, transport.DialTLSContext)
+
+	for i := 0; i < 3; i++ {
+		conn, err := transport.DialTLSContext(t.Context(), "tcp", srv.Listener.Addr().String())
+		require.NoError(t, err, "第 %d 次握手必须成功", i)
+		require.NoError(t, conn.Close())
+	}
+}
