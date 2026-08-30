@@ -70,7 +70,8 @@ func resolveChannelTestUserID(c *gin.Context) (int, error) {
 	return rootUser.Id, nil
 }
 
-func testChannel(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool) testResult {
+// pinKeyIndex >= 0 时 pin 住多 Key 渠道的指定 key 下标做探测(仅健康检查使用,-1 表示不 pin)。
+func testChannel(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool, pinKeyIndex int) testResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -167,6 +168,10 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 	c.Set("base_url", channel.GetBaseURL())
 	group, _ := model.GetUserGroup(testUserID, false)
 	c.Set("group", group)
+
+	if pinKeyIndex >= 0 {
+		common.SetContextKey(c, constant.ContextKeyChannelTestPinKeyIndex, pinKeyIndex)
+	}
 
 	newAPIError := middleware.SetupContextForSelectedChannel(c, channel, testModel)
 	if newAPIError != nil {
@@ -866,7 +871,7 @@ func TestChannel(c *gin.Context) {
 	if c.Request != nil {
 		requestCtx = c.Request.Context()
 	}
-	result := testChannel(requestCtx, channel, testUserID, testModel, endpointType, isStream)
+	result := testChannel(requestCtx, channel, testUserID, testModel, endpointType, isStream, -1)
 	if result.localErr != nil {
 		resp := gin.H{
 			"success": false,
@@ -907,52 +912,105 @@ type channelTestSummary struct {
 	Failed    int `json:"failed"`
 	Disabled  int `json:"disabled"`
 	Enabled   int `json:"enabled"`
+	// 多 Key 渠道的禁用 key 级探测统计(自动恢复),不并入渠道级 Succeeded/Failed。
+	KeysTested  int `json:"keys_tested"`
+	KeysEnabled int `json:"keys_enabled"`
 }
+
+// maxKeyProbesPerChannelPerRound 每渠道每轮健康检查最多探测的禁用 key 数,
+// 超出部分留到下一轮,控制恢复探测对上游的额外调用量。
+const maxKeyProbesPerChannelPerRound = 8
 
 func testChannelForHealthCheck(ctx context.Context, channel *model.Channel, testUserID int, allowDisable bool, disableThreshold int64) channelTestSummary {
 	summary := channelTestSummary{}
 	isChannelEnabled := channel.Status == common.ChannelStatusEnabled
-	tik := time.Now()
-	result := testChannel(ctx, channel, testUserID, "", "", shouldUseStreamForAutomaticChannelTest(channel))
-	milliseconds := time.Since(tik).Milliseconds()
-	if ctx.Err() != nil {
-		return summary
-	}
 
-	summary.Tested++
+	// 全部 key 被禁用的多 Key 渠道,整体测试必死于选 key 阶段的
+	// "no enabled keys",跳过整体测试,直接进入下面的禁用 key 逐个探测。
+	allKeysDisabled := channel.ChannelInfo.IsMultiKey && len(channel.GetEnabledKeyIndexes()) == 0
 
-	shouldBanChannel := false
-	newAPIError := result.newAPIError
-	if newAPIError != nil {
-		shouldBanChannel = service.ShouldDisableChannel(result.newAPIError)
-	}
-
-	if common.AutomaticDisableChannelEnabled && !shouldBanChannel {
-		if milliseconds > disableThreshold {
-			err := fmt.Errorf("响应时间 %.2fs 超过阈值 %.2fs", float64(milliseconds)/1000.0, float64(disableThreshold)/1000.0)
-			newAPIError = types.NewOpenAIError(err, types.ErrorCodeChannelResponseTimeExceeded, http.StatusRequestTimeout)
-			shouldBanChannel = true
+	if !allKeysDisabled {
+		tik := time.Now()
+		result := testChannel(ctx, channel, testUserID, "", "", shouldUseStreamForAutomaticChannelTest(channel), -1)
+		milliseconds := time.Since(tik).Milliseconds()
+		if ctx.Err() != nil {
+			return summary
 		}
+
+		summary.Tested++
+
+		shouldBanChannel := false
+		newAPIError := result.newAPIError
+		if newAPIError != nil {
+			shouldBanChannel = service.ShouldDisableChannel(result.newAPIError)
+		}
+
+		if common.AutomaticDisableChannelEnabled && !shouldBanChannel {
+			if milliseconds > disableThreshold {
+				err := fmt.Errorf("响应时间 %.2fs 超过阈值 %.2fs", float64(milliseconds)/1000.0, float64(disableThreshold)/1000.0)
+				newAPIError = types.NewOpenAIError(err, types.ErrorCodeChannelResponseTimeExceeded, http.StatusRequestTimeout)
+				shouldBanChannel = true
+			}
+		}
+
+		if newAPIError == nil {
+			summary.Succeeded++
+		} else {
+			summary.Failed++
+		}
+
+		if allowDisable && isChannelEnabled && shouldBanChannel && channel.GetAutoBan() {
+			processChannelError(result.context, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(result.context, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
+			summary.Disabled++
+		}
+
+		if result.localErr == nil && !isChannelEnabled && service.ShouldEnableChannel(newAPIError, channel.Status) {
+			service.EnableChannel(channel.Id, common.GetContextKeyString(result.context, constant.ContextKeyChannelKey), channel.Name)
+			summary.Enabled++
+		}
+
+		channel.UpdateResponseTime(milliseconds)
 	}
 
-	if newAPIError == nil {
-		summary.Succeeded++
-	} else {
-		summary.Failed++
+	// 禁用 key 级自动恢复探测(复用全局「自动恢复通道」开关)。
+	if common.AutomaticEnableChannelEnabled && channel.ChannelInfo.IsMultiKey {
+		tested, enabled := probeDisabledChannelKeys(ctx, channel, testUserID, func(pctx context.Context, ch *model.Channel, uid int, pin int) testResult {
+			return testChannel(pctx, ch, uid, "", "", shouldUseStreamForAutomaticChannelTest(ch), pin)
+		})
+		summary.KeysTested += tested
+		summary.KeysEnabled += enabled
 	}
-
-	if allowDisable && isChannelEnabled && shouldBanChannel && channel.GetAutoBan() {
-		processChannelError(result.context, *types.NewChannelError(channel.Id, channel.Type, channel.Name, channel.ChannelInfo.IsMultiKey, common.GetContextKeyString(result.context, constant.ContextKeyChannelKey), channel.GetAutoBan()), newAPIError)
-		summary.Disabled++
-	}
-
-	if result.localErr == nil && !isChannelEnabled && service.ShouldEnableChannel(newAPIError, channel.Status) {
-		service.EnableChannel(channel.Id, common.GetContextKeyString(result.context, constant.ContextKeyChannelKey), channel.Name)
-		summary.Enabled++
-	}
-
-	channel.UpdateResponseTime(milliseconds)
 	return summary
+}
+
+// probeDisabledChannelKeys 逐个探测多 Key 渠道中被禁用的 key,探测成功即恢复。
+// 每渠道每轮最多探测 maxKeyProbesPerChannelPerRound 个,其余留到下一轮。
+// testFn 作为参数注入便于单测替换;生产调用传 testChannel 的适配闭包。
+func probeDisabledChannelKeys(ctx context.Context, channel *model.Channel, testUserID int, testFn func(pctx context.Context, ch *model.Channel, uid int, pinKeyIndex int) testResult) (tested int, enabled int) {
+	disabledIdx := channel.GetAutoDisabledKeyIndexes()
+	if len(disabledIdx) > maxKeyProbesPerChannelPerRound {
+		disabledIdx = disabledIdx[:maxKeyProbesPerChannelPerRound]
+	}
+	for _, idx := range disabledIdx {
+		if ctx.Err() != nil {
+			break
+		}
+		tested++
+		result := testFn(ctx, channel, testUserID, idx)
+		if result.localErr != nil || result.newAPIError != nil {
+			// 探测失败保持禁用,不计入渠道级 Failed,避免污染统计。
+			continue
+		}
+		// 从探测上下文读回实际使用的 key 字符串——恢复按 key 内容反查下标,
+		// 探测期间 key 列表被编辑导致下标漂移时仍能命中正确的 key。
+		key := common.GetContextKeyString(result.context, constant.ContextKeyChannelKey)
+		if key == "" {
+			continue
+		}
+		service.EnableChannelKey(channel.Id, key, channel.Name, idx)
+		enabled++
+	}
+	return tested, enabled
 }
 
 // runChannelTestWorkers executes independent channel tests with bounded
@@ -1040,6 +1098,8 @@ func runChannelTestWorkers(
 		summary.Failed += result.Failed
 		summary.Disabled += result.Disabled
 		summary.Enabled += result.Enabled
+		summary.KeysTested += result.KeysTested
+		summary.KeysEnabled += result.KeysEnabled
 		processed++
 		if report != nil && ctx.Err() == nil {
 			report(processed, total)
@@ -1110,7 +1170,10 @@ func selectChannelsForAutomaticTest(channels []*model.Channel, mode string) []*m
 			continue
 		}
 		if mode == operation_setting.ChannelTestModePassiveRecovery && channel.Status != common.ChannelStatusAutoDisabled {
-			continue
+			// 恢复优先语义:启用中但有禁用 key 的多 Key 渠道也入选,做 key 级恢复探测。
+			if !(channel.Status == common.ChannelStatusEnabled && channel.ChannelInfo.IsMultiKey && len(channel.GetAutoDisabledKeyIndexes()) > 0) {
+				continue
+			}
 		}
 		selected = append(selected, channel)
 	}

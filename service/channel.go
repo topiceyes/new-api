@@ -42,6 +42,17 @@ func EnableChannel(channelId int, usingKey string, channelName string) {
 	}
 }
 
+// EnableChannelKey 恢复多 Key 渠道中被禁用的单个 key(健康检查探测成功后调用)。
+// 通知类型带 keyIndex,避免与渠道级通知的去重维度冲突。
+func EnableChannelKey(channelId int, usingKey string, channelName string, keyIndex int) {
+	success := model.UpdateChannelStatus(channelId, usingKey, common.ChannelStatusEnabled, "")
+	if success {
+		subject := fmt.Sprintf("通道「%s」（#%d）的第 %d 个密钥已自动恢复", channelName, channelId, keyIndex+1)
+		content := fmt.Sprintf("通道「%s」（#%d）的第 %d 个密钥已自动恢复", channelName, channelId, keyIndex+1)
+		NotifyRootUser(fmt.Sprintf("%s_%d_key_%d", dto.NotifyTypeChannelUpdate, channelId, keyIndex), subject, content)
+	}
+}
+
 func ShouldDisableChannel(err *types.NewAPIError) bool {
 	if !common.AutomaticDisableChannelEnabled {
 		return false

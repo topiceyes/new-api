@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -462,4 +463,103 @@ func TestTestAllChannelsRejectsExistingActiveTask(t *testing.T) {
 	require.Equal(t, http.StatusConflict, recorder.Code)
 	require.Contains(t, recorder.Body.String(), existing.TaskID)
 	require.Contains(t, recorder.Body.String(), "已有通道测试任务正在运行或等待中")
+}
+
+func TestSelectChannelsForAutomaticTestPassiveRecoveryIncludesMultiKeyWithDisabledKeys(t *testing.T) {
+	channels := []*model.Channel{
+		{Id: 1, Status: common.ChannelStatusEnabled}, // 普通启用渠道:不入选
+		{Id: 2, Status: common.ChannelStatusEnabled, ChannelInfo: model.ChannelInfo{ // 有禁用 key 的多 key 渠道:入选
+			IsMultiKey:         true,
+			MultiKeySize:       2,
+			MultiKeyStatusList: map[int]int{1: common.ChannelStatusAutoDisabled},
+		}, Key: "k0\nk1"},
+		{Id: 3, Status: common.ChannelStatusEnabled, ChannelInfo: model.ChannelInfo{ // 无禁用 key 的多 key 渠道:不入选
+			IsMultiKey:   true,
+			MultiKeySize: 2,
+		}, Key: "k0\nk1"},
+		{Id: 4, Status: common.ChannelStatusAutoDisabled}, // 原有语义:入选
+	}
+
+	selected := selectChannelsForAutomaticTest(channels, operation_setting.ChannelTestModePassiveRecovery)
+
+	require.Len(t, selected, 2)
+	require.Equal(t, 2, selected[0].Id)
+	require.Equal(t, 4, selected[1].Id)
+}
+
+func multiKeyChannelWithDisabled(disabledIdx ...int) *model.Channel {
+	keys := []string{"k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9"}
+	statusList := make(map[int]int, len(disabledIdx))
+	for _, idx := range disabledIdx {
+		statusList[idx] = common.ChannelStatusAutoDisabled
+	}
+	return &model.Channel{
+		Id:     1,
+		Key:    strings.Join(keys, "\n"),
+		Status: common.ChannelStatusEnabled,
+		ChannelInfo: model.ChannelInfo{
+			IsMultiKey:         true,
+			MultiKeySize:       len(keys),
+			MultiKeyStatusList: statusList,
+		},
+	}
+}
+
+// 探测全部失败时:key 保持禁用,计数正确,不触碰恢复路径。
+func TestProbeDisabledChannelKeysAllFailed(t *testing.T) {
+	channel := multiKeyChannelWithDisabled(0, 2, 5)
+	probed := make([]int, 0)
+	testFn := func(_ context.Context, _ *model.Channel, _ int, pin int) testResult {
+		probed = append(probed, pin)
+		return testResult{localErr: fmt.Errorf("upstream 401")}
+	}
+
+	tested, enabled := probeDisabledChannelKeys(context.Background(), channel, 1, testFn)
+
+	assert.Equal(t, 3, tested)
+	assert.Equal(t, 0, enabled)
+	assert.Equal(t, []int{0, 2, 5}, probed) // 按下标升序探测
+}
+
+// 每轮探测上限:10 个禁用 key 只探测前 8 个,其余留下轮。
+func TestProbeDisabledChannelKeysRespectsPerRoundCap(t *testing.T) {
+	channel := multiKeyChannelWithDisabled(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+	testFn := func(_ context.Context, _ *model.Channel, _ int, _ int) testResult {
+		return testResult{localErr: fmt.Errorf("upstream 401")}
+	}
+
+	tested, _ := probeDisabledChannelKeys(context.Background(), channel, 1, testFn)
+
+	assert.Equal(t, maxKeyProbesPerChannelPerRound, tested)
+}
+
+// ctx 已取消时不做任何探测。
+func TestProbeDisabledChannelKeysHonorsCancelledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	channel := multiKeyChannelWithDisabled(0, 1)
+	testFn := func(_ context.Context, _ *model.Channel, _ int, _ int) testResult {
+		return testResult{}
+	}
+
+	tested, enabled := probeDisabledChannelKeys(ctx, channel, 1, testFn)
+
+	assert.Equal(t, 0, tested)
+	assert.Equal(t, 0, enabled)
+}
+
+// 手动禁用的 key 不参与自动恢复探测——不能违背管理员的手动禁用意图。
+func TestProbeDisabledChannelKeysSkipsManuallyDisabled(t *testing.T) {
+	channel := multiKeyChannelWithDisabled(1)                                        // key1 自动禁用
+	channel.ChannelInfo.MultiKeyStatusList[2] = common.ChannelStatusManuallyDisabled // key2 手动禁用
+	probed := make([]int, 0)
+	testFn := func(_ context.Context, _ *model.Channel, _ int, pin int) testResult {
+		probed = append(probed, pin)
+		return testResult{localErr: fmt.Errorf("upstream 401")}
+	}
+
+	tested, _ := probeDisabledChannelKeys(context.Background(), channel, 1, testFn)
+
+	assert.Equal(t, 1, tested)
+	assert.Equal(t, []int{1}, probed)
 }

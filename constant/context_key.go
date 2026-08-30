@@ -38,6 +38,8 @@ const (
 	ContextKeyChannelIsMultiKey        ContextKey = "channel_is_multi_key"
 	ContextKeyChannelMultiKeyIndex     ContextKey = "channel_multi_key_index"
 	ContextKeyChannelKey               ContextKey = "channel_key"
+	// 仅供渠道健康检查路径 pin 指定 key 下标做探测,生产转发链路绝不设置。
+	ContextKeyChannelTestPinKeyIndex ContextKey = "channel_test_pin_key_index"
 
 	ContextKeyAutoGroup           ContextKey = "auto_group"
 	ContextKeyAutoGroupIndex      ContextKey = "auto_group_index"

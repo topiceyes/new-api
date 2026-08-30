@@ -77,7 +77,22 @@ func TestUTLSFingerprintNegotiatesHTTP1Only(t *testing.T) {
 			applyUTLSFingerprint(transport, HTTPTransportPolicy{Protocol: dto.HTTPProtocolAuto, Shards: 1, TLSFingerprint: fp}, nil)
 
 			client := &http.Client{Transport: transport}
-			resp, err := client.Get(srv.URL)
+			// HelloRandomized 每次握手随机生成扩展/曲线组合,偶尔会产生对端
+			// 不接受的 ClientHello(如 Go 服务端拒绝随机曲线 ID)——这是 uTLS
+			// 随机化模式的固有特性,真实上游(nginx/CF)容忍度更高。对随机指纹
+			// 允许重试,预设指纹保持单次必成功。
+			attempts := 1
+			if fp == dto.TLSFingerprintRandomized {
+				attempts = 5
+			}
+			var resp *http.Response
+			var err error
+			for i := 0; i < attempts; i++ {
+				resp, err = client.Get(srv.URL)
+				if err == nil {
+					break
+				}
+			}
 			require.NoError(t, err, "指纹 %s 对 h2 上游的请求必须成功", fp)
 			defer resp.Body.Close()
 			require.Equal(t, http.StatusOK, resp.StatusCode)

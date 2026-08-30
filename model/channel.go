@@ -169,8 +169,18 @@ func (c ChannelInfo) Value() (driver.Value, error) {
 
 // Scan implements sql.Scanner interface
 func (c *ChannelInfo) Scan(value interface{}) error {
-	bytesValue, _ := value.([]byte)
-	return common.Unmarshal(bytesValue, c)
+	// sqlite 驱动按存储类型返回 []byte 或 string(例如外部工具以 TEXT 写入时),
+	// 两种都要兼容,否则断言失败会拿到 nil 并报 "unexpected end of JSON input"。
+	switch v := value.(type) {
+	case []byte:
+		return common.Unmarshal(v, c)
+	case string:
+		return common.UnmarshalJsonStr(v, c)
+	case nil:
+		return nil
+	default:
+		return fmt.Errorf("unsupported ChannelInfo scan type %T", value)
+	}
 }
 
 func (channel *Channel) GetKeys() []string {
@@ -213,6 +223,24 @@ func (channel *Channel) GetEnabledKeyIndexes() []int {
 		enabledIdx = append(enabledIdx, i)
 	}
 	return enabledIdx
+}
+
+// GetAutoDisabledKeyIndexes 返回多 Key 渠道中被自动禁用的 key 下标列表(按下标升序)。
+// 手动禁用的 key 不在此列——健康检查的自动恢复探测不应违背管理员的手动禁用意图。
+// 非多 Key 渠道返回 nil。
+func (channel *Channel) GetAutoDisabledKeyIndexes() []int {
+	if !channel.ChannelInfo.IsMultiKey {
+		return nil
+	}
+	keys := channel.GetKeys()
+	statusList := channel.ChannelInfo.MultiKeyStatusList
+	disabledIdx := make([]int, 0)
+	for i := range keys {
+		if status, ok := statusList[i]; ok && status == common.ChannelStatusAutoDisabled {
+			disabledIdx = append(disabledIdx, i)
+		}
+	}
+	return disabledIdx
 }
 
 func (channel *Channel) GetNextEnabledKey() (string, int, *types.NewAPIError) {
@@ -702,6 +730,13 @@ func handlerMultiKeyUpdate(channel *Channel, usingKey string, status int, reason
 		}
 		if status == common.ChannelStatusEnabled {
 			delete(channel.ChannelInfo.MultiKeyStatusList, keyIndex)
+			// 与手动 enable_key(controller/channel.go ManageMultiKeys)对齐,不留残留
+			if channel.ChannelInfo.MultiKeyDisabledReason != nil {
+				delete(channel.ChannelInfo.MultiKeyDisabledReason, keyIndex)
+			}
+			if channel.ChannelInfo.MultiKeyDisabledTime != nil {
+				delete(channel.ChannelInfo.MultiKeyDisabledTime, keyIndex)
+			}
 		} else {
 			channel.ChannelInfo.MultiKeyStatusList[keyIndex] = status
 			if channel.ChannelInfo.MultiKeyDisabledReason == nil {
@@ -787,7 +822,10 @@ func UpdateChannelStatus(channelId int, usingKey string, status int, reason stri
 	if err != nil {
 		return false
 	} else {
-		if channel.Status == status {
+		// 多 Key 渠道的状态藏在 ChannelInfo.MultiKeyStatusList 里,即使渠道整体
+		// 状态与目标一致(如部分 key 禁用、渠道仍 Enabled)也必须进入
+		// handlerMultiKeyUpdate 按 usingKey 更新单个 key,否则 key 级状态不落库。
+		if channel.Status == status && !channel.ChannelInfo.IsMultiKey {
 			return false
 		}
 

@@ -451,6 +451,19 @@ func getTaskOriginModelName(c *gin.Context) string {
 // 时,令牌固定复用同一个 key(空闲自动释放,见 service/channel_sticky_key.go);
 // 其余情况沿用原有轮询/随机逻辑。
 func selectChannelKey(c *gin.Context, channel *model.Channel) (string, int, *types.NewAPIError) {
+	// 渠道健康检查探测单个被禁用 key 时,pin 住指定下标,跳过启用状态过滤与粘性绑定。
+	// 该 context key 仅由测试路径设置(controller/channel-test.go),生产转发链路不会带。
+	if channel.ChannelInfo.IsMultiKey {
+		if pinVal, exists := c.Get(string(constant.ContextKeyChannelTestPinKeyIndex)); exists {
+			if pinIdx, ok := pinVal.(int); ok && pinIdx >= 0 {
+				keys := channel.GetKeys()
+				if pinIdx < len(keys) {
+					return keys[pinIdx], pinIdx, nil
+				}
+				// 越界说明 key 列表在探测期间被编辑过,回落原逻辑。
+			}
+		}
+	}
 	setting := channel.GetSetting()
 	// 渠道测试等非转发路径没有令牌(tokenId=0),不参与粘性绑定——
 	// 否则会给"token 0"占一个独占槽,还可能在 key 占满时让测试吃 429。
