@@ -46,3 +46,7 @@ go.work.sum
 docs/migration-old-to-new.md
 old_schema.sql
 *.mmdb
+
+# Certificates and private keys
+*.key
+*.pem
