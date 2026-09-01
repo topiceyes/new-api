@@ -15,5 +15,10 @@
   "Please enter plan name": "Please enter plan name",
   "Please select a provider": "Please select a provider",
   "Leave blank to use the default": "Leave blank to use the default",
-  "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them."
+  "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.": "Scheduled Switch is enabled: the channel is auto-enabled inside the configured windows and auto-disabled outside them.",
+  "Users with at least one request": "Users with at least one request",
+  "Requests by day of week and hour": "Requests by day of week and hour",
+  "Members are attributed to their primary department": "Members are attributed to their primary department",
+  "No department data available in the selected range": "No department data available in the selected range",
+  "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders"
 }

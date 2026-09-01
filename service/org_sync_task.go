@@ -181,6 +181,8 @@ func RunOrgSyncOnce(ctx context.Context) (*OrgSyncResult, error) {
 			common.SysError(fmt.Sprintf("org sync: failed to refresh group cache for user %d: %v", userId, err))
 		}
 	}
+	// 快照已替换,部门负责人范围缓存全部失效,下次请求按新快照重新推导。
+	InvalidateAnalyticsScopeCache()
 	common.SysLog(fmt.Sprintf("org sync finished: provider=%s, departments=%d, members=%d, matched=%d, group_mapped=%d, group_unmapped=%d, display_names=%d",
 		result.Provider, result.Departments, result.Members, result.Matched, result.GroupMapped, result.GroupUnmapped, displayNameUpdated))
 	return result, nil

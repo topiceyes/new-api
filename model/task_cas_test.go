@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	common.RedisEnabled = false
 	common.BatchUpdateEnabled = false
 	common.LogConsumeEnabled = true
-	initCol()
+	InitCol()
 
 	sqlDB, err := db.DB()
 	if err != nil {
@@ -65,6 +65,9 @@ func TestMain(m *testing.M) {
 		&AuditEvent{},
 		&SkillCandidate{},
 		&Skill{},
+		&UsageStatDaily{},
+		&UsageStatHourly{},
+		&UsageStatDay{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
@@ -105,6 +108,9 @@ func truncateTables(t *testing.T) {
 		DB.Exec("DELETE FROM audit_events")
 		DB.Exec("DELETE FROM skill_candidates")
 		DB.Exec("DELETE FROM skills")
+		DB.Exec("DELETE FROM usage_stat_daily")
+		DB.Exec("DELETE FROM usage_stat_hourly")
+		DB.Exec("DELETE FROM usage_stat_days")
 	})
 }
 

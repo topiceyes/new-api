@@ -274,3 +274,74 @@ export interface FAQItem {
   question: string
   answer: string
 }
+
+// ============================================================================
+// Usage Analytics Types (/api/analytics/*)
+// ============================================================================
+
+export interface AnalyticsAccess {
+  allowed: boolean
+  scope?: 'admin' | 'dept'
+  dept_ids?: string[]
+}
+
+export interface AnalyticsOverview {
+  request_count: number
+  fail_count: number
+  fail_rate: number
+  quota: number
+  refund_quota: number
+  net_quota: number
+  active_users: number
+  prompt_tokens: number
+  completion_tokens: number
+}
+
+export interface AnalyticsActivityDay {
+  date: string
+  active_users: number
+  request_count: number
+  fail_count: number
+  quota: number
+}
+
+export interface AnalyticsActivity {
+  days: AnalyticsActivityDay[]
+  wau: number
+  mau: number
+}
+
+export interface AnalyticsTopUser {
+  user_id: number
+  username: string
+  display_name: string
+  quota: number
+  request_count: number
+  fail_count: number
+  fail_rate: number
+}
+
+export interface AnalyticsDepartment {
+  dept_id: string
+  dept_name: string
+  member_count: number
+  active_users: number
+  quota: number
+  request_count: number
+  fail_rate: number
+}
+
+export interface AnalyticsModel {
+  model_name: string
+  quota: number
+  request_count: number
+  prompt_tokens: number
+  completion_tokens: number
+}
+
+export interface AnalyticsHeatmapCell {
+  day_of_week: number
+  hour: number
+  request_count: number
+  quota: number
+}

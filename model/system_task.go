@@ -26,6 +26,7 @@ const (
 	SystemTaskTypeOrgSync         = "org_sync"
 	SystemTaskTypeAuditCleanup    = "audit_cleanup"
 	SystemTaskTypeAuditClassify   = "audit_classify"
+	SystemTaskTypeUsageAggregate  = "usage_aggregate"
 )
 
 var ErrSystemTaskLockLost = errors.New("system task lock lost")

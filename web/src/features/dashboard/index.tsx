@@ -17,11 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { Eye, EyeOff } from 'lucide-react'
-import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Eye, EyeOff, Lock } from 'lucide-react'
+import { useState, useCallback, useMemo, lazy, Suspense, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
+import { EmptyState } from '@/components/empty-state'
 import { FadeIn } from '@/components/page-transition'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -38,6 +40,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { ModelsChartPreferences } from './components/models/models-chart-preferences'
 import { ModelsFilter } from './components/models/models-filter-dialog'
 import { OverviewDashboard } from './components/overview/overview-dashboard'
+import { getAnalyticsAccess } from './api'
 import { DEFAULT_TIME_GRANULARITY } from './constants'
 import {
   buildDefaultDashboardFilters,
@@ -104,6 +107,12 @@ const LazyPerformanceOverview = lazy(() =>
 const LazyUserCharts = lazy(() =>
   import('./components/users/user-charts').then((m) => ({
     default: m.UserCharts,
+  }))
+)
+
+const LazyUsageDashboard = lazy(() =>
+  import('./components/usage/usage-dashboard').then((m) => ({
+    default: m.UsageDashboard,
   }))
 )
 
@@ -189,6 +198,9 @@ const SECTION_META: Record<DashboardSectionId, { titleKey: string }> = {
   users: {
     titleKey: 'User Analytics',
   },
+  usage: {
+    titleKey: 'Usage Analytics',
+  },
 }
 
 export function Dashboard() {
@@ -245,12 +257,29 @@ export function Dashboard() {
 
   const meta = SECTION_META[activeSection] ?? SECTION_META.overview
   const isAdmin = Boolean(userRole && userRole >= ROLE.ADMIN)
+  // Dept leaders are not admins, so the usage section is gated by the
+  // analytics access endpoint instead of the role check.
+  const {
+    data: analyticsAccess,
+    isLoading: analyticsAccessLoading,
+    isError: analyticsAccessError,
+    refetch: refetchAnalyticsAccess,
+  } = useQuery({
+    queryKey: ['analytics-access'],
+    queryFn: getAnalyticsAccess,
+    select: (res) => (res.success ? res.data : undefined),
+    staleTime: 300_000,
+  })
+  const analyticsAllowed = isAdmin || Boolean(analyticsAccess?.allowed)
   const visibleSections = useMemo(
     () =>
       DASHBOARD_SECTION_IDS.filter(
-        (section) => section !== 'overview' && (section !== 'users' || isAdmin)
+        (section) =>
+          section !== 'overview' &&
+          (section !== 'users' || isAdmin) &&
+          (section !== 'usage' || analyticsAllowed)
       ),
-    [isAdmin]
+    [isAdmin, analyticsAllowed]
   )
   const handleSectionChange = useCallback(
     (section: string) => {
@@ -316,6 +345,49 @@ export function Dashboard() {
       </>
     ) : null
   const sectionActions = modelActions ?? flowActions
+
+  let usageSectionContent: ReactNode = null
+  if (activeSection === 'usage') {
+    if (analyticsAllowed) {
+      usageSectionContent = (
+        <FadeIn>
+          <Suspense fallback={<ModelChartsFallback />}>
+            <LazyUsageDashboard />
+          </Suspense>
+        </FadeIn>
+      )
+    } else if (analyticsAccessLoading) {
+      usageSectionContent = <ModelChartsFallback />
+    } else if (analyticsAccessError && !analyticsAccess) {
+      // 网络/服务端错误与"无权限"要分开:错误给重试,权限给说明,
+      // 否则一次抖动就把部门负责人误报成无权限。
+      usageSectionContent = (
+        <EmptyState
+          icon={Lock}
+          title={t('Failed to load')}
+          action={
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => void refetchAnalyticsAccess()}
+            >
+              {t('Retry')}
+            </Button>
+          }
+        />
+      )
+    } else {
+      usageSectionContent = (
+        <EmptyState
+          icon={Lock}
+          title={t('No Permission')}
+          description={t(
+            'Usage analytics is available to admins and department leaders'
+          )}
+        />
+      )
+    }
+  }
 
   return (
     <SectionPageLayout>
@@ -410,6 +482,7 @@ export function Dashboard() {
               </Suspense>
             </FadeIn>
           )}
+          {activeSection === 'usage' && usageSectionContent}
         </div>
       </SectionPageLayout.Content>
     </SectionPageLayout>

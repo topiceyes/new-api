@@ -19,6 +19,13 @@ For commercial licensing, please contact support@quantumnous.com
 import { api } from '@/lib/api'
 
 import type {
+  AnalyticsAccess,
+  AnalyticsActivity,
+  AnalyticsDepartment,
+  AnalyticsHeatmapCell,
+  AnalyticsModel,
+  AnalyticsOverview,
+  AnalyticsTopUser,
   FlowQuotaDataItem,
   QuotaDataItem,
   UptimeGroupResult,
@@ -89,5 +96,71 @@ export async function getUptimeStatus() {
   const res = await api.get<{ success: boolean; data: UptimeGroupResult[] }>(
     '/api/uptime/status'
   )
+  return res.data
+}
+
+// ----------------------------------------------------------------------------
+// Usage Analytics (/api/analytics/*)
+// ----------------------------------------------------------------------------
+
+interface AnalyticsRangeParams {
+  start_timestamp: number
+  end_timestamp: number
+}
+
+export async function getAnalyticsAccess() {
+  const res = await api.get<{ success: boolean; data: AnalyticsAccess }>(
+    '/api/analytics/access'
+  )
+  return res.data
+}
+
+export async function getAnalyticsOverview(params: AnalyticsRangeParams) {
+  const res = await api.get<{ success: boolean; data: AnalyticsOverview }>(
+    '/api/analytics/overview',
+    { params }
+  )
+  return res.data
+}
+
+export async function getAnalyticsActivity(params: AnalyticsRangeParams) {
+  const res = await api.get<{ success: boolean; data: AnalyticsActivity }>(
+    '/api/analytics/activity',
+    { params }
+  )
+  return res.data
+}
+
+export async function getAnalyticsTopUsers(
+  params: AnalyticsRangeParams & { limit?: number }
+) {
+  const res = await api.get<{ success: boolean; data: AnalyticsTopUser[] }>(
+    '/api/analytics/top-users',
+    { params }
+  )
+  return res.data
+}
+
+export async function getAnalyticsDepartments(params: AnalyticsRangeParams) {
+  const res = await api.get<{
+    success: boolean
+    data: AnalyticsDepartment[]
+  }>('/api/analytics/departments', { params })
+  return res.data
+}
+
+export async function getAnalyticsModels(params: AnalyticsRangeParams) {
+  const res = await api.get<{ success: boolean; data: AnalyticsModel[] }>(
+    '/api/analytics/models',
+    { params }
+  )
+  return res.data
+}
+
+export async function getAnalyticsHeatmap(params: AnalyticsRangeParams) {
+  const res = await api.get<{
+    success: boolean
+    data: { cells: AnalyticsHeatmapCell[] }
+  }>('/api/analytics/heatmap', { params })
   return res.data
 }

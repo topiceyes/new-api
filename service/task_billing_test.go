@@ -35,6 +35,7 @@ func TestMain(m *testing.M) {
 	model.LOG_DB = db
 
 	common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
+	model.InitCol()
 	common.RedisEnabled = false
 	common.BatchUpdateEnabled = false
 	common.LogConsumeEnabled = true
@@ -50,6 +51,11 @@ func TestMain(m *testing.M) {
 		&model.UserSubscription{},
 		&model.SystemTask{},
 		&model.SystemTaskLock{},
+		&model.OrgDepartment{},
+		&model.OrgMember{},
+		&model.UsageStatDaily{},
+		&model.UsageStatHourly{},
+		&model.UsageStatDay{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
@@ -74,6 +80,11 @@ func truncate(t *testing.T) {
 		model.DB.Exec("DELETE FROM user_subscriptions")
 		model.DB.Exec("DELETE FROM system_task_locks")
 		model.DB.Exec("DELETE FROM system_tasks")
+		model.DB.Exec("DELETE FROM org_departments")
+		model.DB.Exec("DELETE FROM org_members")
+		model.DB.Exec("DELETE FROM usage_stat_daily")
+		model.DB.Exec("DELETE FROM usage_stat_hourly")
+		model.DB.Exec("DELETE FROM usage_stat_days")
 	})
 }
 

@@ -182,6 +182,28 @@ func GetOrgMemberRealName(provider, unionId string) (string, error) {
 	return member.Name, nil
 }
 
+// GetOrgMemberByUnionId 返回快照中该成员的完整行(含 DeptIds/LeaderDeptIds/UserId)。
+// 未收录返回 nil, nil,不算错误。供部门负责人权限推导等场景使用。
+func GetOrgMemberByUnionId(provider, unionId string) (*OrgMember, error) {
+	if unionId == "" {
+		return nil, nil
+	}
+	switch provider {
+	case OrgProviderDingTalk, OrgProviderFeishu:
+	default:
+		return nil, ErrOrgProviderUnsupported
+	}
+	var member OrgMember
+	err := DB.Where("provider = ? AND union_id = ?", provider, unionId).Take(&member).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &member, nil
+}
+
 // displayNameMaxRunes 与 User.DisplayName 的 validate max=20 对齐,超长截断。
 const displayNameMaxRunes = 20
 

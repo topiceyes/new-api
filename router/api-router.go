@@ -359,6 +359,20 @@ func SetApiRouter(router *gin.Engine) {
 		dataRoute.GET("/flow", middleware.AdminAuth(), controller.GetAllFlowQuotaDates)
 		dataRoute.GET("/flow/self", middleware.UserAuth(), controller.GetUserFlowQuotaDates)
 
+		// 使用分析:UserAuth 即可进入,handler 内部按角色/org 快照推导可见范围
+		// (管理员=全量,部门负责人=本部门子树,其余 success:false)。
+		analyticsRoute := apiRouter.Group("/analytics")
+		analyticsRoute.Use(middleware.UserAuth())
+		{
+			analyticsRoute.GET("/access", controller.GetAnalyticsAccess)
+			analyticsRoute.GET("/overview", controller.GetAnalyticsOverview)
+			analyticsRoute.GET("/activity", controller.GetAnalyticsActivity)
+			analyticsRoute.GET("/top-users", controller.GetAnalyticsTopUsers)
+			analyticsRoute.GET("/departments", controller.GetAnalyticsDepartments)
+			analyticsRoute.GET("/models", controller.GetAnalyticsModels)
+			analyticsRoute.GET("/heatmap", controller.GetAnalyticsHeatmap)
+		}
+
 		logRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
 		{
 			logRoute.GET("/token", middleware.TokenAuthReadOnly(), controller.GetLogByKey)

@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/service/planmonitor"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
+	"github.com/QuantumNous/new-api/setting/usage_analytics"
 )
 
 // RegisterScheduledSystemTasks wires the periodic channel test, upstream model
@@ -30,6 +31,7 @@ func RegisterScheduledSystemTasks() {
 	service.RegisterSystemTaskHandler(orgSyncHandler{})
 	service.RegisterSystemTaskHandler(auditCleanupHandler{})
 	service.RegisterSystemTaskHandler(auditClassifyHandler{})
+	service.RegisterSystemTaskHandler(usageAggregateHandler{})
 }
 
 // channelTestHandler runs the scheduled "test all channels" job. Enablement and
@@ -258,6 +260,27 @@ func (auditCleanupHandler) Run(ctx context.Context, task *model.SystemTask, runn
 		"retention_days": retentionDays,
 		"deleted":        affected,
 	}, nil)
+}
+
+// usageAggregateHandler 每小时聚合 logs(LOG_DB)到 usage_stat_daily/hourly(主库):
+// 首次运行自动回填 BackfillDays 天的历史,之后补缺 + 重算昨天 + 刷新今天至今,
+// 并按 AggregateRetentionDays 清理过期聚合。日志清理不影响聚合表。
+type usageAggregateHandler struct{}
+
+func (usageAggregateHandler) Type() string { return model.SystemTaskTypeUsageAggregate }
+func (usageAggregateHandler) Enabled() bool {
+	return usage_analytics.GetUsageAnalyticsSettings().Enabled
+}
+func (usageAggregateHandler) Interval() time.Duration { return time.Hour }
+func (usageAggregateHandler) NewPayload() any         { return nil }
+
+func (usageAggregateHandler) Run(ctx context.Context, task *model.SystemTask, runnerID string) {
+	summary, err := service.RunUsageAggregateOnce(ctx, service.NewSystemTaskProgressReporter(task, runnerID))
+	if err != nil {
+		finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusFailed, nil, err)
+		return
+	}
+	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, summary, nil)
 }
 
 // auditClassifyHandler 按配置间隔对带 prompt 原文的未分类审计事件做 LLM 分类
