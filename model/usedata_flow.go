@@ -10,6 +10,8 @@ import (
 type FlowQuotaData struct {
 	UserID      int    `json:"user_id,omitempty" gorm:"column:user_id"`
 	Username    string `json:"username,omitempty" gorm:"column:username"`
+	// DisplayName 展示用真实姓名,按 UserID 从 users 表补充,不落库。
+	DisplayName string `json:"display_name,omitempty" gorm:"-"`
 	NodeName    string `json:"node_name,omitempty" gorm:"column:node_name"`
 	TokenID     int    `json:"token_id,omitempty" gorm:"column:token_id"`
 	TokenName   string `json:"token_name,omitempty" gorm:"-"`
@@ -68,6 +70,9 @@ func getAdminFlowQuotaData(startTime int64, endTime int64, username string) ([]*
 	if err != nil {
 		return nil, err
 	}
+	if err := fillFlowDisplayNames(rows); err != nil {
+		return rows, err
+	}
 	return rows, fillFlowChannelNames(rows)
 }
 
@@ -88,7 +93,37 @@ func getRootFlowQuotaData(startTime int64, endTime int64, username string) ([]*F
 	if err := fillFlowTokenNames(rows); err != nil {
 		return rows, err
 	}
+	if err := fillFlowDisplayNames(rows); err != nil {
+		return rows, err
+	}
 	return rows, fillFlowChannelNames(rows)
+}
+
+// fillFlowDisplayNames 按 user_id 批量补充真实姓名,供流量图以真名为主展示。
+func fillFlowDisplayNames(rows []*FlowQuotaData) error {
+	userIDSet := make(map[int]struct{})
+	userIDs := make([]int, 0)
+	for _, row := range rows {
+		if row.UserID == 0 {
+			continue
+		}
+		if _, ok := userIDSet[row.UserID]; ok {
+			continue
+		}
+		userIDSet[row.UserID] = struct{}{}
+		userIDs = append(userIDs, row.UserID)
+	}
+	if len(userIDs) == 0 {
+		return nil
+	}
+	names, err := GetUserDisplayNames(userIDs)
+	if err != nil {
+		return err
+	}
+	for _, row := range rows {
+		row.DisplayName = names[row.UserID]
+	}
+	return nil
 }
 
 func fillFlowTokenNames(rows []*FlowQuotaData) error {

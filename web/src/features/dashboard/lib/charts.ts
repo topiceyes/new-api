@@ -750,6 +750,16 @@ export function processUserChartData(
 
   if (!data || data.length === 0) return emptyResult
 
+  // 聚合仍以 username 为键(唯一),展示标签用真实姓名
+  const displayNameByUsername = new Map<string, string>()
+  data.forEach((item) => {
+    if (item.username && item.display_name) {
+      displayNameByUsername.set(item.username, item.display_name)
+    }
+  })
+  const userLabel = (username: string) =>
+    displayNameByUsername.get(username) || username
+
   const userQuotaTotal = new Map<string, number>()
   data.forEach((item) => {
     const username = item.username || 'unknown'
@@ -765,7 +775,7 @@ export function processUserChartData(
   const totalQuota = sorted.slice(0, limit).reduce((s, [, q]) => s + q, 0)
 
   const rankValues = sorted.slice(0, limit).map(([username, quota]) => ({
-    User: username,
+    User: userLabel(username),
     rawQuota: quota,
     Usage: Number((quota / quotaPerUnit).toFixed(4)),
   }))
@@ -805,7 +815,7 @@ export function processUserChartData(
       const q = timeUserMap.get(time)?.get(user) || 0
       trendValues.push({
         Time: time,
-        User: user,
+        User: userLabel(user),
         rawQuota: q,
         Usage: Number((q / quotaPerUnit).toFixed(4)),
       })

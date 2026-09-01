@@ -78,6 +78,9 @@ type Log struct {
 	RequestId         string `json:"request_id,omitempty" gorm:"type:varchar(64);index:idx_logs_request_id;default:''"`
 	UpstreamRequestId string `json:"upstream_request_id,omitempty" gorm:"type:varchar(128);index:idx_logs_upstream_request_id;default:''"`
 	Other             string `json:"other"`
+	// DisplayName 展示用真实姓名,按 UserId 从主库 users 表查询时补充,不落库
+	// (logs 在 LOG_DB,可能是 ClickHouse 独立库,不能 JOIN)。
+	DisplayName string `json:"display_name" gorm:"-"`
 }
 
 // don't use iota, avoid change log type value
@@ -465,6 +468,30 @@ func RecordTaskBillingLog(params RecordTaskBillingLogParams) {
 	}
 }
 
+// fillLogDisplayNames 按 user_id 批量补充真实姓名,供前端以真名为主展示。
+// 失败只记日志,保留 username 展示兜底。
+func fillLogDisplayNames(logs []*Log) {
+	userIds := types.NewSet[int]()
+	for _, log := range logs {
+		if log != nil && log.UserId != 0 {
+			userIds.Add(log.UserId)
+		}
+	}
+	if userIds.Len() == 0 {
+		return
+	}
+	names, err := GetUserDisplayNames(userIds.Items())
+	if err != nil {
+		common.SysError("failed to load log display names: " + err.Error())
+		return
+	}
+	for _, log := range logs {
+		if log != nil {
+			log.DisplayName = names[log.UserId]
+		}
+	}
+}
+
 func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
 	var tx *gorm.DB
 	if logType == LogTypeUnknown {
@@ -556,6 +583,7 @@ func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName
 		}
 	}
 
+	fillLogDisplayNames(logs)
 	return logs, total, err
 }
 
@@ -606,6 +634,7 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 	}
 
 	formatUserLogs(logs, startIdx)
+	fillLogDisplayNames(logs)
 	return logs, total, err
 }
 

@@ -49,7 +49,9 @@ type TaskDto struct {
 	Progress   string          `json:"progress"`
 	Properties any             `json:"properties"`
 	Username   string          `json:"username,omitempty"`
-	Data       json.RawMessage `json:"data"`
+	// DisplayName 展示用真实姓名(管理端任务列表),不落库。
+	DisplayName string          `json:"display_name,omitempty"`
+	Data        json.RawMessage `json:"data"`
 }
 
 type FetchReq struct {

@@ -90,10 +90,22 @@ export function useAuditEventColumns(
       {
         accessorKey: 'username',
         id: 'username',
-        header: t('Username'),
-        cell: ({ row }) => (
-          <span className='font-medium'>{row.original.username || '-'}</span>
-        ),
+        header: t('User'),
+        cell: ({ row }) => {
+          // 真名为主:显示真实姓名,username 以小字辅助
+          const { username, display_name: displayName } = row.original
+          const primary = displayName || username || '-'
+          return (
+            <span className='font-medium' title={displayName ? username : undefined}>
+              {primary}
+              {displayName && displayName !== username && (
+                <span className='text-muted-foreground ml-1 text-xs'>
+                  ({username})
+                </span>
+              )}
+            </span>
+          )
+        },
         size: 120,
       },
       {

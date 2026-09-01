@@ -62,6 +62,7 @@ func GetUserTask(c *gin.Context) {
 
 func tasksToDto(tasks []*model.Task, fillUser bool) []*dto.TaskDto {
 	var userIdMap map[int]*model.UserBase
+	var displayNameMap map[int]string
 	if fillUser {
 		userIdMap = make(map[int]*model.UserBase)
 		userIds := types.NewSet[int]()
@@ -74,6 +75,12 @@ func tasksToDto(tasks []*model.Task, fillUser bool) []*dto.TaskDto {
 				userIdMap[userId] = cacheUser
 			}
 		}
+		// 真实姓名不在用户缓存里,单独批量查一次;失败保留 username 兜底。
+		if names, err := model.GetUserDisplayNames(userIds.Items()); err == nil {
+			displayNameMap = names
+		} else {
+			common.SysError("failed to load task user display names: " + err.Error())
+		}
 	}
 	result := make([]*dto.TaskDto, len(tasks))
 	for i, task := range tasks {
@@ -81,6 +88,7 @@ func tasksToDto(tasks []*model.Task, fillUser bool) []*dto.TaskDto {
 			if user, ok := userIdMap[task.UserId]; ok {
 				task.Username = user.Username
 			}
+			task.DisplayName = displayNameMap[task.UserId]
 		}
 		result[i] = relay.TaskModel2Dto(task)
 	}

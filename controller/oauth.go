@@ -222,17 +222,45 @@ func HandleOAuth(c *gin.Context) {
 	setupLogin(user, c)
 }
 
+// oauthOrgProvider 返回内置钉钉/飞书 provider 对应的组织同步来源名,
+// 其他 provider 返回空串。
+func oauthOrgProvider(provider oauth.Provider) string {
+	switch provider.(type) {
+	case *oauth.DingTalkProvider:
+		return model.OrgProviderDingTalk
+	case *oauth.FeishuProvider:
+		return model.OrgProviderFeishu
+	default:
+		return ""
+	}
+}
+
+// applyOrgRealName 用组织快照的真实姓名(通讯录权威)覆盖 OAuth 返回的昵称,
+// 使 DisplayName 始终是真实姓名。快照未收录(尚未同步的新成员)或非组织
+// provider 时保留原值。失败只记日志,不影响登录主流程。返回是否应用了真名。
+func applyOrgRealName(provider oauth.Provider, oauthUser *oauth.OAuthUser) bool {
+	orgProvider := oauthOrgProvider(provider)
+	if orgProvider == "" {
+		return false
+	}
+	name, err := model.GetOrgMemberRealName(orgProvider, oauthUser.ProviderUserID)
+	if err != nil {
+		common.SysError(fmt.Sprintf("[OAuth] lookup org real name failed: provider=%s: %s", orgProvider, err.Error()))
+		return false
+	}
+	if name == "" {
+		return false
+	}
+	oauthUser.DisplayName = name
+	return true
+}
+
 // bindOrgMemberOnLogin 登录/绑定即同步组织架构绑定:钉钉/飞书登录拿到
 // unionId 后立刻把 org_members 快照里对应成员标记为已绑定,不必等下一次
 // 全量同步。失败只记日志,不影响登录主流程;主管分组映射仍由同步统一计算。
 func bindOrgMemberOnLogin(provider oauth.Provider, unionId string, userId int) {
-	orgProvider := ""
-	switch provider.(type) {
-	case *oauth.DingTalkProvider:
-		orgProvider = model.OrgProviderDingTalk
-	case *oauth.FeishuProvider:
-		orgProvider = model.OrgProviderFeishu
-	default:
+	orgProvider := oauthOrgProvider(provider)
+	if orgProvider == "" {
 		return
 	}
 	if err := model.BindOrgMemberToUser(orgProvider, unionId, userId); err != nil {
@@ -311,6 +339,10 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *oauth.OAuthUser, affiliateCode string) (*model.User, error) {
 	user := &model.User{}
 
+	// 钉钉/飞书的 OAuth DisplayName 是个人昵称;用组织快照的真实姓名覆盖,
+	// 注册与老用户登录两条路径都以此为准。
+	realNameApplied := applyOrgRealName(provider, oauthUser)
+
 	// Check if user already exists with new ID
 	if provider.IsUserIDTaken(oauthUser.ProviderUserID) {
 		err := provider.FillUserByProviderID(user, oauthUser.ProviderUserID)
@@ -320,6 +352,15 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		// Check if user has been deleted
 		if user.Id == 0 {
 			return nil, &OAuthUserDeletedError{}
+		}
+		// 老用户登录:注册时写入的是昵称,快照真名与现值不一致时直写刷新。
+		// 只对快照命中的用户刷新(昵称回落不覆盖,避免冲掉管理员手动修改)。
+		if realNameApplied && user.DisplayName != oauthUser.DisplayName {
+			if err := model.UpdateUserDisplayNameDirect(user.Id, oauthUser.DisplayName); err != nil {
+				common.SysError(fmt.Sprintf("[OAuth] refresh display name failed: userId=%d: %s", user.Id, err.Error()))
+			} else {
+				user.DisplayName = oauthUser.DisplayName
+			}
 		}
 		bindOrgMemberOnLogin(provider, oauthUser.ProviderUserID, user.Id)
 		return user, nil

@@ -159,6 +159,128 @@ func GetOrgMemberGroupStates(provider string) (map[string]OrgMember, error) {
 	return states, nil
 }
 
+// GetOrgMemberRealName 返回快照中该成员的真实姓名(通讯录 name)。未收录
+// (尚未同步的新成员)或姓名为空时返回空串,不算错误——调用方回退到 OAuth
+// 昵称。供登录路径用真名覆盖 DisplayName。
+func GetOrgMemberRealName(provider, unionId string) (string, error) {
+	if unionId == "" {
+		return "", nil
+	}
+	switch provider {
+	case OrgProviderDingTalk, OrgProviderFeishu:
+	default:
+		return "", ErrOrgProviderUnsupported
+	}
+	var member OrgMember
+	err := DB.Select("name").Where("provider = ? AND union_id = ?", provider, unionId).Take(&member).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", nil
+		}
+		return "", err
+	}
+	return member.Name, nil
+}
+
+// displayNameMaxRunes 与 User.DisplayName 的 validate max=20 对齐,超长截断。
+const displayNameMaxRunes = 20
+
+func truncateDisplayName(name string) string {
+	runes := []rune(name)
+	if len(runes) <= displayNameMaxRunes {
+		return name
+	}
+	return string(runes[:displayNameMaxRunes])
+}
+
+// SyncOrgMemberDisplayNames 用快照真实姓名回写已绑定用户的 display_name。
+// 通讯录权威:总是覆盖(含管理员手动改过的),跳过未绑定(UserId=0)和空
+// 姓名。直写 DB 单列,不走 EditWithTx——不升 auth_version、不踢会话(与
+// ReplaceOrgSnapshot 的分组直写语义一致)。返回实际更新的用户数。
+func SyncOrgMemberDisplayNames(members []OrgMember) (int, error) {
+	nameByUserId := make(map[int]string, len(members))
+	for _, m := range members {
+		if m.UserId > 0 && m.Name != "" {
+			nameByUserId[m.UserId] = truncateDisplayName(m.Name)
+		}
+	}
+	if len(nameByUserId) == 0 {
+		return 0, nil
+	}
+	userIds := make([]int, 0, len(nameByUserId))
+	for userId := range nameByUserId {
+		userIds = append(userIds, userId)
+	}
+	var users []User
+	if err := DB.Select("id", "display_name").Where("id IN ?", userIds).Find(&users).Error; err != nil {
+		return 0, err
+	}
+	updated := 0
+	for _, u := range users {
+		name := nameByUserId[u.Id]
+		if name == "" || u.DisplayName == name {
+			continue
+		}
+		if err := DB.Model(&User{}).Where("id = ?", u.Id).Update("display_name", name).Error; err != nil {
+			return updated, err
+		}
+		updated++
+	}
+	return updated, nil
+}
+
+// UpdateUserDisplayNameDirect 直写 display_name 单列,不升 auth_version、
+// 不踢会话。用于登录时按组织快照真名刷新,以及同步回写。
+func UpdateUserDisplayNameDirect(userId int, displayName string) error {
+	if userId <= 0 || displayName == "" {
+		return nil
+	}
+	return DB.Model(&User{}).Where("id = ?", userId).
+		Update("display_name", truncateDisplayName(displayName)).Error
+}
+
+// GetUserDisplayNames 按 user_id 批量查 display_name,供日志/审计/统计等
+// 列表响应在序列化前补充真名(它们各自冗余的 username 是写入时快照)。
+func GetUserDisplayNames(userIds []int) (map[int]string, error) {
+	result := make(map[int]string, len(userIds))
+	if len(userIds) == 0 {
+		return result, nil
+	}
+	type row struct {
+		Id          int
+		DisplayName string
+	}
+	var rows []row
+	if err := DB.Model(&User{}).Select("id", "display_name").Where("id IN ?", userIds).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		result[r.Id] = r.DisplayName
+	}
+	return result, nil
+}
+
+// GetUserDisplayNamesByUsernames 按 username 批量查 display_name,供按
+// username 聚合的统计响应(如 quota_data)补充真名。username 是唯一键。
+func GetUserDisplayNamesByUsernames(usernames []string) (map[string]string, error) {
+	result := make(map[string]string, len(usernames))
+	if len(usernames) == 0 {
+		return result, nil
+	}
+	type row struct {
+		Username    string
+		DisplayName string
+	}
+	var rows []row
+	if err := DB.Model(&User{}).Select("username", "display_name").Where("username IN ?", usernames).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		result[r.Username] = r.DisplayName
+	}
+	return result, nil
+}
+
 // GetUserIdsByOrgUnionIds 按 unionId 批量匹配本地用户。provider 决定查
 // users 表的 dingtalk_id 还是 feishu_id 列(列名来自固定常量,无注入面)。
 func GetUserIdsByOrgUnionIds(provider string, unionIds []string) (map[string]int, error) {

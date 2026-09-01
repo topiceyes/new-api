@@ -247,6 +247,9 @@ function MobileUserField({ log }: { log: UsageLog }) {
 
   if (!log.username) return null
 
+  // 真名为主:显示真实姓名(组织通讯录),空则回落 username
+  const primaryName = log.display_name || log.username
+
   return (
     <button
       type='button'
@@ -264,14 +267,14 @@ function MobileUserField({ log }: { log: UsageLog }) {
             !sensitiveVisible && 'bg-muted text-muted-foreground'
           )}
           style={
-            sensitiveVisible ? getUserAvatarStyle(log.username) : undefined
+            sensitiveVisible ? getUserAvatarStyle(primaryName) : undefined
           }
         >
-          {sensitiveVisible ? getUserAvatarFallback(log.username) : '•'}
+          {sensitiveVisible ? getUserAvatarFallback(primaryName) : '•'}
         </AvatarFallback>
       </Avatar>
       <span className='text-foreground min-w-0 truncate text-sm'>
-        {sensitiveVisible ? log.username : '••••'}
+        {sensitiveVisible ? primaryName : '••••'}
       </span>
     </button>
   )

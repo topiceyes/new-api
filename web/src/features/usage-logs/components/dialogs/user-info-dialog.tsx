@@ -103,13 +103,13 @@ export function UserInfoDialog({
         <div className='space-y-4 py-4'>
           {/* Basic Info */}
           <div className='grid grid-cols-2 gap-4'>
-            <InfoItem label={t('Username')} value={userInfo.username} />
             {userInfo.display_name && (
               <InfoItem
                 label={t('Display Name')}
                 value={userInfo.display_name}
               />
             )}
+            <InfoItem label={t('Username')} value={userInfo.username} />
           </div>
 
           {/* Balance Info */}

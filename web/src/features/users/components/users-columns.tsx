@@ -84,17 +84,19 @@ export function useUsersColumns(): ColumnDef<User>[] {
     },
     {
       accessorKey: 'username',
-      header: t('Username'),
+      header: t('User'),
       cell: ({ row }) => {
         const username = row.getValue('username') as string
         const displayName = row.original.display_name
         const remark = row.original.remark
+        // 真名为主:主文案用真实姓名(组织通讯录),username 小字辅助
+        const primary = displayName || username
 
         return (
           <div className='flex min-w-[80px] flex-col gap-1'>
             <div className='flex items-center gap-2'>
               <LongText className='max-w-[160px] font-medium'>
-                {username}
+                {primary}
               </LongText>
               {remark && (
                 <Tooltip>
@@ -111,7 +113,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
             </div>
             {displayName && displayName !== username && (
               <LongText className='text-muted-foreground max-w-[180px] text-xs'>
-                {displayName}
+                {username}
               </LongText>
             )}
           </div>

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/types"
 	"gorm.io/gorm"
 )
 
@@ -23,6 +24,8 @@ type QuotaData struct {
 	TokenUsed int    `json:"token_used" gorm:"default:0"`
 	Count     int    `json:"count" gorm:"default:0"`
 	Quota     int    `json:"quota" gorm:"default:0"`
+	// DisplayName 展示用真实姓名,查询时按 username 从 users 表补充,不落库。
+	DisplayName string `json:"display_name" gorm:"-"`
 }
 
 type QuotaDataLogParams struct {
@@ -167,7 +170,35 @@ func GetQuotaDataGroupByUser(startTime int64, endTime int64) (quotaData []*Quota
 		Where("created_at >= ? and created_at <= ?", startTime, endTime).
 		Group("username, created_at").
 		Find(&quotaDatas).Error
-	return quotaDatas, err
+	if err != nil {
+		return nil, err
+	}
+	fillQuotaDataDisplayNames(quotaDatas)
+	return quotaDatas, nil
+}
+
+// fillQuotaDataDisplayNames 按 username 批量补充真实姓名,供看板以真名为主
+// 展示。失败只记日志,保留 username 展示兜底。
+func fillQuotaDataDisplayNames(quotaDatas []*QuotaData) {
+	usernames := types.NewSet[string]()
+	for _, data := range quotaDatas {
+		if data != nil && data.Username != "" {
+			usernames.Add(data.Username)
+		}
+	}
+	if usernames.Len() == 0 {
+		return
+	}
+	names, err := GetUserDisplayNamesByUsernames(usernames.Items())
+	if err != nil {
+		common.SysError("failed to load quota data display names: " + err.Error())
+		return
+	}
+	for _, data := range quotaDatas {
+		if data != nil {
+			data.DisplayName = names[data.Username]
+		}
+	}
 }
 
 func GetAllQuotaDates(startTime int64, endTime int64, username string) (quotaData []*QuotaData, err error) {

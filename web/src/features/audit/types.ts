@@ -25,6 +25,7 @@ export interface AuditEvent {
   severity: string
   user_id: number
   username: string
+  display_name?: string
   token_id: number
   token_name: string
   channel_id: number

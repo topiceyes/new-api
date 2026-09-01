@@ -94,8 +94,8 @@ export function AuditEventDetailSheet({ event, open, onOpenChange }: Props) {
             <SideDrawerSection>
               <SideDrawerSectionHeader title={t('Caller')} />
               <DetailRow
-                label={t('Username')}
-                value={`${detail.username} (ID: ${detail.user_id})`}
+                label={t('User')}
+                value={`${detail.display_name || detail.username} (ID: ${detail.user_id})`}
               />
               <DetailRow
                 label={t('Token')}

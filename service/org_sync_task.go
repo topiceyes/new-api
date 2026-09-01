@@ -168,14 +168,21 @@ func RunOrgSyncOnce(ctx context.Context) (*OrgSyncResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("replace org snapshot: %w", err)
 	}
+	// 通讯录权威:用快照真实姓名回写已绑定用户的 display_name(覆盖注册时
+	// 写入的 OAuth 昵称,也覆盖管理员手动修改),顺带完成存量用户回填。
+	displayNameUpdated, err := model.SyncOrgMemberDisplayNames(members)
+	if err != nil {
+		// 回写失败不影响同步主结果,快照已生效;记日志等待下次同步重试。
+		common.SysError(fmt.Sprintf("org sync: sync display names failed: provider=%s: %v", provider, err))
+	}
 	// 分组直写不走 EditWithTx(不升 auth_version、不踢会话),提交后刷新缓存。
 	for _, userId := range appliedUserIds {
 		if err := model.RefreshUserGroupCache(userId); err != nil {
 			common.SysError(fmt.Sprintf("org sync: failed to refresh group cache for user %d: %v", userId, err))
 		}
 	}
-	common.SysLog(fmt.Sprintf("org sync finished: provider=%s, departments=%d, members=%d, matched=%d, group_mapped=%d, group_unmapped=%d",
-		result.Provider, result.Departments, result.Members, result.Matched, result.GroupMapped, result.GroupUnmapped))
+	common.SysLog(fmt.Sprintf("org sync finished: provider=%s, departments=%d, members=%d, matched=%d, group_mapped=%d, group_unmapped=%d, display_names=%d",
+		result.Provider, result.Departments, result.Members, result.Matched, result.GroupMapped, result.GroupUnmapped, displayNameUpdated))
 	return result, nil
 }
 

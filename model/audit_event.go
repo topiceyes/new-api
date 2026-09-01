@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/types"
 )
 
 // 安全审计事件类型(字符串而非 int,便于后续扩展新类型不改语义)。
@@ -48,6 +49,8 @@ type AuditEvent struct {
 	Prompt string `json:"prompt" gorm:"type:text"`
 	// Category LLM 分类结果(二期②),未分类时为""。
 	Category string `json:"category" gorm:"type:varchar(32);index;default:''"`
+	// DisplayName 展示用真实姓名,按 UserId 查询时补充,不落库。
+	DisplayName string `json:"display_name" gorm:"-"`
 }
 
 func (AuditEvent) TableName() string { return "audit_events" }
@@ -99,7 +102,35 @@ func GetAuditEvents(eventType string, severity string, userId int, tokenId int, 
 		"token_id", "token_name", "channel_id", "model_name", commonGroupCol,
 		"ip", "user_agent", "request_id", "rule_id", "rule_name", "excerpt", "detail", "category").
 		Order("created_at desc, id desc").Limit(num).Offset(startIdx).Find(&events).Error
-	return events, total, err
+	if err != nil {
+		return nil, 0, err
+	}
+	fillAuditEventDisplayNames(events)
+	return events, total, nil
+}
+
+// fillAuditEventDisplayNames 按 user_id 批量补充真实姓名,供前端以真名为主
+// 展示。失败只记日志,保留 username 展示兜底。
+func fillAuditEventDisplayNames(events []*AuditEvent) {
+	userIds := types.NewSet[int]()
+	for _, event := range events {
+		if event != nil && event.UserId != 0 {
+			userIds.Add(event.UserId)
+		}
+	}
+	if userIds.Len() == 0 {
+		return
+	}
+	names, err := GetUserDisplayNames(userIds.Items())
+	if err != nil {
+		common.SysError("failed to load audit event display names: " + err.Error())
+		return
+	}
+	for _, event := range events {
+		if event != nil {
+			event.DisplayName = names[event.UserId]
+		}
+	}
 }
 
 // AuditEventStatRow 聚合统计行:按事件类型 + 规则分组计数。

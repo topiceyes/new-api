@@ -71,7 +71,7 @@ import type { PlanRecord, UserSubscriptionRecord } from '../../types'
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: { id: number; username?: string } | null
+  user: { id: number; username?: string; display_name?: string } | null
   onSuccess?: () => void
 }
 
@@ -240,7 +240,8 @@ export function UserSubscriptionsDialog(props: Props) {
           <SheetHeader className={sideDrawerHeaderClassName()}>
             <SheetTitle>{t('User Subscription Management')}</SheetTitle>
             <SheetDescription>
-              {props.user?.username || '-'} (ID: {props.user?.id || '-'})
+              {props.user?.display_name || props.user?.username || '-'} (ID:{' '}
+              {props.user?.id || '-'})
             </SheetDescription>
           </SheetHeader>
 
