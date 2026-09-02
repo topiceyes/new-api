@@ -143,6 +143,19 @@ export function useAnalyticsUserColumns(options?: {
       meta: { mobileOrder: 30 },
     },
     {
+      accessorKey: 'tokens',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('Tokens')} />
+      ),
+      cell: ({ row }) => (
+        <span className='text-sm tabular-nums'>
+          {formatNumber(row.getValue('tokens') as number)}
+        </span>
+      ),
+      size: 110,
+      meta: { mobileOrder: 35 },
+    },
+    {
       accessorKey: 'request_count',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('Requests')} />

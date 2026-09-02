@@ -33,6 +33,7 @@ export interface AnalyticsUserTableEntry {
   fail_count: number
   quota: number
   net_quota: number
+  tokens: number
   active_days: number
   last_active_date: string
   top_model: string

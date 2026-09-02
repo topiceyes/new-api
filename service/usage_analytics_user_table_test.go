@@ -40,8 +40,8 @@ func TestBuildAnalyticsUserTable_AdminUniverse(t *testing.T) {
 
 	// u-a 活跃(两天), u-b 只有失败(沉默), leader1/leader2/u-c 无任何统计(沉默)。
 	seedUsageStatDailyRows(t, []model.UsageStatDaily{
-		{Date: "2026-08-01", UserId: users["u-a"].Id, Username: "u-a", ModelName: "m1", RequestCount: 2, Quota: 100, TotalUseTime: 10},
-		{Date: "2026-08-02", UserId: users["u-a"].Id, Username: "u-a", ModelName: "m1", RequestCount: 1, Quota: 50, RefundQuota: 20, TotalUseTime: 2},
+		{Date: "2026-08-01", UserId: users["u-a"].Id, Username: "u-a", ModelName: "m1", RequestCount: 2, Quota: 100, TotalUseTime: 10, PromptTokens: 1000, CompletionTokens: 500},
+		{Date: "2026-08-02", UserId: users["u-a"].Id, Username: "u-a", ModelName: "m1", RequestCount: 1, Quota: 50, RefundQuota: 20, TotalUseTime: 2, PromptTokens: 200, CompletionTokens: 300},
 		{Date: "2026-08-01", UserId: users["u-b"].Id, Username: "u-b", ModelName: "m1", FailCount: 3},
 	})
 
@@ -60,13 +60,15 @@ func TestBuildAnalyticsUserTable_AdminUniverse(t *testing.T) {
 	assert.Equal(t, "2026-08-02", ua.LastActiveDate)
 	assert.Equal(t, "m1", ua.TopModel)
 	assert.InDelta(t, 4.0, ua.AvgUseTime, 1e-9) // 12s / 3 次
+	assert.Equal(t, int64(2000), ua.Tokens)     // 1200 prompt + 800 completion
 	assert.Equal(t, "研发部", ua.DeptName)
 
 	ub := byKey[model2key(users["u-b"].Id)]
 	assert.Equal(t, AnalyticsUserStatusSilent, ub.Status) // 纯失败不算活跃
 	assert.Equal(t, int64(3), ub.FailCount)
+	assert.Equal(t, int64(0), ub.Tokens)
 	assert.Equal(t, "", ub.LastActiveDate)
-	assert.Equal(t, "平台组", ub.DeptName)
+	assert.Equal(t, "研发部 / 平台组", ub.DeptName) // 一级部门 / 所在三级部门
 
 	uc := byKey[model2key(users["u-c"].Id)]
 	assert.Equal(t, AnalyticsUserStatusSilent, uc.Status)
@@ -120,8 +122,9 @@ func TestBuildAnalyticsUserTable_DeptLeaderUniverse(t *testing.T) {
 
 	// 未绑定成员归到子树内部门名。
 	assert.Equal(t, "研发部", byKey["org:union-unbound"].DeptName)
-	// u-b 的主部门是子树内的 dept 3。
-	assert.Equal(t, "平台组", byKey[model2key(users["u-b"].Id)].DeptName)
+	// u-b 的主部门是子树内的 dept 3,展示为 一级 / 三级;一级部门名可能在负责人
+	// 子树之外(归属全量 attribution),不影响可见范围。
+	assert.Equal(t, "研发部 / 平台组", byKey[model2key(users["u-b"].Id)].DeptName)
 }
 
 // 未配置组织同步时的兜底: 全集=本地未删用户,只有 active/silent,没有 never。
@@ -177,4 +180,24 @@ func TestTopModelPerUserDeterministic(t *testing.T) {
 
 func model2key(uid int) string {
 	return strconv.Itoa(uid)
+}
+
+// 部门展示约定: 一级 / 三级(从根往下数,根"全体成员"公司层不算);不足三级显示
+// 一级 + 所在部门;直接挂根的成员显示根部门名;防环不 hang。
+func TestDeptDisplayName(t *testing.T) {
+	// 1(全体成员,根) -> A -> B -> C -> D
+	names := map[string]string{"1": "全体成员", "A": "一级部", "B": "二级部", "C": "三级部", "D": "四级部"}
+	parents := map[string]string{"A": "1", "B": "A", "C": "B", "D": "C"}
+
+	assert.Equal(t, "一级部 / 三级部", deptDisplayName(names, parents, "D")) // 深于三级截断到三级
+	assert.Equal(t, "一级部 / 三级部", deptDisplayName(names, parents, "C"))
+	assert.Equal(t, "一级部 / 二级部", deptDisplayName(names, parents, "B")) // 不足三级显示所在部门
+	assert.Equal(t, "一级部", deptDisplayName(names, parents, "A"))       // 所在部门即一级
+	assert.Equal(t, "全体成员", deptDisplayName(names, parents, "1"))      // 直接挂根
+	assert.Equal(t, "", deptDisplayName(names, parents, ""))
+
+	// 环: X <-> Y 互相为父,必须在 32 层上限处终止而不是死循环。
+	cycleParents := map[string]string{"X": "Y", "Y": "X"}
+	cycleNames := map[string]string{"X": "X部", "Y": "Y部"}
+	assert.Contains(t, deptDisplayName(cycleNames, cycleParents, "X"), " / ")
 }

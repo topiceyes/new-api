@@ -22,12 +22,13 @@ type AnalyticsUserTableEntry struct {
 	MemberKey      string  `json:"member_key"`
 	Username       string  `json:"username"`
 	DisplayName    string  `json:"display_name"`
-	DeptName       string  `json:"dept_name"`
+	DeptName       string  `json:"dept_name"` // 一级部门 / 三级部门(不足三级为所在部门)
 	Status         string  `json:"status"`
 	RequestCount   int64   `json:"request_count"`
 	FailCount      int64   `json:"fail_count"`
 	Quota          int64   `json:"quota"`
 	NetQuota       int64   `json:"net_quota"`
+	Tokens         int64   `json:"tokens"` // prompt_tokens + completion_tokens
 	ActiveDays     int64   `json:"active_days"`
 	LastActiveDate string  `json:"last_active_date"`
 	TopModel       string  `json:"top_model"`
@@ -77,13 +78,23 @@ func BuildAnalyticsUserTable(scope *AnalyticsScope, startDate, endDate string) (
 		if err != nil {
 			return nil, err
 		}
+		// 部门展示约定(一级/三级)需要往根方向回溯,children 反推 parents。
+		deptParents := make(map[string]string, len(attribution.DeptNames))
+		for parentId, children := range attribution.children {
+			for _, childId := range children {
+				deptParents[childId] = parentId
+			}
+		}
+		deptDisplay := func(deptId string) string {
+			return deptDisplayName(attribution.DeptNames, deptParents, deptId)
+		}
 		members, err := model.GetOrgMembers(provider)
 		if err != nil {
 			return nil, err
 		}
 		if scope.Scope == "admin" {
 			for uid, deptId := range attribution.PrimaryDept {
-				deptNameByUser[uid] = attribution.DeptNames[deptId]
+				deptNameByUser[uid] = deptDisplay(deptId)
 			}
 			// 直接遍历成员(而不是 BoundUserIds): DeptIds 为空的已绑定成员
 			// 不在归因里,但仍是全集的一部分。
@@ -94,7 +105,7 @@ func BuildAnalyticsUserTable(scope *AnalyticsScope, startDate, endDate string) (
 					// admin 视野无子树限制,未绑定成员部门直接取 DeptIds[0]。
 					deptName := ""
 					if deptIds := memberDeptIds(&m); len(deptIds) > 0 {
-						deptName = attribution.DeptNames[deptIds[0]]
+						deptName = deptDisplay(deptIds[0])
 					}
 					entries = append(entries, neverEntry(&m, deptName))
 				}
@@ -107,8 +118,10 @@ func BuildAnalyticsUserTable(scope *AnalyticsScope, startDate, endDate string) (
 			}
 		} else {
 			// scope 对象有 120s 缓存且并发共享,全程只读不改。
+			// 部门名展示用全量 attribution(一级部门可能在负责人子树之外);
+			// 可见范围不受影响,仍由 scope 限定。
 			for uid, deptId := range scope.PrimaryDept {
-				deptNameByUser[uid] = scope.DeptNames[deptId]
+				deptNameByUser[uid] = deptDisplay(deptId)
 			}
 			for _, uid := range scope.UserIds {
 				addBound(uid)
@@ -123,7 +136,7 @@ func BuildAnalyticsUserTable(scope *AnalyticsScope, startDate, endDate string) (
 				}
 				for _, deptId := range memberDeptIds(&m) {
 					if subtree[deptId] {
-						entries = append(entries, neverEntry(&m, scope.DeptNames[deptId]))
+						entries = append(entries, neverEntry(&m, deptDisplay(deptId)))
 						break
 					}
 				}
@@ -177,6 +190,39 @@ func analyticsStatusRank(status string) int {
 	}
 }
 
+// deptDisplayName 部门展示约定: 一级部门 / 三级部门(从根部门往下数,根本身即
+// "全体成员"公司层不算一级); 部门链不足三级时显示一级 + 所在(叶子)部门,
+// 直接挂在根部门下的成员显示根部门名。防环上限 32 层。
+func deptDisplayName(names map[string]string, parents map[string]string, deptId string) string {
+	if deptId == "" {
+		return ""
+	}
+	chain := []string{deptId} // 叶子 → 根
+	for cur := deptId; len(chain) < 32; {
+		parent, ok := parents[cur]
+		if !ok || parent == "" {
+			break
+		}
+		chain = append(chain, parent)
+		cur = parent
+	}
+	// 去掉根部门后,从根往叶子的层级序列
+	levels := make([]string, 0, len(chain))
+	for i := len(chain) - 2; i >= 0; i-- {
+		levels = append(levels, chain[i])
+	}
+	if len(levels) == 0 {
+		return names[deptId] // 成员直接在根部门
+	}
+	if len(levels) == 1 {
+		return names[levels[0]] // 所在部门即一级部门
+	}
+	third := levels[len(levels)-1]
+	if len(levels) >= 3 {
+		third = levels[2]
+	}
+	return names[levels[0]] + " / " + names[third]
+}
 // statsToEntry 已绑定用户行: 范围内有 consume 为 active,否则 silent(零活跃但保留行)。
 func statsToEntry(uid int, stats map[int]model.UsageUserTableRow, topModels map[int]string) AnalyticsUserTableEntry {
 	entry := AnalyticsUserTableEntry{
@@ -193,6 +239,7 @@ func statsToEntry(uid int, stats map[int]model.UsageUserTableRow, topModels map[
 	entry.FailCount = r.FailCount
 	entry.Quota = r.Quota
 	entry.NetQuota = r.Quota - r.RefundQuota
+	entry.Tokens = r.PromptTokens + r.CompletionTokens
 	entry.ActiveDays = r.ActiveDays
 	entry.LastActiveDate = r.LastActiveDate
 	entry.TopModel = topModels[uid]

@@ -14,9 +14,9 @@ func TestQueryUsageUserTable(t *testing.T) {
 
 	rows := []UsageStatDaily{
 		// 用户1: 三天里有两天有 consume(d1/d3),d2 只有失败 -> active_days=2
-		{Date: "2026-08-01", UserId: 1, Username: "u1", ModelName: "m1", RequestCount: 2, Quota: 100, TotalUseTime: 10},
+		{Date: "2026-08-01", UserId: 1, Username: "u1", ModelName: "m1", RequestCount: 2, Quota: 100, TotalUseTime: 10, PromptTokens: 1000, CompletionTokens: 500},
 		{Date: "2026-08-02", UserId: 1, Username: "u1", ModelName: "m1", FailCount: 1},
-		{Date: "2026-08-03", UserId: 1, Username: "u1", ModelName: "m2", RequestCount: 1, FailCount: 2, Quota: 50, RefundQuota: 20, TotalUseTime: 5},
+		{Date: "2026-08-03", UserId: 1, Username: "u1", ModelName: "m2", RequestCount: 1, FailCount: 2, Quota: 50, RefundQuota: 20, TotalUseTime: 5, PromptTokens: 300, CompletionTokens: 700},
 		// 用户2: 范围内全是失败日志,无 consume -> active_days=0, last_active_date=''
 		{Date: "2026-08-01", UserId: 2, Username: "u2", ModelName: "m1", FailCount: 3},
 		// 范围外数据不进入统计
@@ -40,6 +40,8 @@ func TestQueryUsageUserTable(t *testing.T) {
 	assert.Equal(t, int64(150), u1.Quota)
 	assert.Equal(t, int64(20), u1.RefundQuota)
 	assert.Equal(t, int64(15), u1.TotalUseTime)
+	assert.Equal(t, int64(1300), u1.PromptTokens)
+	assert.Equal(t, int64(1200), u1.CompletionTokens)
 	assert.Equal(t, int64(2), u1.ActiveDays)
 	assert.Equal(t, "2026-08-03", u1.LastActiveDate)
 
