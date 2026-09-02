@@ -175,3 +175,55 @@ func QueryUsageHourly(startDate, endDate string, userIds []int) ([]UsageHourlyRo
 	})
 	return rows, err
 }
+
+// UsageUserTableRow 按用户聚合的全量明细行(用户分析表格)。
+// 活跃口径与看板一致: request_count 只计 consume 日志,active_days/last_active_date
+// 都以 request_count > 0 为准。范围内零请求的用户不会出现在结果里(由调用方补)。
+type UsageUserTableRow struct {
+	UserId         int    `json:"user_id"`
+	Username       string `json:"username"`
+	RequestCount   int64  `json:"request_count"`
+	FailCount      int64  `json:"fail_count"`
+	Quota          int64  `json:"quota"`
+	RefundQuota    int64  `json:"refund_quota"`
+	TotalUseTime   int64  `json:"total_use_time"`
+	ActiveDays     int64  `json:"active_days"`
+	LastActiveDate string `json:"last_active_date"`
+}
+
+func QueryUsageUserTable(startDate, endDate string, userIds []int) ([]UsageUserTableRow, error) {
+	rows := []UsageUserTableRow{}
+	err := queryUsageStatsInChunks(userIds, &rows, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&UsageStatDaily{}).
+			Select("user_id, MAX(username) AS username, SUM(request_count) AS request_count, "+
+				"SUM(fail_count) AS fail_count, SUM(quota) AS quota, SUM(refund_quota) AS refund_quota, "+
+				"SUM(total_use_time) AS total_use_time, "+
+				"COUNT(DISTINCT CASE WHEN request_count > 0 THEN date END) AS active_days, "+
+				// COALESCE 不可省: 范围内全是失败日志(无 consume)的用户 MAX 为 NULL,
+				// 直接扫 Go string 会报错。
+				"COALESCE(MAX(CASE WHEN request_count > 0 THEN date END), '') AS last_active_date").
+			Where("date >= ? AND date <= ?", startDate, endDate).
+			Group("user_id")
+	})
+	return rows, err
+}
+
+// UsageUserModelRow 按 用户x模型 聚合,调用方在 Go 侧取每用户主力模型 top1
+// (SQL 窗口函数四方言不兼容,不上 SQL 侧 top1)。
+type UsageUserModelRow struct {
+	UserId       int    `json:"user_id"`
+	ModelName    string `json:"model_name"`
+	RequestCount int64  `json:"request_count"`
+	Quota        int64  `json:"quota"`
+}
+
+func QueryUsageByUserModel(startDate, endDate string, userIds []int) ([]UsageUserModelRow, error) {
+	rows := []UsageUserModelRow{}
+	err := queryUsageStatsInChunks(userIds, &rows, func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&UsageStatDaily{}).
+			Select("user_id, model_name, SUM(request_count) AS request_count, SUM(quota) AS quota").
+			Where("date >= ? AND date <= ?", startDate, endDate).
+			Group("user_id, model_name")
+	})
+	return rows, err
+}

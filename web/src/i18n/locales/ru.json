@@ -5618,6 +5618,18 @@
     "No department data available in the selected range": "No department data available in the selected range",
     "90 Days": "90 Days",
     "No Permission": "No Permission",
-    "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders"
+    "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders",
+    "Analytics": "Аналитика",
+    "Silent": "Неактивный",
+    "Never Used": "Не использовался",
+    "Unbound": "Не привязан",
+    "Top Model": "Основная модель",
+    "Avg Duration": "Средняя длительность",
+    "Active Days": "Активные дни",
+    "Last Active": "Последняя активность",
+    "Net Quota": "Чистая квота",
+    "Search by name or model...": "Поиск по имени или модели...",
+    "No users in scope. Try adjusting the time range or filters.": "Нет пользователей в области. Попробуйте изменить временной диапазон или фильтры.",
+    "Failed:": "Ошибок:"
   }
 }

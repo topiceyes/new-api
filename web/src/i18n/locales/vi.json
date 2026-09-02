@@ -5618,6 +5618,18 @@
     "No department data available in the selected range": "No department data available in the selected range",
     "90 Days": "90 Days",
     "No Permission": "No Permission",
-    "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders"
+    "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders",
+    "Analytics": "Phân tích",
+    "Silent": "Im lặng",
+    "Never Used": "Chưa từng dùng",
+    "Unbound": "Chưa liên kết",
+    "Top Model": "Mô hình chính",
+    "Avg Duration": "Thời lượng TB",
+    "Active Days": "Số ngày hoạt động",
+    "Last Active": "Hoạt động gần nhất",
+    "Net Quota": "Quota ròng",
+    "Search by name or model...": "Tìm theo tên hoặc mô hình...",
+    "No users in scope. Try adjusting the time range or filters.": "Không có người dùng nào trong phạm vi. Hãy thử điều chỉnh khoảng thời gian hoặc bộ lọc.",
+    "Failed:": "Thất bại:"
   }
 }

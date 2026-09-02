@@ -51,6 +51,7 @@ import { checkIsActive } from '../lib/url-utils'
 import type {
   NavCollapsible,
   NavChatPresets,
+  NavItem,
   NavLink,
   NavGroup as NavGroupProps,
 } from '../types'
@@ -60,53 +61,142 @@ import { ChatPresetsItem } from './chat-presets-item'
  * Sidebar navigation group component
  * Renders a group of navigation items, supporting regular links and collapsible submenus
  */
-export function NavGroup({ title, items }: NavGroupProps) {
+export function NavGroup({ id, title, items, collapsible }: NavGroupProps) {
   const { state, isMobile } = useSidebar()
   const href = useLocation({ select: (location) => location.href })
 
-  return (
-    <SidebarGroup className='px-2 py-1'>
-      <SidebarGroupLabel className='text-muted-foreground/70 px-2 text-[11px] font-medium tracking-wider uppercase'>
-        {title}
-      </SidebarGroupLabel>
-      <SidebarMenu>
-        {items.map((item) => {
-          const key = `${item.title}-${item.url || item.type}`
+  const menu = (
+    <SidebarMenu>
+      {items.map((item) => {
+        const key = `${item.title}-${item.url || item.type}`
 
-          // Special handling: dynamic chat presets list
-          if (item.type === 'chat-presets') {
-            return <ChatPresetsItem key={key} item={item as NavChatPresets} />
-          }
+        // Special handling: dynamic chat presets list
+        if (item.type === 'chat-presets') {
+          return <ChatPresetsItem key={key} item={item as NavChatPresets} />
+        }
 
-          // If no sub-items, render regular link
-          if (!item.items) {
-            return (
-              <SidebarMenuLink key={key} item={item as NavLink} href={href} />
-            )
-          }
+        // If no sub-items, render regular link
+        if (!item.items) {
+          return <SidebarMenuLink key={key} item={item as NavLink} href={href} />
+        }
 
-          // In collapsed state on non-mobile, render dropdown menu
-          if (state === 'collapsed' && !isMobile) {
-            return (
-              <SidebarMenuCollapsedDropdown
-                key={key}
-                item={item as NavCollapsible}
-                href={href}
-              />
-            )
-          }
-
-          // Render collapsible menu
+        // In collapsed state on non-mobile, render dropdown menu
+        if (state === 'collapsed' && !isMobile) {
           return (
-            <SidebarMenuCollapsible
+            <SidebarMenuCollapsedDropdown
               key={key}
               item={item as NavCollapsible}
               href={href}
             />
           )
-        })}
-      </SidebarMenu>
-    </SidebarGroup>
+        }
+
+        // Render collapsible menu
+        return (
+          <SidebarMenuCollapsible
+            key={key}
+            item={item as NavCollapsible}
+            href={href}
+          />
+        )
+      })}
+    </SidebarMenu>
+  )
+
+  const labelClassName =
+    'text-muted-foreground/70 px-2 text-[11px] font-medium tracking-wider uppercase'
+
+  // Group-level collapse is opt-in; the desktop icon-collapsed sidebar keeps
+  // the classic rendering so items stay reachable via tooltips/dropdowns.
+  if (!collapsible || (state === 'collapsed' && !isMobile)) {
+    return (
+      <SidebarGroup className='px-2 py-1'>
+        <SidebarGroupLabel className={labelClassName}>
+          {title}
+        </SidebarGroupLabel>
+        {menu}
+      </SidebarGroup>
+    )
+  }
+
+  return (
+    <CollapsibleNavGroup
+      storageId={id ?? title}
+      title={title}
+      items={items}
+      href={href}
+      labelClassName={labelClassName}
+    >
+      {menu}
+    </CollapsibleNavGroup>
+  )
+}
+
+/**
+ * Group-level collapsible wrapper: the group label acts as the trigger and
+ * the whole item list folds away. State persists in localStorage; a group
+ * containing the active item always auto-opens (without overwriting the
+ * persisted choice).
+ */
+function CollapsibleNavGroup({
+  storageId,
+  title,
+  items,
+  href,
+  labelClassName,
+  children,
+}: {
+  storageId: string
+  title: string
+  items: NavItem[]
+  href: string
+  labelClassName: string
+  children: ReactNode
+}) {
+  const storageKey = `sidebar-group-open:${storageId}`
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      return raw === null ? true : raw === 'true'
+    } catch {
+      return true
+    }
+  })
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    try {
+      localStorage.setItem(storageKey, String(open))
+    } catch {
+      // Storage can be unavailable in private mode; the toggle still works.
+    }
+  }
+
+  const hasActiveItem = items.some((item) => checkIsActive(href, item))
+  useEffect(() => {
+    if (hasActiveItem) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsOpen(true)
+    }
+  }, [hasActiveItem])
+
+  return (
+    <Collapsible
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+      render={<SidebarGroup className='px-2 py-1' />}
+    >
+      <CollapsibleTrigger
+        className='group/group-trigger cursor-pointer'
+        render={<SidebarGroupLabel className={labelClassName} />}
+      >
+        <span className='min-w-0 flex-1 truncate'>{title}</span>
+        <ChevronRight className='ms-auto size-3.5 shrink-0 transition-transform duration-200 group-data-[panel-open]/group-trigger:rotate-90' />
+      </CollapsibleTrigger>
+      <CollapsibleContent className='CollapsibleContent'>
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 

@@ -428,6 +428,15 @@ func GetAllUsers(pageInfo *common.PageInfo, sortOptions ...UserSortOptions) (use
 	return users, total, nil
 }
 
+// GetUserIdentities 返回未删除用户的 id/username/display_name 三列,
+// 供使用分析在未配置组织同步时构造"全量用户(含零活跃)"名单。
+// 不走 Unscoped: 已软删用户不参与分析。
+func GetUserIdentities() ([]User, error) {
+	var users []User
+	err := DB.Select("id", "username", "display_name").Find(&users).Error
+	return users, err
+}
+
 func SearchUsers(keyword string, group string, role *int, status *int, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
 	var users []*User
 	var total int64

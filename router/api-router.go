@@ -368,6 +368,7 @@ func SetApiRouter(router *gin.Engine) {
 			analyticsRoute.GET("/overview", controller.GetAnalyticsOverview)
 			analyticsRoute.GET("/activity", controller.GetAnalyticsActivity)
 			analyticsRoute.GET("/top-users", controller.GetAnalyticsTopUsers)
+			analyticsRoute.GET("/user-table", controller.GetAnalyticsUserTable)
 			analyticsRoute.GET("/departments", controller.GetAnalyticsDepartments)
 			analyticsRoute.GET("/models", controller.GetAnalyticsModels)
 			analyticsRoute.GET("/heatmap", controller.GetAnalyticsHeatmap)

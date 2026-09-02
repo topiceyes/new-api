@@ -5104,7 +5104,7 @@
     "User {{id}}": "用戶 {{id}}",
     "User Agent": "用戶代理",
     "User Agreement": "用戶協議",
-    "User Analytics": "用戶統計",
+    "User Analytics": "使用者分析",
     "User Consumption Ranking": "用戶消耗排行",
     "User Consumption Trend": "用戶消耗趨勢",
     "User created successfully": "用戶建立成功",
@@ -5618,6 +5618,18 @@
     "No department data available in the selected range": "所選區間暫無部門數據",
     "90 Days": "90 天",
     "No Permission": "無權限",
-    "Usage analytics is available to admins and department leaders": "使用分析僅對管理員和部門負責人開放"
+    "Usage analytics is available to admins and department leaders": "使用分析僅對管理員和部門負責人開放",
+    "Analytics": "統計分析",
+    "Silent": "沉默",
+    "Never Used": "從未使用",
+    "Unbound": "未綁定",
+    "Top Model": "主力模型",
+    "Avg Duration": "平均耗時",
+    "Active Days": "活躍天數",
+    "Last Active": "最近活躍",
+    "Net Quota": "淨消耗",
+    "Search by name or model...": "按姓名或模型搜尋...",
+    "No users in scope. Try adjusting the time range or filters.": "範圍內沒有使用者。請調整時間範圍或篩選條件。",
+    "Failed:": "失敗:"
   }
 }

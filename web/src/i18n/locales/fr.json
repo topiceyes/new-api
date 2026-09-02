@@ -5618,6 +5618,18 @@
     "No department data available in the selected range": "No department data available in the selected range",
     "90 Days": "90 Days",
     "No Permission": "No Permission",
-    "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders"
+    "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders",
+    "Analytics": "Analytique",
+    "Silent": "Silencieux",
+    "Never Used": "Jamais utilisé",
+    "Unbound": "Non lié",
+    "Top Model": "Modèle principal",
+    "Avg Duration": "Durée moyenne",
+    "Active Days": "Jours actifs",
+    "Last Active": "Dernière activité",
+    "Net Quota": "Quota net",
+    "Search by name or model...": "Rechercher par nom ou modèle...",
+    "No users in scope. Try adjusting the time range or filters.": "Aucun utilisateur dans ce périmètre. Essayez d'ajuster la période ou les filtres.",
+    "Failed:": "Échecs :"
   }
 }

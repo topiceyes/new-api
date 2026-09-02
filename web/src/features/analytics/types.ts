@@ -1,0 +1,40 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+
+export type AnalyticsUserStatus = 'active' | 'silent' | 'never'
+
+// Mirrors service.AnalyticsUserTableEntry (GET /api/analytics/user-table).
+// user_id === 0 means an org-roster member never bound to a local account;
+// member_key is the stable row key in both cases.
+export interface AnalyticsUserTableEntry {
+  user_id: number
+  member_key: string
+  username: string
+  display_name: string
+  dept_name: string
+  status: AnalyticsUserStatus
+  request_count: number
+  fail_count: number
+  quota: number
+  net_quota: number
+  active_days: number
+  last_active_date: string
+  top_model: string
+  avg_use_time: number
+}

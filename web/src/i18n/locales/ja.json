@@ -5618,6 +5618,18 @@
     "No department data available in the selected range": "No department data available in the selected range",
     "90 Days": "90 Days",
     "No Permission": "No Permission",
-    "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders"
+    "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders",
+    "Analytics": "分析",
+    "Silent": "非アクティブ",
+    "Never Used": "未使用",
+    "Unbound": "未連携",
+    "Top Model": "主力モデル",
+    "Avg Duration": "平均時間",
+    "Active Days": "アクティブ日数",
+    "Last Active": "最終アクティブ",
+    "Net Quota": "実質クォータ",
+    "Search by name or model...": "名前またはモデルで検索...",
+    "No users in scope. Try adjusting the time range or filters.": "対象範囲にユーザーがいません。期間やフィルターを調整してください。",
+    "Failed:": "失敗:"
   }
 }

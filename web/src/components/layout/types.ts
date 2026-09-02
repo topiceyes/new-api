@@ -75,6 +75,13 @@ export type NavGroup = {
   id?: string
   title: string
   items: NavItem[]
+  /**
+   * When true, the whole group can be collapsed from its label and the
+   * open/closed state persists in localStorage (keyed by `id`). Groups with
+   * an active item always render open. The desktop icon-collapsed sidebar
+   * ignores this and renders the group as before.
+   */
+  collapsible?: boolean
 }
 
 /**

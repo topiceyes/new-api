@@ -181,6 +181,25 @@ func GetAnalyticsActivity(c *gin.Context) {
 	})
 }
 
+// GetAnalyticsUserTable 用户分析全量表(每用户一行,含零活跃与未绑定成员),
+// 筛选/排序/分页全部在前端完成,这里一次返回全集(内部员工量级,数百行)。
+func GetAnalyticsUserTable(c *gin.Context) {
+	scope, ok := resolveAnalyticsScope(c)
+	if !ok {
+		return
+	}
+	startDate, endDate, ok := analyticsDateRange(c)
+	if !ok {
+		return
+	}
+	entries, err := service.BuildAnalyticsUserTable(scope, startDate, endDate)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	analyticsSuccess(c, entries)
+}
+
 func GetAnalyticsTopUsers(c *gin.Context) {
 	scope, ok := resolveAnalyticsScope(c)
 	if !ok {

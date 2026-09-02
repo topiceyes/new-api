@@ -16,12 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useQuery } from '@tanstack/react-query'
 import { useLocation } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { resolveSidebarView } from '@/components/layout/lib/sidebar-view-registry'
 import type { NavGroup, ResolvedSidebarView } from '@/components/layout/types'
+import { getAnalyticsAccess } from '@/features/dashboard/api'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -51,18 +53,34 @@ export function useSidebarView(): ResolvedSidebarView {
   const rootSidebarData = useSidebarData()
   const configFilteredRoot = useSidebarConfig(rootSidebarData.navGroups)
 
+  const role = userRole ?? ROLE.GUEST
+  const isAdmin = role >= ROLE.ADMIN
+
+  // 统计分析大类对部门负责人(role < ADMIN)开放,可见性由后端 access 探测决定;
+  // 探测失败/未返回时 fail-closed 隐藏该组。与路由守卫共享 queryKey 缓存。
+  const analyticsAccessQuery = useQuery({
+    queryKey: ['analytics-access'],
+    queryFn: getAnalyticsAccess,
+    staleTime: 300_000,
+    enabled: !isAdmin,
+  })
+  const analyticsAllowed =
+    isAdmin || analyticsAccessQuery.data?.data?.allowed === true
+
   const rootNavGroups = useMemo<NavGroup[]>(() => {
-    const role = userRole ?? ROLE.GUEST
-    const isAdmin = role >= ROLE.ADMIN
     return configFilteredRoot
-      .filter((group) => (group.id === 'admin' ? isAdmin : true))
+      .filter((group) => {
+        if (group.id === 'admin') return isAdmin
+        if (group.id === 'analytics') return analyticsAllowed
+        return true
+      })
       .map((group) => {
         const items = group.items.filter(
           (item) => item.requiredRole === undefined || role >= item.requiredRole
         )
         return items.length === group.items.length ? group : { ...group, items }
       })
-  }, [configFilteredRoot, userRole])
+  }, [configFilteredRoot, role, isAdmin, analyticsAllowed])
 
   const view = resolveSidebarView(pathname)
 
