@@ -201,3 +201,24 @@ func TestDeptDisplayName(t *testing.T) {
 	cycleNames := map[string]string{"X": "X部", "Y": "Y部"}
 	assert.Contains(t, deptDisplayName(cycleNames, cycleParents, "X"), " / ")
 }
+
+// UserDeptDisplayNames(用户列表展示复用): 一级/三级约定,未配置组织同步时空 map。
+func TestUserDeptDisplayNames(t *testing.T) {
+	truncate(t)
+	enableDingTalk(t)
+	users := seedAnalyticsOrg(t)
+
+	got, err := UserDeptDisplayNames()
+	require.NoError(t, err)
+	assert.Equal(t, "研发部", got[users["u-a"].Id])
+	assert.Equal(t, "研发部 / 平台组", got[users["u-b"].Id])
+	assert.Equal(t, "市场部", got[users["u-c"].Id])
+	assert.Equal(t, "全体成员", got[users["leader1"].Id]) // 直接挂根
+	assert.Equal(t, "研发部", got[users["leader2"].Id])
+
+	// 未配置组织同步: 空 map 而不是报错。
+	system_setting.GetDingTalkSettings().Enabled = false
+	got, err = UserDeptDisplayNames()
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}

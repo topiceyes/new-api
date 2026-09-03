@@ -58,6 +58,10 @@ export const userSchema = z.object({
   updated_at: z.number().optional(),
   last_login_at: z.number().optional(),
   last_request_at: z.number().optional(),
+  // 展示补充字段,后端用户列表查询后填充
+  dept_name: z.string().optional(),
+  last_ip: z.string().optional(),
+  last_ip_location: z.string().optional(),
   DeletedAt: z.any().nullable().optional(),
   remark: z.string().optional(),
   setting: z.string().optional(),

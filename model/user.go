@@ -114,6 +114,12 @@ type User struct {
 	LastRequestAt    int64                      `json:"last_request_at" gorm:"default:0;column:last_request_at"`
 	AuthVersion      int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
 	AdminPermissions map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
+
+	// 列表展示补充字段,不落库: 部门展示名(组织通讯录 一级/三级)与
+	// 最近使用 IP/归属地,由 controller 在用户列表查询后填充。
+	DeptName       string `json:"dept_name,omitempty" gorm:"-:all"`
+	LastIp         string `json:"last_ip,omitempty" gorm:"-:all"`
+	LastIpLocation string `json:"last_ip_location,omitempty" gorm:"-:all"`
 }
 
 func (user *User) ToBaseUser() *UserBase {

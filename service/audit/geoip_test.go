@@ -23,6 +23,20 @@ func TestGeoLookupDegrade(t *testing.T) {
 	_, ok := geoLookupImpl("8.8.8.8")
 	assert.False(t, ok, "no mmdb path configured")
 
+	// 归属地展示串同样安静降级为空。
+	assert.Equal(t, "", ResolveIPLocation("8.8.8.8"))
+
+	// names 表 -> 展示串: 中文优先,缺中文回退英文,城市缺失只出国家。
+	assert.Equal(t, "中国/北京", geoNamesLabel(
+		map[string]string{"zh": "中国", "en": "China"},
+		map[string]string{"zh": "北京", "en": "Beijing"},
+	))
+	assert.Equal(t, "China/Beijing", geoNamesLabel(
+		map[string]string{"en": "China"},
+		map[string]string{"en": "Beijing"},
+	))
+	assert.Equal(t, "中国", geoNamesLabel(map[string]string{"zh": "中国"}, nil))
+
 	withAuditSettings(t, func(s *system_setting.AuditSettings) {
 		s.GeoIPDBPath = "/nonexistent/GeoLite2-City.mmdb"
 	})

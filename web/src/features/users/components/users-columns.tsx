@@ -124,6 +124,42 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { mobileTitle: true },
     },
     {
+      accessorKey: 'dept_name',
+      header: t('Department'),
+      cell: ({ row }) => {
+        const dept = row.getValue('dept_name') as string
+        return (
+          <span className='text-muted-foreground text-sm'>{dept || '-'}</span>
+        )
+      },
+      enableSorting: false,
+      size: 140,
+      meta: { mobileOrder: 15 },
+    },
+    {
+      accessorKey: 'last_ip',
+      header: t('Last IP'),
+      cell: ({ row }) => {
+        const user = row.original
+        if (!user.last_ip) {
+          return <span className='text-muted-foreground text-sm'>-</span>
+        }
+        return (
+          <div className='flex flex-col'>
+            <span className='font-mono text-sm'>{user.last_ip}</span>
+            {user.last_ip_location && (
+              <span className='text-muted-foreground text-xs'>
+                {user.last_ip_location}
+              </span>
+            )}
+          </div>
+        )
+      },
+      enableSorting: false,
+      size: 150,
+      meta: { mobileOrder: 25 },
+    },
+    {
       accessorKey: 'status',
       header: t('Status'),
       cell: ({ row }) => {

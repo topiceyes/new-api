@@ -31,14 +31,23 @@ var (
 	geoPath   string // 当前 reader 对应的配置路径;路径变更时重载
 )
 
-func geoLookupImpl(ip string) (GeoFix, bool) {
+type geoRecord struct {
+	country map[string]string
+	city    map[string]string
+	lat     float64
+	lng     float64
+}
+
+// geoLookupRecord mmdb 查询核心: reader 的加载与路径变更重载都在这里。
+// 未配置 db 路径、非法/私网 IP、打开或查询失败、无坐标时 ok=false。
+func geoLookupRecord(ip string) (geoRecord, bool) {
 	path := system_setting.GetAuditSettings().GeoIPDBPath
 	if path == "" {
-		return GeoFix{}, false
+		return geoRecord{}, false
 	}
 	parsed := net.ParseIP(ip)
 	if parsed == nil || !parsed.IsGlobalUnicast() || parsed.IsPrivate() || parsed.IsLoopback() {
-		return GeoFix{}, false
+		return geoRecord{}, false
 	}
 
 	geoMu.Lock()
@@ -53,13 +62,13 @@ func geoLookupImpl(ip string) (GeoFix, bool) {
 			// 记录路径防反复重试;配置修复(路径变更)时会重新加载
 			geoPath = path
 			common.SysError("audit geoip: failed to open mmdb " + path + ": " + err.Error())
-			return GeoFix{}, false
+			return geoRecord{}, false
 		}
 		geoReader = reader
 		geoPath = path
 	}
 	if geoReader == nil {
-		return GeoFix{}, false
+		return geoRecord{}, false
 	}
 
 	var record struct {
@@ -75,18 +84,59 @@ func geoLookupImpl(ip string) (GeoFix, bool) {
 		} `maxminddb:"location"`
 	}
 	if err := geoReader.Lookup(parsed, &record); err != nil {
-		return GeoFix{}, false
+		return geoRecord{}, false
 	}
 	if record.Location.Latitude == 0 && record.Location.Longitude == 0 {
+		return geoRecord{}, false
+	}
+	return geoRecord{
+		country: record.Country.Names,
+		city:    record.City.Names,
+		lat:     record.Location.Latitude,
+		lng:     record.Location.Longitude,
+	}, true
+}
+
+func geoLookupImpl(ip string) (GeoFix, bool) {
+	rec, ok := geoLookupRecord(ip)
+	if !ok {
 		return GeoFix{}, false
 	}
 	return GeoFix{
 		IP:      ip,
-		Country: record.Country.Names["en"],
-		City:    record.City.Names["en"],
-		Lat:     record.Location.Latitude,
-		Lng:     record.Location.Longitude,
+		Country: rec.country["en"],
+		City:    rec.city["en"],
+		Lat:     rec.lat,
+		Lng:     rec.lng,
 	}, true
+}
+
+// ResolveIPLocation IP 归属地展示串,优先中文名、缺中文回退英文,格式 "国家/城市"。
+// 未配置 GeoIP db、私网 IP 或查询失败时返回 ""(调用方显示占位符即可)。
+func ResolveIPLocation(ip string) string {
+	rec, ok := geoLookupRecord(ip)
+	if !ok {
+		return ""
+	}
+	return geoNamesLabel(rec.country, rec.city)
+}
+
+// geoNamesLabel mmdb names 表 -> 展示串。中文优先是展示契约,单独成函数以便直测。
+func geoNamesLabel(country, city map[string]string) string {
+	pick := func(names map[string]string) string {
+		if v := names["zh"]; v != "" {
+			return v
+		}
+		return names["en"]
+	}
+	label := pick(country)
+	if city := pick(city); city != "" {
+		if label != "" {
+			label += "/"
+		}
+		label += city
+	}
+	return label
 }
 
 // 不可能移动判定阈值:距离超过 500km 且时间差不足以按民航速度(约 900km/h)抵达。

@@ -638,6 +638,40 @@ func GetUserLogs(userId int, logType int, startTimestamp int64, endTimestamp int
 	return logs, total, err
 }
 
+// GetLatestLogIpByUsers 每用户最近一条带 IP 的日志(登录/消费等任意类型)。
+// "每用户最大 id" 不用窗口函数(四方言不兼容),按 user_id,ip 分组取 MAX(id),
+// Go 侧再取每用户最大值。userIds 分块防参数上限。
+func GetLatestLogIpByUsers(userIds []int) (map[int]string, error) {
+	out := make(map[int]string, len(userIds))
+	latest := make(map[int]int64, len(userIds))
+	for start := 0; start < len(userIds); start += usageStatUserIdChunkSize {
+		end := start + usageStatUserIdChunkSize
+		if end > len(userIds) {
+			end = len(userIds)
+		}
+		rows := []struct {
+			UserId int
+			Ip     string
+			MaxId  int64
+		}{}
+		err := LOG_DB.Model(&Log{}).
+			Select("user_id, ip, MAX(id) AS max_id").
+			Where("user_id IN ? AND ip <> ''", userIds[start:end]).
+			Group("user_id, ip").
+			Scan(&rows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range rows {
+			if r.MaxId > latest[r.UserId] {
+				latest[r.UserId] = r.MaxId
+				out[r.UserId] = r.Ip
+			}
+		}
+	}
+	return out, nil
+}
+
 type Stat struct {
 	Quota int `json:"quota"`
 	Rpm   int `json:"rpm"`

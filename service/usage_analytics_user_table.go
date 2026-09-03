@@ -223,6 +223,30 @@ func deptDisplayName(names map[string]string, parents map[string]string, deptId 
 	}
 	return names[levels[0]] + " / " + names[third]
 }
+
+// UserDeptDisplayNames 已绑定用户 -> 部门展示名(一级/三级约定),供用户列表等
+// 展示场景复用。未配置组织同步时返回空 map,不报错。
+func UserDeptDisplayNames() (map[int]string, error) {
+	provider := ActiveOrgSyncProvider()
+	if provider == "" {
+		return map[int]string{}, nil
+	}
+	attribution, err := LoadOrgDeptAttribution(provider)
+	if err != nil {
+		return nil, err
+	}
+	deptParents := make(map[string]string, len(attribution.DeptNames))
+	for parentId, children := range attribution.children {
+		for _, childId := range children {
+			deptParents[childId] = parentId
+		}
+	}
+	out := make(map[int]string, len(attribution.PrimaryDept))
+	for uid, deptId := range attribution.PrimaryDept {
+		out[uid] = deptDisplayName(attribution.DeptNames, deptParents, deptId)
+	}
+	return out, nil
+}
 // statsToEntry 已绑定用户行: 范围内有 consume 为 active,否则 silent(零活跃但保留行)。
 func statsToEntry(uid int, stats map[int]model.UsageUserTableRow, topModels map[int]string) AnalyticsUserTableEntry {
 	entry := AnalyticsUserTableEntry{

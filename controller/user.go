@@ -17,6 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/audit"
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -331,6 +332,7 @@ func GetAllUsers(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	enrichUserListDisplay(users)
 
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(users)
@@ -361,11 +363,42 @@ func SearchUsers(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	enrichUserListDisplay(users)
 
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(users)
 	common.ApiSuccess(c, pageInfo)
 	return
+}
+
+// enrichUserListDisplay 补充用户列表展示字段: 部门(组织通讯录 一级/三级约定)
+// 与最近使用 IP/归属地。任一来源失败只记日志留空,不阻塞列表本身。
+func enrichUserListDisplay(users []*model.User) {
+	if len(users) == 0 {
+		return
+	}
+	if deptNames, err := service.UserDeptDisplayNames(); err != nil {
+		common.SysError("user list dept enrichment failed: " + err.Error())
+	} else {
+		for _, u := range users {
+			u.DeptName = deptNames[u.Id]
+		}
+	}
+	ids := make([]int, 0, len(users))
+	for _, u := range users {
+		ids = append(ids, u.Id)
+	}
+	lastIps, err := model.GetLatestLogIpByUsers(ids)
+	if err != nil {
+		common.SysError("user list ip enrichment failed: " + err.Error())
+		return
+	}
+	for _, u := range users {
+		u.LastIp = lastIps[u.Id]
+		if u.LastIp != "" {
+			u.LastIpLocation = audit.ResolveIPLocation(u.LastIp)
+		}
+	}
 }
 
 func canManageTargetRole(myRole int, targetRole int) bool {
