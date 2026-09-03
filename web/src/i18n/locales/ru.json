@@ -5631,6 +5631,7 @@
     "Net Quota": "Чистая квота",
     "Search by name or model...": "Поиск по имени или модели...",
     "No users in scope. Try adjusting the time range or filters.": "Нет пользователей в области. Попробуйте изменить временной диапазон или фильтры.",
-    "Failed:": "Ошибок:"
+    "Failed:": "Ошибок:",
+    "Actual model": "Фактическая модель"
   }
 }

@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"sync"
@@ -35,7 +36,10 @@ type Pricing struct {
 	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types"`
 	BillingMode            string                  `json:"billing_mode,omitempty"`
 	BillingExpr            string                  `json:"billing_expr,omitempty"`
-	PricingVersion         string                  `json:"pricing_version,omitempty"`
+	// MappedModels 该模型名在各启用渠道经 model_mapping 链式重定向后的实际
+	// 上游模型(去重排序);空表示无映射。仅模型广场展示用。
+	MappedModels   []string `json:"mapped_models,omitempty"`
+	PricingVersion string   `json:"pricing_version,omitempty"`
 }
 
 type PricingVendor struct {
@@ -269,6 +273,28 @@ func updatePricing() {
 		groups.Add(ability.Group)
 	}
 
+	// 汇总每个模型名经渠道 model_mapping 后的实际上游模型(去重)。
+	// 与 relay/helper/model_mapped.go 同一链式重定向语义;成环的渠道跳过。
+	mappedTargets := make(map[string]map[string]bool)
+	for _, ability := range enableAbilities {
+		mapping := strings.TrimSpace(ability.ChannelMapping)
+		if mapping == "" || mapping == "{}" {
+			continue
+		}
+		modelMap := make(map[string]string)
+		if err := common.UnmarshalJsonStr(mapping, &modelMap); err != nil {
+			continue
+		}
+		if actual, mapped := resolveChannelMappedModel(modelMap, ability.Model); mapped {
+			targets, ok := mappedTargets[ability.Model]
+			if !ok {
+				targets = make(map[string]bool)
+				mappedTargets[ability.Model] = targets
+			}
+			targets[actual] = true
+		}
+	}
+
 	//这里使用切片而不是Set，因为一个模型可能支持多个端点类型，并且第一个端点是优先使用端点
 	modelSupportEndpointsStr := make(map[string][]string)
 	advancedCustomConfigs := loadPricingAdvancedCustomConfigs(enableAbilities)
@@ -361,6 +387,14 @@ func updatePricing() {
 			EnableGroup:            groups.Items(),
 			SupportedEndpointTypes: modelSupportEndpointTypes[model],
 		}
+		if targets := mappedTargets[model]; len(targets) > 0 {
+			actuals := make([]string, 0, len(targets))
+			for target := range targets {
+				actuals = append(actuals, target)
+			}
+			sort.Strings(actuals)
+			pricing.MappedModels = actuals
+		}
 
 		// 补充模型元数据（描述、标签、供应商、状态）
 		if meta, ok := metaMap[model]; ok {
@@ -425,6 +459,31 @@ func updatePricing() {
 	modelEnableGroupsLock.Unlock()
 
 	lastGetPricingTime = time.Now()
+}
+
+// resolveChannelMappedModel 渠道 model_mapping 链式重定向求值:
+// 返回最终上游模型与"是否发生映射"。自映射回到原点视为未映射;
+// 成环返回 mapped=false(调用方跳过该渠道)。语义与 relay/helper/model_mapped.go 一致。
+func resolveChannelMappedModel(modelMap map[string]string, origin string) (string, bool) {
+	current := origin
+	visited := map[string]bool{origin: true}
+	mapped := false
+	for len(visited) <= len(modelMap)+1 {
+		next, exists := modelMap[current]
+		if !exists || next == "" {
+			return current, mapped
+		}
+		if visited[next] {
+			if next == current && current == origin {
+				return origin, false // 纯自映射
+			}
+			return "", false // 成环
+		}
+		visited[next] = true
+		current = next
+		mapped = true
+	}
+	return "", false
 }
 
 // GetSupportedEndpointMap 返回全局端点到路径的映射

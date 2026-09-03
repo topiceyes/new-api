@@ -28,12 +28,15 @@ type Ability struct {
 type AbilityWithChannel struct {
 	Ability
 	ChannelType int `json:"channel_type"`
+	// ChannelMapping 渠道的 model_mapping JSON(空串表示未配置),模型广场
+	// 展示"实际模型"用。COALESCE 兜底 NULL(channels.model_mapping 可空)。
+	ChannelMapping string `json:"channel_mapping" gorm:"column:channel_mapping"`
 }
 
 func GetAllEnableAbilityWithChannels() ([]AbilityWithChannel, error) {
 	var abilities []AbilityWithChannel
 	err := DB.Table("abilities").
-		Select("abilities.*, channels.type as channel_type").
+		Select("abilities.*, channels.type as channel_type, COALESCE(channels.model_mapping, '') as channel_mapping").
 		Joins("left join channels on abilities.channel_id = channels.id").
 		Where("abilities.enabled = ?", true).
 		Scan(&abilities).Error

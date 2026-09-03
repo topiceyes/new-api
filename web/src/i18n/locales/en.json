@@ -5631,6 +5631,7 @@
     "Net Quota": "Net Quota",
     "Search by name or model...": "Search by name or model...",
     "No users in scope. Try adjusting the time range or filters.": "No users in scope. Try adjusting the time range or filters.",
-    "Failed:": "Failed:"
+    "Failed:": "Failed:",
+    "Actual model": "Actual model"
   }
 }

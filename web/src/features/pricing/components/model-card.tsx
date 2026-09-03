@@ -214,6 +214,16 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
             <h3 className='text-foreground truncate font-mono text-[15px] leading-tight font-bold'>
               {props.model.model_name}
             </h3>
+            {props.model.mapped_models &&
+              props.model.mapped_models.length > 0 && (
+                <p
+                  className='text-muted-foreground truncate font-mono text-xs'
+                  title={`${t('Actual model')}: ${props.model.mapped_models.join(', ')}`}
+                >
+                  {'→ '}
+                  {props.model.mapped_models.join(', ')}
+                </p>
+              )}
             <div className='mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm sm:mt-1 sm:gap-x-3'>
               {priceSummary}
             </div>

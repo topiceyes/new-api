@@ -5631,6 +5631,7 @@
     "Net Quota": "実質クォータ",
     "Search by name or model...": "名前またはモデルで検索...",
     "No users in scope. Try adjusting the time range or filters.": "対象範囲にユーザーがいません。期間やフィルターを調整してください。",
-    "Failed:": "失敗:"
+    "Failed:": "失敗:",
+    "Actual model": "実際のモデル"
   }
 }

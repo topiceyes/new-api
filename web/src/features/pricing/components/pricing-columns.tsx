@@ -85,9 +85,20 @@ export function usePricingColumns(
         return (
           <div className='flex max-w-full min-w-0 items-center gap-2'>
             {modelIcon}
-            <span className='truncate font-mono text-sm font-medium'>
-              {model.model_name}
-            </span>
+            <div className='min-w-0'>
+              <span className='block truncate font-mono text-sm font-medium'>
+                {model.model_name}
+              </span>
+              {model.mapped_models && model.mapped_models.length > 0 && (
+                <span
+                  className='text-muted-foreground block truncate font-mono text-xs'
+                  title={`${t('Actual model')}: ${model.mapped_models.join(', ')}`}
+                >
+                  {'→ '}
+                  {model.mapped_models.join(', ')}
+                </span>
+              )}
+            </div>
           </div>
         )
       },

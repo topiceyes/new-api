@@ -5631,6 +5631,7 @@
     "Net Quota": "Quota net",
     "Search by name or model...": "Rechercher par nom ou modèle...",
     "No users in scope. Try adjusting the time range or filters.": "Aucun utilisateur dans ce périmètre. Essayez d'ajuster la période ou les filtres.",
-    "Failed:": "Échecs :"
+    "Failed:": "Échecs :",
+    "Actual model": "Modèle réel"
   }
 }

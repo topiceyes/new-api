@@ -5631,6 +5631,7 @@
     "Net Quota": "淨消耗",
     "Search by name or model...": "按姓名或模型搜尋...",
     "No users in scope. Try adjusting the time range or filters.": "範圍內沒有使用者。請調整時間範圍或篩選條件。",
-    "Failed:": "失敗:"
+    "Failed:": "失敗:",
+    "Actual model": "實際模型"
   }
 }
