@@ -218,10 +218,19 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
               props.model.mapped_models.length > 0 && (
                 <p
                   className='text-muted-foreground truncate font-mono text-xs'
-                  title={`${t('Actual model')}: ${props.model.mapped_models.join(', ')}`}
+                  title={`${t('Actual model')}: ${props.model.mapped_models.join(', ')}${
+                    props.model.mapped_models_fallback?.length
+                      ? ` (${t('Fallback')}: ${props.model.mapped_models_fallback.join(', ')})`
+                      : ''
+                  }`}
                 >
                   {'→ '}
                   {props.model.mapped_models.join(', ')}
+                  {props.model.mapped_models_fallback?.length ? (
+                    <span className='text-muted-foreground/70'>
+                      {` (${t('Fallback')}: ${props.model.mapped_models_fallback.join(', ')})`}
+                    </span>
+                  ) : null}
                 </p>
               )}
             <div className='mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm sm:mt-1 sm:gap-x-3'>

@@ -56,8 +56,10 @@ export type PricingModel = {
   billing_expr?: string
   /** Pricing version returned by backend, useful for cache busting */
   pricing_version?: string
-  /** Actual upstream model(s) this name is mapped to via channel model_mapping */
+  /** Actual upstream model(s) a call hits via channel model_mapping (top-priority tier) */
   mapped_models?: string[]
+  /** Mapped upstream model(s) of the second-priority tier (retry fallback) */
+  mapped_models_fallback?: string[]
   /**
    * Optional model metadata fields reserved for backend-provided catalog data.
    * Keep them data-driven; do not synthesize display values on the client.

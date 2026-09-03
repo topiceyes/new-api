@@ -36,10 +36,13 @@ type Pricing struct {
 	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types"`
 	BillingMode            string                  `json:"billing_mode,omitempty"`
 	BillingExpr            string                  `json:"billing_expr,omitempty"`
-	// MappedModels 该模型名在各启用渠道经 model_mapping 链式重定向后的实际
-	// 上游模型(去重排序);空表示无映射。仅模型广场展示用。
-	MappedModels   []string `json:"mapped_models,omitempty"`
-	PricingVersion string   `json:"pricing_version,omitempty"`
+	// MappedModels 该模型名在最高优先级渠道档经 model_mapping 链式重定向后
+	// 的实际上游模型(即调用时实际命中的模型,去重排序);空表示无映射。
+	// 仅模型广场展示用。
+	MappedModels []string `json:"mapped_models,omitempty"`
+	// MappedModelsFallback 次高优先级档的映射结果(重试兜底),仅展示用。
+	MappedModelsFallback []string `json:"mapped_models_fallback,omitempty"`
+	PricingVersion         string   `json:"pricing_version,omitempty"`
 }
 
 type PricingVendor struct {
@@ -273,9 +276,11 @@ func updatePricing() {
 		groups.Add(ability.Group)
 	}
 
-	// 汇总每个模型名经渠道 model_mapping 后的实际上游模型(去重)。
-	// 与 relay/helper/model_mapped.go 同一链式重定向语义;成环的渠道跳过。
-	mappedTargets := make(map[string]map[string]bool)
+	// 汇总每个模型名经渠道 model_mapping 后的实际上游模型,只保留优先级最高
+	// 的两档(调用实际走最高 priority 档,失败重试才落次档;同档内按 weight
+	// 随机,所以按档聚合)。与 relay/helper/model_mapped.go 同一链式语义,
+	// 成环的渠道跳过。
+	mappedByTier := make(map[string]map[int64]map[string]bool)
 	for _, ability := range enableAbilities {
 		mapping := strings.TrimSpace(ability.ChannelMapping)
 		if mapping == "" || mapping == "{}" {
@@ -285,14 +290,25 @@ func updatePricing() {
 		if err := common.UnmarshalJsonStr(mapping, &modelMap); err != nil {
 			continue
 		}
-		if actual, mapped := resolveChannelMappedModel(modelMap, ability.Model); mapped {
-			targets, ok := mappedTargets[ability.Model]
-			if !ok {
-				targets = make(map[string]bool)
-				mappedTargets[ability.Model] = targets
-			}
-			targets[actual] = true
+		actual, mapped := resolveChannelMappedModel(modelMap, ability.Model)
+		if !mapped {
+			continue
 		}
+		priority := int64(0)
+		if ability.Priority != nil {
+			priority = *ability.Priority
+		}
+		tiers, ok := mappedByTier[ability.Model]
+		if !ok {
+			tiers = make(map[int64]map[string]bool)
+			mappedByTier[ability.Model] = tiers
+		}
+		targets, ok := tiers[priority]
+		if !ok {
+			targets = make(map[string]bool)
+			tiers[priority] = targets
+		}
+		targets[actual] = true
 	}
 
 	//这里使用切片而不是Set，因为一个模型可能支持多个端点类型，并且第一个端点是优先使用端点
@@ -387,13 +403,8 @@ func updatePricing() {
 			EnableGroup:            groups.Items(),
 			SupportedEndpointTypes: modelSupportEndpointTypes[model],
 		}
-		if targets := mappedTargets[model]; len(targets) > 0 {
-			actuals := make([]string, 0, len(targets))
-			for target := range targets {
-				actuals = append(actuals, target)
-			}
-			sort.Strings(actuals)
-			pricing.MappedModels = actuals
+		if tiers := mappedByTier[model]; len(tiers) > 0 {
+			pricing.MappedModels, pricing.MappedModelsFallback = pickMappedTiers(tiers)
 		}
 
 		// 补充模型元数据（描述、标签、供应商、状态）
@@ -484,6 +495,30 @@ func resolveChannelMappedModel(modelMap map[string]string, origin string) (strin
 		mapped = true
 	}
 	return "", false
+}
+
+// pickMappedTiers 按 priority 从高到低取前两档的映射结果,档内模型名排序。
+func pickMappedTiers(tiers map[int64]map[string]bool) (primary, fallback []string) {
+	priorities := make([]int64, 0, len(tiers))
+	for p := range tiers {
+		priorities = append(priorities, p)
+	}
+	sort.Slice(priorities, func(i, j int) bool { return priorities[i] > priorities[j] })
+	sortedTargets := func(p int64) []string {
+		out := make([]string, 0, len(tiers[p]))
+		for target := range tiers[p] {
+			out = append(out, target)
+		}
+		sort.Strings(out)
+		return out
+	}
+	if len(priorities) > 0 {
+		primary = sortedTargets(priorities[0])
+	}
+	if len(priorities) > 1 {
+		fallback = sortedTargets(priorities[1])
+	}
+	return primary, fallback
 }
 
 // GetSupportedEndpointMap 返回全局端点到路径的映射

@@ -92,10 +92,17 @@ export function usePricingColumns(
               {model.mapped_models && model.mapped_models.length > 0 && (
                 <span
                   className='text-muted-foreground block truncate font-mono text-xs'
-                  title={`${t('Actual model')}: ${model.mapped_models.join(', ')}`}
+                  title={`${t('Actual model')}: ${model.mapped_models.join(', ')}${
+                    model.mapped_models_fallback?.length
+                      ? ` (${t('Fallback')}: ${model.mapped_models_fallback.join(', ')})`
+                      : ''
+                  }`}
                 >
                   {'→ '}
                   {model.mapped_models.join(', ')}
+                  {model.mapped_models_fallback?.length
+                    ? ` (${t('Fallback')}: ${model.mapped_models_fallback.join(', ')})`
+                    : ''}
                 </span>
               )}
             </div>

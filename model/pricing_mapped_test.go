@@ -31,3 +31,23 @@ func TestResolveChannelMappedModel(t *testing.T) {
 		})
 	}
 }
+
+// 模型广场只展示优先级最高的两档映射: 调用命中最高档,重试才落次档。
+func TestPickMappedTiers(t *testing.T) {
+	tiers := map[int64]map[string]bool{
+		100: {"b": true, "a": true},
+		50:  {"c": true},
+		0:   {"d": true},
+	}
+	primary, fallback := pickMappedTiers(tiers)
+	assert.Equal(t, []string{"a", "b"}, primary) // 档内排序
+	assert.Equal(t, []string{"c"}, fallback)     // 只取次高,最低档不展示
+
+	primary, fallback = pickMappedTiers(map[int64]map[string]bool{10: {"x": true}})
+	assert.Equal(t, []string{"x"}, primary)
+	assert.Nil(t, fallback)
+
+	primary, fallback = pickMappedTiers(map[int64]map[string]bool{})
+	assert.Nil(t, primary)
+	assert.Nil(t, fallback)
+}
