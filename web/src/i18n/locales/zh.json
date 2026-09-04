@@ -5632,6 +5632,8 @@
     "Search by name or model...": "按姓名或模型搜索...",
     "No users in scope. Try adjusting the time range or filters.": "范围内没有用户。请调整时间范围或筛选条件。",
     "Failed:": "失败:",
-    "Actual model": "实际模型"
+    "Actual model": "实际模型",
+    "Consumption": "消耗",
+    "Username or Name": "用户名 / 姓名"
   }
 }

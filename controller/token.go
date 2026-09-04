@@ -39,6 +39,12 @@ type tokenRequest struct {
 type tokenResponse struct {
 	*model.Token
 	AutoGroups []string `json:"auto_groups"`
+	// 列表展示补充字段(root 全员视图/个人视图通用): 归属人展示名、累计消耗
+	// tokens(consume 日志求和)、最近一次消费的 IP 与 User-Agent。
+	OwnerName     string `json:"owner_name,omitempty"`
+	UsedTokens    int64  `json:"used_tokens"`
+	LastIp        string `json:"last_ip,omitempty"`
+	LastUserAgent string `json:"last_user_agent,omitempty"`
 }
 
 func buildMaskedTokenResponse(token *model.Token) *tokenResponse {
@@ -58,12 +64,59 @@ func buildMaskedTokenResponse(token *model.Token) *tokenResponse {
 	return &tokenResponse{Token: &maskedToken, AutoGroups: autoGroups}
 }
 
-func buildMaskedTokenResponses(tokens []*model.Token) []*tokenResponse {
+func buildMaskedTokenResponses(c *gin.Context, tokens []*model.Token) []*tokenResponse {
 	maskedTokens := make([]*tokenResponse, 0, len(tokens))
 	for _, token := range tokens {
 		maskedTokens = append(maskedTokens, buildMaskedTokenResponse(token))
 	}
+	enrichTokenResponses(c.GetInt("role") == common.RoleRootUser, maskedTokens)
 	return maskedTokens
+}
+
+// enrichTokenResponses 补充列表展示字段: 归属人展示名与每 key 用量摘要
+// (累计 tokens、最近 IP/UA)。root 视图的 IP 优先取无条件记录的审计 IP
+// (admin_ip),不受用户「记录 IP」开关限制;个人视图只看用户授权的 ip 列。
+// 任一来源失败只记日志留空,不阻塞列表。
+func enrichTokenResponses(isRoot bool, responses []*tokenResponse) {
+	if len(responses) == 0 {
+		return
+	}
+	tokenIds := make([]int, 0, len(responses))
+	userIds := make([]int, 0, len(responses))
+	for _, r := range responses {
+		tokenIds = append(tokenIds, r.Id)
+		userIds = append(userIds, r.UserId)
+	}
+	if owners, err := model.GetUserIdentitiesByIds(userIds); err != nil {
+		common.SysError("token list owner-name enrichment failed: " + err.Error())
+	} else {
+		nameByUser := make(map[int]string, len(owners))
+		for _, u := range owners {
+			if u.DisplayName != "" {
+				nameByUser[u.Id] = u.DisplayName
+			} else {
+				nameByUser[u.Id] = u.Username
+			}
+		}
+		for _, r := range responses {
+			r.OwnerName = nameByUser[r.UserId]
+		}
+	}
+	summaries, err := model.GetTokenUsageSummaries(tokenIds)
+	if err != nil {
+		common.SysError("token list usage enrichment failed: " + err.Error())
+		return
+	}
+	for _, r := range responses {
+		if s, ok := summaries[r.Id]; ok {
+			r.UsedTokens = s.TotalTokens
+			r.LastIp = s.LastIp
+			if isRoot && s.AdminLastIp != "" {
+				r.LastIp = s.AdminLastIp
+			}
+			r.LastUserAgent = s.LastUserAgent
+		}
+	}
 }
 
 func getTokenRequestUserGroup(c *gin.Context) (string, error) {
@@ -119,14 +172,24 @@ func setTokenAutoGroups(c *gin.Context, token *model.Token, groups []string) boo
 func GetAllTokens(c *gin.Context) {
 	userId := c.GetInt("id")
 	pageInfo := common.GetPageQuery(c)
-	tokens, err := model.GetAllUserTokens(userId, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	var tokens []*model.Token
+	var total int64
+	var err error
+	if c.GetInt("role") == common.RoleRootUser {
+		// root 可见所有人的 key
+		tokens, total, err = model.GetAllTokensPaged(pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	} else {
+		tokens, err = model.GetAllUserTokens(userId, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+		if err == nil {
+			total, _ = model.CountUserTokens(userId)
+		}
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	total, _ := model.CountUserTokens(userId)
 	pageInfo.SetTotal(int(total))
-	pageInfo.SetItems(buildMaskedTokenResponses(tokens))
+	pageInfo.SetItems(buildMaskedTokenResponses(c, tokens))
 	common.ApiSuccess(c, pageInfo)
 }
 
@@ -137,13 +200,20 @@ func SearchTokens(c *gin.Context) {
 
 	pageInfo := common.GetPageQuery(c)
 
-	tokens, total, err := model.SearchUserTokens(userId, keyword, token, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	var tokens []*model.Token
+	var total int64
+	var err error
+	if c.GetInt("role") == common.RoleRootUser {
+		tokens, total, err = model.SearchAllTokens(keyword, token, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	} else {
+		tokens, total, err = model.SearchUserTokens(userId, keyword, token, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
 	pageInfo.SetTotal(int(total))
-	pageInfo.SetItems(buildMaskedTokenResponses(tokens))
+	pageInfo.SetItems(buildMaskedTokenResponses(c, tokens))
 	common.ApiSuccess(c, pageInfo)
 }
 

@@ -46,6 +46,12 @@ export const apiKeySchema = z.object({
   model_limits_enabled: z.boolean(),
   model_limits: z.string().nullish().default(''),
   allow_ips: z.string().nullish().default(''),
+  // 列表补充字段: 归属人(root 全员视图)与用量摘要
+  user_id: z.number().optional(),
+  owner_name: z.string().optional(),
+  used_tokens: z.number().optional(),
+  last_ip: z.string().optional(),
+  last_user_agent: z.string().optional(),
 })
 
 export type ApiKey = z.infer<typeof apiKeySchema>

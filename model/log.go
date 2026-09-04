@@ -16,6 +16,41 @@ import (
 	"gorm.io/gorm"
 )
 
+// ResolveLogSearchUsernames 管理员日志搜索的"用户名"输入解析: 同时匹配账号
+// username 与显示名(姓名),返回命中账号的 username 集合;输入本身(无通配符时)
+// 也作为候选,兜底已删除用户的历史日志。LIKE 规则同 sanitizeLikePattern。
+// 返回 nil 表示不过滤;空非 nil 切片表示"没有命中的用户",调用方应返回空结果。
+func ResolveLogSearchUsernames(input string) ([]string, error) {
+	if input == "" {
+		return nil, nil
+	}
+	pattern, err := sanitizeLikePattern(input)
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		Username string `gorm:"column:username"`
+	}
+	err = DB.Model(&User{}).Select("username").
+		Where("username LIKE ? ESCAPE '!' OR display_name LIKE ? ESCAPE '!'", pattern, pattern).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(rows)+1)
+	seen := make(map[string]bool, len(rows)+1)
+	for _, r := range rows {
+		if !seen[r.Username] {
+			seen[r.Username] = true
+			out = append(out, r.Username)
+		}
+	}
+	if !strings.Contains(input, "%") && !seen[input] {
+		out = append(out, input)
+	}
+	return out, nil
+}
+
 func applyExplicitLogTextFilter(tx *gorm.DB, column string, value string) (*gorm.DB, error) {
 	if value == "" {
 		return tx, nil
@@ -352,6 +387,30 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
 	createdAt := common.GetTimestamp()
+	// 记录调用方 User-Agent 进 other(key 管理页"最近使用的 UA"展示用),
+	// 截断防超长 header 撑爆 other 列。
+	if params.Other == nil {
+		params.Other = make(map[string]interface{})
+	}
+	if c != nil && c.Request != nil {
+		if ua := c.Request.UserAgent(); ua != "" {
+			const maxUserAgentLen = 255
+			if len(ua) > maxUserAgentLen {
+				ua = ua[:maxUserAgentLen]
+			}
+			params.Other["user_agent"] = ua
+		}
+		// 管理员审计 IP: 无条件记录进 other.admin_info(非管理员日志视图会
+		// 剥离整个 admin_info),不受用户「记录 IP」开关限制;开关只管 ip 列。
+		if ip := c.ClientIP(); ip != "" {
+			adminInfo, ok := params.Other["admin_info"].(map[string]interface{})
+			if !ok {
+				adminInfo = make(map[string]interface{})
+				params.Other["admin_info"] = adminInfo
+			}
+			adminInfo["admin_ip"] = ip
+		}
+	}
 	otherStr := common.MapToJsonStr(params.Other)
 	// 判断是否需要记录 IP
 	needRecordIp := false
@@ -492,7 +551,7 @@ func fillLogDisplayNames(logs []*Log) {
 	}
 }
 
-func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, startIdx int, num int, channel int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
+func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName string, usernames []string, tokenName string, startIdx int, num int, channel int, group string, requestId string, upstreamRequestId string) (logs []*Log, total int64, err error) {
 	var tx *gorm.DB
 	if logType == LogTypeUnknown {
 		tx = LOG_DB
@@ -503,8 +562,10 @@ func GetAllLogs(logType int, startTimestamp int64, endTimestamp int64, modelName
 	if tx, err = applyExplicitLogTextFilter(tx, "logs.model_name", modelName); err != nil {
 		return nil, 0, err
 	}
-	if tx, err = applyExplicitLogTextFilter(tx, "logs.username", username); err != nil {
-		return nil, 0, err
+	// usernames 由调用方经 ResolveLogSearchUsernames 解析(支持按姓名搜);
+	// nil=不过滤,空非 nil=无命中用户,结果应为空。
+	if usernames != nil {
+		tx = tx.Where("logs.username IN ?", usernames)
 	}
 	if tokenName != "" {
 		tx = tx.Where("logs.token_name = ?", tokenName)
@@ -672,23 +733,112 @@ func GetLatestLogIpByUsers(userIds []int) (map[int]string, error) {
 	return out, nil
 }
 
+// TokenUsageSummary key 管理页展示用: 每 token 的累计消耗 tokens 与最近一次
+// 消费的 IP/UA。总量按 prompt+completion 求和;"最近一条"取 MAX(created_at)
+// (ClickHouse 的 id 不可靠,不能用 MAX(id)),再按 (token_id, created_at) 回查
+// 该行的 ip 与 other.user_agent。
+type TokenUsageSummary struct {
+	TotalTokens   int64  `json:"total_tokens"`
+	LastIp        string `json:"last_ip"`
+	LastUserAgent string `json:"last_user_agent"`
+	// AdminLastIp 最近一条消费的 other.admin_info.admin_ip(无条件记录的审计
+	// IP),仅 root 视图使用;不受用户「记录 IP」开关影响。
+	AdminLastIp string `json:"-"`
+}
+
+// GetTokenUsageSummaries 批量取一组 token 的用量摘要,只统计 consume 日志。
+func GetTokenUsageSummaries(tokenIds []int) (map[int]TokenUsageSummary, error) {
+	out := make(map[int]TokenUsageSummary, len(tokenIds))
+	if len(tokenIds) == 0 {
+		return out, nil
+	}
+	for start := 0; start < len(tokenIds); start += usageStatUserIdChunkSize {
+		end := start + usageStatUserIdChunkSize
+		if end > len(tokenIds) {
+			end = len(tokenIds)
+		}
+		chunk := tokenIds[start:end]
+
+		aggRows := []struct {
+			TokenId     int
+			TotalTokens int64
+			LastAt      int64
+		}{}
+		err := LOG_DB.Model(&Log{}).
+			Select("token_id, COALESCE(SUM(prompt_tokens + completion_tokens), 0) AS total_tokens, MAX(created_at) AS last_at").
+			Where("type = ? AND token_id IN ?", LogTypeConsume, chunk).
+			Group("token_id").
+			Scan(&aggRows).Error
+		if err != nil {
+			return nil, err
+		}
+
+		lastAts := make([]int64, 0, len(aggRows))
+		lastAtByToken := make(map[int]int64, len(aggRows))
+		for _, r := range aggRows {
+			out[r.TokenId] = TokenUsageSummary{TotalTokens: r.TotalTokens}
+			lastAtByToken[r.TokenId] = r.LastAt
+			lastAts = append(lastAts, r.LastAt)
+		}
+		if len(lastAts) == 0 {
+			continue
+		}
+
+		// 回查最近一行的 ip/ua; created_at 相同(并发同秒)时取最后扫到的一行。
+		lastRows := []struct {
+			TokenId   int
+			CreatedAt int64
+			Ip        string
+			Other     string
+		}{}
+		err = LOG_DB.Model(&Log{}).
+			Select("token_id, created_at, ip, other").
+			Where("type = ? AND token_id IN ? AND created_at IN ?", LogTypeConsume, chunk, lastAts).
+			Scan(&lastRows).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range lastRows {
+			summary, ok := out[r.TokenId]
+			if !ok || r.CreatedAt != lastAtByToken[r.TokenId] {
+				continue
+			}
+			summary.LastIp = r.Ip
+			if r.Other != "" {
+				var other map[string]interface{}
+				if err := common.UnmarshalJsonStr(r.Other, &other); err == nil {
+					if ua, ok := other["user_agent"].(string); ok {
+						summary.LastUserAgent = ua
+					}
+					if adminInfo, ok := other["admin_info"].(map[string]interface{}); ok {
+						if ip, ok := adminInfo["admin_ip"].(string); ok {
+							summary.AdminLastIp = ip
+						}
+					}
+				}
+			}
+			out[r.TokenId] = summary
+		}
+	}
+	return out, nil
+}
+
 type Stat struct {
 	Quota int `json:"quota"`
 	Rpm   int `json:"rpm"`
 	Tpm   int `json:"tpm"`
 }
 
-func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {
+func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, usernames []string, tokenName string, channel int, group string) (stat Stat, err error) {
 	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota")
 
 	// 为rpm和tpm创建单独的查询
 	rpmTpmQuery := LOG_DB.Table("logs").Select("count(*) rpm, COALESCE(sum(prompt_tokens), 0) + COALESCE(sum(completion_tokens), 0) tpm")
 
-	if tx, err = applyExplicitLogTextFilter(tx, "username", username); err != nil {
-		return stat, err
-	}
-	if rpmTpmQuery, err = applyExplicitLogTextFilter(rpmTpmQuery, "username", username); err != nil {
-		return stat, err
+	// usernames 语义同 GetAllLogs: nil=不过滤,空非 nil=无命中。
+	if usernames != nil {
+		tx = tx.Where("username IN ?", usernames)
+		rpmTpmQuery = rpmTpmQuery.Where("username IN ?", usernames)
 	}
 	if tokenName != "" {
 		tx = tx.Where("token_name = ?", tokenName)

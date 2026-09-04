@@ -22,7 +22,13 @@ func GetAllLogs(c *gin.Context) {
 	group := c.Query("group")
 	requestId := c.Query("request_id")
 	upstreamRequestId := c.Query("upstream_request_id")
-	logs, total, err := model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, username, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId, upstreamRequestId)
+	// "用户名"搜索同时按账号用户名和显示名(姓名)解析
+	usernames, err := model.ResolveLogSearchUsernames(username)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	logs, total, err := model.GetAllLogs(logType, startTimestamp, endTimestamp, modelName, usernames, tokenName, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), channel, group, requestId, upstreamRequestId)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -104,7 +110,12 @@ func GetLogsStat(c *gin.Context) {
 	modelName := c.Query("model_name")
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
-	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group)
+	usernames, err := model.ResolveLogSearchUsernames(username)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	stat, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, usernames, tokenName, channel, group)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -131,7 +142,12 @@ func GetLogsSelfStat(c *gin.Context) {
 	modelName := c.Query("model_name")
 	channel, _ := strconv.Atoi(c.Query("channel"))
 	group := c.Query("group")
-	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, username, tokenName, channel, group)
+	// 个人统计只精确匹配本人,不做姓名解析(避免同名显示名串数据)
+	var usernames []string
+	if username != "" {
+		usernames = []string{username}
+	}
+	quotaNum, err := model.SumUsedQuota(logType, startTimestamp, endTimestamp, modelName, usernames, tokenName, channel, group)
 	if err != nil {
 		common.ApiError(c, err)
 		return

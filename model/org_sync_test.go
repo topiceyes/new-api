@@ -323,7 +323,7 @@ func TestGetAllLogsFillsDisplayName(t *testing.T) {
 	require.NoError(t, createLog(&Log{UserId: user.Id, Username: "dingtalk_1", Type: LogTypeConsume, ModelName: "gpt-4o", CreatedAt: 1000}))
 	require.NoError(t, createLog(&Log{UserId: 99999, Username: "ghost", Type: LogTypeConsume, ModelName: "gpt-4o", CreatedAt: 1001}))
 
-	logs, total, err := GetAllLogs(LogTypeConsume, 0, 0, "", "", "", 0, 10, 0, "", "", "")
+	logs, total, err := GetAllLogs(LogTypeConsume, 0, 0, "", nil, "", 0, 10, 0, "", "", "")
 	require.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 	require.Len(t, logs, 2)

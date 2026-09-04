@@ -32,8 +32,9 @@ import { useMediaQuery } from '@/hooks'
 import { toIntlLocale } from '@/i18n/languages'
 import { getUserGroups } from '@/lib/api'
 import dayjs from '@/lib/dayjs'
-import { formatQuota } from '@/lib/format'
+import { formatNumber, formatQuota, formatTimestampRelative, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
 
 import { API_KEY_STATUSES } from '../constants'
 import type { ApiKey } from '../types'
@@ -77,6 +78,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
   const { t, i18n } = useTranslation()
   const groupRatios = useGroupRatios()
   const shouldReduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
+  const isRoot = useAuthStore((state) => state.auth.user?.role === 100)
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const justNowLabel = t('Just now')
   const staleAccessThreshold = dayjs(now).subtract(3, 'month').valueOf()
@@ -113,6 +115,26 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
       size: 180,
       meta: { mobileTitle: true },
     },
+    // root 全员视图: key 的归属用户
+    ...(isRoot
+      ? [
+          {
+            accessorKey: 'owner_name',
+            header: t('User'),
+            cell: ({ row }) => {
+              const owner = row.original.owner_name
+              return (
+                <span className='text-muted-foreground text-sm'>
+                  {owner || `#${row.original.user_id ?? '-'}`}
+                </span>
+              )
+            },
+            enableSorting: false,
+            size: 120,
+            meta: { mobileOrder: 15 },
+          } satisfies ColumnDef<ApiKey>,
+        ]
+      : []),
     {
       accessorKey: 'status',
       header: t('Status'),
@@ -191,6 +213,66 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
       size: 170,
     },
     {
+      // 累计消耗: tokens(consume 日志求和) + 金额(used_quota)
+      id: 'consumption',
+      accessorKey: 'used_tokens',
+      header: t('Consumption'),
+      cell: ({ row }) => {
+        const apiKey = row.original
+        return (
+          <div className='flex flex-col'>
+            <span className='text-sm tabular-nums'>
+              {formatNumber(apiKey.used_tokens ?? 0)} {t('tokens')}
+            </span>
+            <span className='text-muted-foreground text-xs tabular-nums'>
+              {formatQuota(apiKey.used_quota)}
+            </span>
+          </div>
+        )
+      },
+      enableSorting: false,
+      size: 130,
+      meta: { mobileOrder: 25 },
+    },
+    {
+      accessorKey: 'last_user_agent',
+      header: t('User-Agent'),
+      cell: ({ row }) => {
+        const ua = row.original.last_user_agent
+        if (!ua) {
+          return <span className='text-muted-foreground text-sm'>-</span>
+        }
+        return (
+          <Tooltip>
+            <TooltipTrigger render={<div className='max-w-[180px]' />}>
+              <span className='text-muted-foreground block truncate text-xs'>
+                {ua}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className='max-w-[320px] text-xs break-all'>{ua}</p>
+            </TooltipContent>
+          </Tooltip>
+        )
+      },
+      enableSorting: false,
+      size: 190,
+      meta: { mobileHidden: true },
+    },
+    {
+      accessorKey: 'last_ip',
+      header: t('Last IP'),
+      cell: ({ row }) => {
+        const ip = row.original.last_ip
+        return (
+          <span className='font-mono text-sm'>{ip || '-'}</span>
+        )
+      },
+      enableSorting: false,
+      size: 130,
+      meta: { mobileHidden: true },
+    },
+    {
       accessorKey: 'group',
       header: t('Group'),
       cell: ({ row }) => {
@@ -249,14 +331,34 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         const isStale =
           accessedTime > 0 && accessedTime * 1000 < staleAccessThreshold
 
+        // 具体时间点(相对时间在悬停提示里)
+        if (!accessedTime || accessedTime <= 0) {
+          return <span className='text-muted-foreground text-xs'>-</span>
+        }
         return (
-          <ApiKeyTimestampCell
-            timestamp={accessedTime}
-            now={now}
-            locale={locale}
-            justNowLabel={justNowLabel}
-            className={isStale ? 'text-warning' : 'text-muted-foreground'}
-          />
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <time
+                  dateTime={new Date(accessedTime * 1000).toISOString()}
+                  tabIndex={0}
+                  className={cn(
+                    'block truncate font-mono text-xs tabular-nums',
+                    isStale ? 'text-warning' : 'text-muted-foreground'
+                  )}
+                />
+              }
+            >
+              {formatTimestampToDate(accessedTime)}
+            </TooltipTrigger>
+            <TooltipContent>
+              <span className='font-mono tabular-nums'>
+                {accessedTime * 1000 > now - 60_000
+                  ? justNowLabel
+                  : formatTimestampRelative(accessedTime, 'seconds', locale)}
+              </span>
+            </TooltipContent>
+          </Tooltip>
         )
       },
       size: 180,

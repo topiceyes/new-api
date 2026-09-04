@@ -110,6 +110,57 @@ func GetAllUserTokens(userId int, startIdx int, num int) ([]*Token, error) {
 	return tokens, err
 }
 
+// GetAllTokensPaged root 视角的全员令牌分页列表(key 管理页)。
+func GetAllTokensPaged(startIdx int, num int) (tokens []*Token, total int64, err error) {
+	if err = DB.Model(&Token{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	err = DB.Order("id desc").Limit(num).Offset(startIdx).Find(&tokens).Error
+	return tokens, total, err
+}
+
+// SearchAllTokens root 视角的全员令牌搜索,语义同 SearchUserTokens 但跨用户。
+// token/keyword 的 LIKE 规则复用 sanitizeLikePattern。
+func SearchAllTokens(keyword string, token string, offset int, limit int) (tokens []*Token, total int64, err error) {
+	if limit <= 0 || limit > searchHardLimit {
+		limit = searchHardLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	if token != "" {
+		token = strings.TrimPrefix(token, "sk-")
+	}
+
+	baseQuery := DB.Model(&Token{})
+	if keyword != "" {
+		keywordPattern, err := sanitizeLikePattern(keyword)
+		if err != nil {
+			return nil, 0, err
+		}
+		baseQuery = baseQuery.Where("name LIKE ? ESCAPE '!'", keywordPattern)
+	}
+	if token != "" {
+		tokenPattern, err := sanitizeLikePattern(token)
+		if err != nil {
+			return nil, 0, err
+		}
+		baseQuery = baseQuery.Where(commonKeyCol+" LIKE ? ESCAPE '!'", tokenPattern)
+	}
+
+	if err = baseQuery.Count(&total).Error; err != nil {
+		common.SysError("failed to count all tokens: " + err.Error())
+		return nil, 0, errors.New("搜索令牌失败")
+	}
+	err = baseQuery.Order("id desc").Offset(offset).Limit(limit).Find(&tokens).Error
+	if err != nil {
+		common.SysError("failed to search all tokens: " + err.Error())
+		return nil, 0, errors.New("搜索令牌失败")
+	}
+	return tokens, total, nil
+}
+
 // sanitizeLikePattern 校验并清洗用户输入的 LIKE 搜索模式。
 // 规则：
 //  1. 转义 ! 和 _（使用 ! 作为 ESCAPE 字符，兼容 MySQL/PostgreSQL/SQLite）

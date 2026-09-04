@@ -443,6 +443,17 @@ func GetUserIdentities() ([]User, error) {
 	return users, err
 }
 
+// GetUserIdentitiesByIds 按 id 批量取 username/display_name,
+// 供 key 管理页等列表补充归属人展示(display_name 空时调用方回退 username)。
+func GetUserIdentitiesByIds(userIds []int) ([]User, error) {
+	var users []User
+	if len(userIds) == 0 {
+		return users, nil
+	}
+	err := DB.Select("id", "username", "display_name").Where("id IN ?", userIds).Find(&users).Error
+	return users, err
+}
+
 func SearchUsers(keyword string, group string, role *int, status *int, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
 	var users []*User
 	var total int64

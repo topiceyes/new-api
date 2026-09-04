@@ -5632,6 +5632,8 @@
     "Search by name or model...": "Tìm theo tên hoặc mô hình...",
     "No users in scope. Try adjusting the time range or filters.": "Không có người dùng nào trong phạm vi. Hãy thử điều chỉnh khoảng thời gian hoặc bộ lọc.",
     "Failed:": "Thất bại:",
-    "Actual model": "Mô hình thực tế"
+    "Actual model": "Mô hình thực tế",
+    "Consumption": "Mức tiêu thụ",
+    "Username or Name": "Tên đăng nhập / Họ tên"
   }
 }
