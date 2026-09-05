@@ -2,7 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -282,6 +281,14 @@ func GetAnalyticsDepartments(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+
+	// 部门对比只展示三级部门: 从根(公司层)往下 depth=3 的部门;
+	// 每个三级部门的成员/用量聚合其自身及所有子部门。
+	parents := buildDeptParentMap(attribution.Children)
+	depths := computeDeptDepths(attribution.DeptNames, parents, attribution.Children)
+	visibleL3 := computeVisibleLevel3Depts(depths, scope, parents)
+	l3Ancestors := buildLevel3AncestorMap(parents, depths)
+
 	type deptBucket struct {
 		activeUsers int
 		quota       int64
@@ -289,21 +296,34 @@ func GetAnalyticsDepartments(c *gin.Context) {
 		fails       int64
 	}
 	buckets := make(map[string]*deptBucket)
-	for _, r := range rows {
-		var deptId string
-		var memberOfScope bool
-		if scope.Scope == "admin" {
-			deptId, memberOfScope = attribution.PrimaryDept[r.UserId]
-		} else {
-			deptId, memberOfScope = scope.PrimaryDept[r.UserId]
-		}
-		if !memberOfScope || deptId == "" {
+	memberCount := make(map[string]int)
+
+	// 绑定成员总数(按主部门卷到三级部门)
+	for _, userId := range scopeUserIdsForMemberCount(scope, attribution) {
+		deptId := primaryDeptForUser(scope, attribution, userId)
+		if deptId == "" {
 			continue
 		}
-		bucket := buckets[deptId]
+		l3 := l3Ancestors[deptId]
+		if l3 == "" || !visibleL3[l3] {
+			continue
+		}
+		memberCount[l3]++
+	}
+
+	for _, r := range rows {
+		deptId := primaryDeptForUser(scope, attribution, r.UserId)
+		if deptId == "" {
+			continue
+		}
+		l3 := l3Ancestors[deptId]
+		if l3 == "" || !visibleL3[l3] {
+			continue
+		}
+		bucket := buckets[l3]
 		if bucket == nil {
 			bucket = &deptBucket{}
-			buckets[deptId] = bucket
+			buckets[l3] = bucket
 		}
 		if r.RequestCount > 0 {
 			bucket.activeUsers++
@@ -312,37 +332,18 @@ func GetAnalyticsDepartments(c *gin.Context) {
 		bucket.requests += r.RequestCount
 		bucket.fails += r.FailCount
 	}
-	// 列出的部门: 管理员=全部有绑定成员的部门; 负责人=自己子树内的部门。
-	deptIds := make([]string, 0, len(buckets))
-	if scope.Scope == "admin" {
-		for deptId := range attribution.MemberCount {
-			deptIds = append(deptIds, deptId)
-		}
-	} else {
-		// scope 对象在缓存里被并发共享,排序前必须克隆,不能原地排。
-		deptIds = slices.Clone(scope.DeptIds)
+
+	deptIds := make([]string, 0, len(visibleL3))
+	for deptId := range visibleL3 {
+		deptIds = append(deptIds, deptId)
 	}
 	sort.Strings(deptIds)
-	// 负责人范围的成员数先按主部门一次遍历统计,避免 部门数x成员数 的嵌套循环。
-	scopeMemberCount := make(map[string]int, len(deptIds))
-	if scope.Scope != "admin" {
-		for _, userId := range scope.UserIds {
-			if deptId := scope.PrimaryDept[userId]; deptId != "" {
-				scopeMemberCount[deptId]++
-			}
-		}
-	}
+
 	items := []gin.H{}
 	for _, deptId := range deptIds {
 		bucket := buckets[deptId]
-		memberCount := 0
 		activeUsers := 0
 		var quota, requests, fails int64
-		if scope.Scope == "admin" {
-			memberCount = attribution.MemberCount[deptId]
-		} else {
-			memberCount = scopeMemberCount[deptId]
-		}
 		if bucket != nil {
 			activeUsers = bucket.activeUsers
 			quota = bucket.quota
@@ -360,7 +361,7 @@ func GetAnalyticsDepartments(c *gin.Context) {
 		items = append(items, gin.H{
 			"dept_id":       deptId,
 			"dept_name":     deptName,
-			"member_count":  memberCount,
+			"member_count":  memberCount[deptId],
 			"active_users":  activeUsers,
 			"quota":         quota,
 			"request_count": requests,
@@ -368,6 +369,113 @@ func GetAnalyticsDepartments(c *gin.Context) {
 		})
 	}
 	analyticsSuccess(c, items)
+}
+
+func buildDeptParentMap(children map[string][]string) map[string]string {
+	parents := make(map[string]string)
+	for parentId, childs := range children {
+		if parentId == "" {
+			continue // 空 parent = 根部门(公司层),不是谁的子节点
+		}
+		for _, childId := range childs {
+			parents[childId] = parentId
+		}
+	}
+	return parents
+}
+
+// computeDeptDepths 计算各部门在树中的深度(根 depth=0,一级部门 depth=1,
+// 三级部门 depth=3)。森林(多个根)也兼容。
+func computeDeptDepths(deptNames map[string]string, parents map[string]string, children map[string][]string) map[string]int {
+	depths := make(map[string]int, len(deptNames))
+	var roots []string
+	for deptId := range deptNames {
+		if _, hasParent := parents[deptId]; !hasParent {
+			roots = append(roots, deptId)
+		}
+	}
+	for _, root := range roots {
+		depths[root] = 0
+		queue := []string{root}
+		for len(queue) > 0 {
+			cur := queue[0]
+			queue = queue[1:]
+			for _, child := range children[cur] {
+				depths[child] = depths[cur] + 1
+				queue = append(queue, child)
+			}
+		}
+	}
+	return depths
+}
+
+// computeVisibleLevel3Depts 返回管理员/负责人可见的三级部门集合。
+func computeVisibleLevel3Depts(depths map[string]int, scope *service.AnalyticsScope, parents map[string]string) map[string]bool {
+	visible := make(map[string]bool)
+	for deptId, depth := range depths {
+		if depth != 3 {
+			continue
+		}
+		if scope.Scope == "admin" {
+			visible[deptId] = true
+			continue
+		}
+		// 负责人: 三级部门在授权子树内(任一祖先属于 scope.DeptIds)
+		for cur := deptId; cur != ""; cur = parents[cur] {
+			if containsString(scope.DeptIds, cur) {
+				visible[deptId] = true
+				break
+			}
+		}
+	}
+	return visible
+}
+
+func containsString(arr []string, target string) bool {
+	for _, s := range arr {
+		if s == target {
+			return true
+		}
+	}
+	return false
+}
+
+// buildLevel3AncestorMap 返回每个部门 -> 其最近三级部门祖先(含自身)。
+func buildLevel3AncestorMap(parents map[string]string, depths map[string]int) map[string]string {
+	ancestors := make(map[string]string, len(parents))
+	for deptId := range parents {
+		cur := deptId
+		for cur != "" {
+			if depths[cur] == 3 {
+				ancestors[deptId] = cur
+				break
+			}
+			cur = parents[cur]
+		}
+	}
+	return ancestors
+}
+
+// primaryDeptForUser 按当前 scope 返回用户的主部门:admin 取全量 attribution,
+// 负责人取子树内主部门。
+func primaryDeptForUser(scope *service.AnalyticsScope, attribution *service.OrgDeptAttribution, userId int) string {
+	if scope.Scope == "admin" {
+		return attribution.PrimaryDept[userId]
+	}
+	return scope.PrimaryDept[userId]
+}
+
+// scopeUserIdsForMemberCount 统计成员数时遍历的用户集合:admin=已绑定成员
+// (PrimaryDept 唯一键,同用户多条 org 行只计一次);负责人=scope.UserIds。
+func scopeUserIdsForMemberCount(scope *service.AnalyticsScope, attribution *service.OrgDeptAttribution) []int {
+	if scope.Scope == "admin" {
+		userIds := make([]int, 0, len(attribution.PrimaryDept))
+		for userId := range attribution.PrimaryDept {
+			userIds = append(userIds, userId)
+		}
+		return userIds
+	}
+	return scope.UserIds
 }
 
 func GetAnalyticsModels(c *gin.Context) {

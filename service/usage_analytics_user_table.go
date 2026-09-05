@@ -80,7 +80,7 @@ func BuildAnalyticsUserTable(scope *AnalyticsScope, startDate, endDate string) (
 		}
 		// 部门展示约定(一级/三级)需要往根方向回溯,children 反推 parents。
 		deptParents := make(map[string]string, len(attribution.DeptNames))
-		for parentId, children := range attribution.children {
+		for parentId, children := range attribution.Children {
 			for _, childId := range children {
 				deptParents[childId] = parentId
 			}
@@ -236,7 +236,7 @@ func UserDeptDisplayNames() (map[int]string, error) {
 		return nil, err
 	}
 	deptParents := make(map[string]string, len(attribution.DeptNames))
-	for parentId, children := range attribution.children {
+	for parentId, children := range attribution.Children {
 		for _, childId := range children {
 			deptParents[childId] = parentId
 		}

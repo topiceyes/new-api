@@ -115,7 +115,7 @@ func resolveDeptLeaderScope(userId int) (*AnalyticsScope, error) {
 			continue
 		}
 		subtree[deptId] = true
-		queue = append(queue, attribution.children[deptId]...)
+		queue = append(queue, attribution.Children[deptId]...)
 	}
 
 	scope := &AnalyticsScope{
@@ -173,7 +173,7 @@ type OrgDeptAttribution struct {
 	PrimaryDept  map[int]string    // userId -> 主部门
 	BoundUserIds []int             // 所有已绑定成员
 
-	children map[string][]string // parentDeptId -> 子部门,内部展开用
+	Children map[string][]string `json:"-"` // parentDeptId -> 子部门,内部展开用
 	members  []orgMemberLite
 }
 
@@ -197,11 +197,11 @@ func LoadOrgDeptAttribution(provider string) (*OrgDeptAttribution, error) {
 		DeptNames:   make(map[string]string, len(depts)),
 		MemberCount: make(map[string]int),
 		PrimaryDept: make(map[int]string),
-		children:    make(map[string][]string),
+		Children:    make(map[string][]string),
 	}
 	for _, d := range depts {
 		attribution.DeptNames[d.DeptId] = d.Name
-		attribution.children[d.ParentId] = append(attribution.children[d.ParentId], d.DeptId)
+		attribution.Children[d.ParentId] = append(attribution.Children[d.ParentId], d.DeptId)
 	}
 	for _, m := range members {
 		if m.UserId <= 0 {

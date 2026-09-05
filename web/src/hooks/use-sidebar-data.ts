@@ -26,6 +26,7 @@ import {
   Gauge,
   Key,
   LayoutDashboard,
+  LineChart,
   ListTodo,
   MessageSquare,
   Network,
@@ -130,6 +131,12 @@ export function useSidebarData(): SidebarData {
         title: t('Analytics'),
         collapsible: true,
         items: [
+          {
+            title: t('Usage Analytics'),
+            url: '/analytics/usage',
+            activeUrls: ['/analytics/usage'],
+            icon: LineChart,
+          },
           {
             title: t('User Analytics'),
             url: '/analytics/users',

@@ -34,6 +34,7 @@ import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
+import { Route as AuthenticatedAnalyticsUsageRouteImport } from './routes/_authenticated/analytics/usage'
 import { Route as AuthenticatedAnalyticsUsersRouteImport } from './routes/_authenticated/analytics/users'
 import { Route as AuthenticatedAuditIndexRouteImport } from './routes/_authenticated/audit/index'
 import { Route as AuthenticatedAuditSkillsRouteImport } from './routes/_authenticated/audit/skills'
@@ -199,6 +200,12 @@ const authUserResetRoute = authUserResetRouteImport.update({
   path: '/user/reset',
   getParentRoute: () => authRouteRoute,
 } as any)
+const AuthenticatedAnalyticsUsageRoute =
+  AuthenticatedAnalyticsUsageRouteImport.update({
+    id: '/analytics/usage',
+    path: '/analytics/usage',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAnalyticsUsersRoute =
   AuthenticatedAnalyticsUsersRouteImport.update({
     id: '/analytics/users',
@@ -459,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/user/reset': typeof authUserResetRoute
+  '/analytics/usage': typeof AuthenticatedAnalyticsUsageRoute
   '/analytics/users': typeof AuthenticatedAnalyticsUsersRoute
   '/audit/skills': typeof AuthenticatedAuditSkillsRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -523,6 +531,7 @@ export interface FileRoutesByTo {
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
   '/user/reset': typeof authUserResetRoute
+  '/analytics/usage': typeof AuthenticatedAnalyticsUsageRoute
   '/analytics/users': typeof AuthenticatedAnalyticsUsersRoute
   '/audit/skills': typeof AuthenticatedAuditSkillsRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -591,6 +600,7 @@ export interface FileRoutesById {
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/(auth)/user/reset': typeof authUserResetRoute
+  '/_authenticated/analytics/usage': typeof AuthenticatedAnalyticsUsageRoute
   '/_authenticated/analytics/users': typeof AuthenticatedAnalyticsUsersRoute
   '/_authenticated/audit/skills': typeof AuthenticatedAuditSkillsRoute
   '/_authenticated/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -658,6 +668,7 @@ export interface FileRouteTypes {
     | '/rankings/'
     | '/setup/'
     | '/user/reset'
+    | '/analytics/usage'
     | '/analytics/users'
     | '/audit/skills'
     | '/chat/$chatId'
@@ -722,6 +733,7 @@ export interface FileRouteTypes {
     | '/rankings'
     | '/setup'
     | '/user/reset'
+    | '/analytics/usage'
     | '/analytics/users'
     | '/audit/skills'
     | '/chat/$chatId'
@@ -789,6 +801,7 @@ export interface FileRouteTypes {
     | '/rankings/'
     | '/setup/'
     | '/(auth)/user/reset'
+    | '/_authenticated/analytics/usage'
     | '/_authenticated/analytics/users'
     | '/_authenticated/audit/skills'
     | '/_authenticated/chat/$chatId'
@@ -1026,6 +1039,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/user/reset'
       preLoaderRoute: typeof authUserResetRouteImport
       parentRoute: typeof authRouteRoute
+    }
+    '/_authenticated/analytics/usage': {
+      id: '/_authenticated/analytics/usage'
+      path: '/analytics/usage'
+      fullPath: '/analytics/usage'
+      preLoaderRoute: typeof AuthenticatedAnalyticsUsageRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/users': {
       id: '/_authenticated/analytics/users'
@@ -1396,6 +1416,7 @@ const AuthenticatedSystemSettingsRouteRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSystemSettingsRouteRoute: typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   AuthenticatedChat2linkRoute: typeof AuthenticatedChat2linkRoute
+  AuthenticatedAnalyticsUsageRoute: typeof AuthenticatedAnalyticsUsageRoute
   AuthenticatedAnalyticsUsersRoute: typeof AuthenticatedAnalyticsUsersRoute
   AuthenticatedAuditSkillsRoute: typeof AuthenticatedAuditSkillsRoute
   AuthenticatedChatChatIdRoute: typeof AuthenticatedChatChatIdRoute
@@ -1426,6 +1447,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSystemSettingsRouteRoute:
     AuthenticatedSystemSettingsRouteRouteWithChildren,
   AuthenticatedChat2linkRoute: AuthenticatedChat2linkRoute,
+  AuthenticatedAnalyticsUsageRoute: AuthenticatedAnalyticsUsageRoute,
   AuthenticatedAnalyticsUsersRoute: AuthenticatedAnalyticsUsersRoute,
   AuthenticatedAuditSkillsRoute: AuthenticatedAuditSkillsRoute,
   AuthenticatedChatChatIdRoute: AuthenticatedChatChatIdRoute,
