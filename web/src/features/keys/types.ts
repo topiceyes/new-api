@@ -69,6 +69,8 @@ export interface ApiResponse<T = unknown> {
 export interface GetApiKeysParams {
   p?: number
   size?: number
+  sort_by?: 'accessed_time' | 'used_tokens'
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface GetApiKeysResponse {
@@ -87,6 +89,8 @@ export interface SearchApiKeysParams {
   token?: string
   p?: number
   size?: number
+  sort_by?: 'accessed_time' | 'used_tokens'
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface ApiKeyFormData {

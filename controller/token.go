@@ -172,14 +172,15 @@ func setTokenAutoGroups(c *gin.Context, token *model.Token, groups []string) boo
 func GetAllTokens(c *gin.Context) {
 	userId := c.GetInt("id")
 	pageInfo := common.GetPageQuery(c)
+	sortOptions := model.NewTokenSortOptions(c.Query("sort_by"), c.Query("sort_order"))
 	var tokens []*model.Token
 	var total int64
 	var err error
 	if c.GetInt("role") == common.RoleRootUser {
 		// root 可见所有人的 key
-		tokens, total, err = model.GetAllTokensPaged(pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+		tokens, total, err = model.GetAllTokensPaged(pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortOptions)
 	} else {
-		tokens, err = model.GetAllUserTokens(userId, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+		tokens, err = model.GetAllUserTokens(userId, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortOptions)
 		if err == nil {
 			total, _ = model.CountUserTokens(userId)
 		}
@@ -199,14 +200,15 @@ func SearchTokens(c *gin.Context) {
 	token := c.Query("token")
 
 	pageInfo := common.GetPageQuery(c)
+	sortOptions := model.NewTokenSortOptions(c.Query("sort_by"), c.Query("sort_order"))
 
 	var tokens []*model.Token
 	var total int64
 	var err error
 	if c.GetInt("role") == common.RoleRootUser {
-		tokens, total, err = model.SearchAllTokens(keyword, token, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+		tokens, total, err = model.SearchAllTokens(keyword, token, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortOptions)
 	} else {
-		tokens, total, err = model.SearchUserTokens(userId, keyword, token, pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+		tokens, total, err = model.SearchUserTokens(userId, keyword, token, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortOptions)
 	}
 	if err != nil {
 		common.ApiError(c, err)

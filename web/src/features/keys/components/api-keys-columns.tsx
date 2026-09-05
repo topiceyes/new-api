@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import { DataTableColumnHeader } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
@@ -213,10 +214,12 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
       size: 170,
     },
     {
-      // 累计消耗: tokens(consume 日志求和) + 金额(used_quota)
-      id: 'consumption',
+      // 累计消耗: tokens(consume 日志求和) + 金额(used_quota);服务端排序
+      id: 'used_tokens',
       accessorKey: 'used_tokens',
-      header: t('Consumption'),
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('Consumption')} />
+      ),
       cell: ({ row }) => {
         const apiKey = row.original
         return (
@@ -230,7 +233,6 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
           </div>
         )
       },
-      enableSorting: false,
       size: 130,
       meta: { mobileOrder: 25 },
     },
@@ -325,7 +327,9 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     },
     {
       accessorKey: 'accessed_time',
-      header: t('Last Used'),
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('Last Used')} />
+      ),
       cell: ({ row }) => {
         const accessedTime = row.getValue('accessed_time') as number
         const isStale =

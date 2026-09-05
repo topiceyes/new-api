@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -103,25 +104,112 @@ func (token *Token) GetIpLimits() []string {
 	return ipLimits
 }
 
-func GetAllUserTokens(userId int, startIdx int, num int) ([]*Token, error) {
+// TokenSortOptions 令牌列表排序。SortBy 白名单: id(默认)/accessed_time/
+// used_tokens;used_tokens 用量在 LOG_DB(跨库不能 JOIN),Go 侧聚合后排序分页。
+type TokenSortOptions struct {
+	SortBy    string
+	SortOrder string
+}
+
+func NewTokenSortOptions(sortBy string, sortOrder string) TokenSortOptions {
+	switch strings.ToLower(strings.TrimSpace(sortBy)) {
+	case "accessed_time", "used_tokens":
+		sortBy = strings.ToLower(strings.TrimSpace(sortBy))
+	default:
+		sortBy = "id"
+	}
+	if strings.ToLower(sortOrder) != "asc" {
+		sortOrder = "desc"
+	}
+	return TokenSortOptions{SortBy: sortBy, SortOrder: sortOrder}
+}
+
+func resolveTokenSortOptions(sortOptions []TokenSortOptions) TokenSortOptions {
+	if len(sortOptions) == 0 {
+		return NewTokenSortOptions("", "")
+	}
+	return sortOptions[0]
+}
+
+// applyTokenSort SQL 可排序列直接加 ORDER BY;used_tokens 返回 false,
+// 由 sortTokensByUsedTokens 走全量聚合排序。
+func applyTokenSort(query *gorm.DB, options TokenSortOptions) (*gorm.DB, bool) {
+	if options.SortBy == "used_tokens" {
+		return query, false
+	}
+	return query.Order(options.SortBy+" "+options.SortOrder + ", id desc"), true
+}
+
+// sortTokensByUsedTokens 按 consume 日志聚合的消耗 tokens 排序后切片分页。
+func sortTokensByUsedTokens(tokens []*Token, offset int, limit int, desc bool) ([]*Token, int64, error) {
+	ids := make([]int, 0, len(tokens))
+	for _, token := range tokens {
+		ids = append(ids, token.Id)
+	}
+	summaries, err := GetTokenUsageSummaries(ids)
+	if err != nil {
+		return nil, 0, err
+	}
+	usedTokens := func(t *Token) int64 { return summaries[t.Id].TotalTokens }
+	sort.SliceStable(tokens, func(i, j int) bool {
+		a, b := usedTokens(tokens[i]), usedTokens(tokens[j])
+		if a != b {
+			if desc {
+				return a > b
+			}
+			return a < b
+		}
+		return tokens[i].Id > tokens[j].Id
+	})
+	total := int64(len(tokens))
+	if offset >= len(tokens) {
+		return []*Token{}, total, nil
+	}
+	end := offset + limit
+	if end > len(tokens) || limit <= 0 {
+		end = len(tokens)
+	}
+	return tokens[offset:end], total, nil
+}
+
+func GetAllUserTokens(userId int, startIdx int, num int, sortOptions ...TokenSortOptions) ([]*Token, error) {
+	options := resolveTokenSortOptions(sortOptions)
+	if options.SortBy == "used_tokens" {
+		var all []*Token
+		if err := DB.Where("user_id = ?", userId).Find(&all).Error; err != nil {
+			return nil, err
+		}
+		tokens, _, err := sortTokensByUsedTokens(all, startIdx, num, options.SortOrder == "desc")
+		return tokens, err
+	}
 	var tokens []*Token
-	var err error
-	err = DB.Where("user_id = ?", userId).Order("id desc").Limit(num).Offset(startIdx).Find(&tokens).Error
+	tx, _ := applyTokenSort(DB, options)
+	err := tx.Where("user_id = ?", userId).Limit(num).Offset(startIdx).Find(&tokens).Error
 	return tokens, err
 }
 
 // GetAllTokensPaged root 视角的全员令牌分页列表(key 管理页)。
-func GetAllTokensPaged(startIdx int, num int) (tokens []*Token, total int64, err error) {
+func GetAllTokensPaged(startIdx int, num int, sortOptions ...TokenSortOptions) (tokens []*Token, total int64, err error) {
+	options := resolveTokenSortOptions(sortOptions)
+	if options.SortBy == "used_tokens" {
+		var all []*Token
+		if err = DB.Find(&all).Error; err != nil {
+			return nil, 0, err
+		}
+		return sortTokensByUsedTokens(all, startIdx, num, options.SortOrder == "desc")
+	}
 	if err = DB.Model(&Token{}).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	err = DB.Order("id desc").Limit(num).Offset(startIdx).Find(&tokens).Error
+	tx, _ := applyTokenSort(DB, options)
+	err = tx.Limit(num).Offset(startIdx).Find(&tokens).Error
 	return tokens, total, err
 }
 
 // SearchAllTokens root 视角的全员令牌搜索,语义同 SearchUserTokens 但跨用户。
 // token/keyword 的 LIKE 规则复用 sanitizeLikePattern。
-func SearchAllTokens(keyword string, token string, offset int, limit int) (tokens []*Token, total int64, err error) {
+func SearchAllTokens(keyword string, token string, offset int, limit int, sortOptions ...TokenSortOptions) (tokens []*Token, total int64, err error) {
+	options := resolveTokenSortOptions(sortOptions)
 	if limit <= 0 || limit > searchHardLimit {
 		limit = searchHardLimit
 	}
@@ -149,11 +237,21 @@ func SearchAllTokens(keyword string, token string, offset int, limit int) (token
 		baseQuery = baseQuery.Where(commonKeyCol+" LIKE ? ESCAPE '!'", tokenPattern)
 	}
 
+	if options.SortBy == "used_tokens" {
+		var all []*Token
+		if err = baseQuery.Find(&all).Error; err != nil {
+			common.SysError("failed to search all tokens: " + err.Error())
+			return nil, 0, errors.New("搜索令牌失败")
+		}
+		return sortTokensByUsedTokens(all, offset, limit, options.SortOrder == "desc")
+	}
+
 	if err = baseQuery.Count(&total).Error; err != nil {
 		common.SysError("failed to count all tokens: " + err.Error())
 		return nil, 0, errors.New("搜索令牌失败")
 	}
-	err = baseQuery.Order("id desc").Offset(offset).Limit(limit).Find(&tokens).Error
+	tx, _ := applyTokenSort(baseQuery, options)
+	err = tx.Offset(offset).Limit(limit).Find(&tokens).Error
 	if err != nil {
 		common.SysError("failed to search all tokens: " + err.Error())
 		return nil, 0, errors.New("搜索令牌失败")
@@ -207,7 +305,8 @@ func validateLikePattern(input string) error {
 
 const searchHardLimit = 100
 
-func SearchUserTokens(userId int, keyword string, token string, offset int, limit int) (tokens []*Token, total int64, err error) {
+func SearchUserTokens(userId int, keyword string, token string, offset int, limit int, sortOptions ...TokenSortOptions) (tokens []*Token, total int64, err error) {
+	options := resolveTokenSortOptions(sortOptions)
 	// model 层强制截断
 	if limit <= 0 || limit > searchHardLimit {
 		limit = searchHardLimit
@@ -252,6 +351,16 @@ func SearchUserTokens(userId int, keyword string, token string, offset int, limi
 		baseQuery = baseQuery.Where(commonKeyCol+" LIKE ? ESCAPE '!'", tokenPattern)
 	}
 
+	// used_tokens 排序: 用量在 LOG_DB,全量取回过滤集后 Go 侧排序分页
+	if options.SortBy == "used_tokens" {
+		var all []*Token
+		if err = baseQuery.Find(&all).Error; err != nil {
+			common.SysError("failed to search tokens: " + err.Error())
+			return nil, 0, errors.New("搜索令牌失败")
+		}
+		return sortTokensByUsedTokens(all, offset, limit, options.SortOrder == "desc")
+	}
+
 	// 先查匹配总数（用于分页，受 maxTokens 上限保护，避免全表 COUNT）
 	err = baseQuery.Limit(maxTokens).Count(&total).Error
 	if err != nil {
@@ -260,7 +369,8 @@ func SearchUserTokens(userId int, keyword string, token string, offset int, limi
 	}
 
 	// 再分页查数据
-	err = baseQuery.Order("id desc").Offset(offset).Limit(limit).Find(&tokens).Error
+	tx, _ := applyTokenSort(baseQuery, options)
+	err = tx.Offset(offset).Limit(limit).Find(&tokens).Error
 	if err != nil {
 		common.SysError("failed to search tokens: " + err.Error())
 		return nil, 0, errors.New("搜索令牌失败")
