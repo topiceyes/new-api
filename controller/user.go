@@ -373,17 +373,23 @@ func SearchUsers(c *gin.Context) {
 
 // enrichUserListDisplay 补充用户列表展示字段: 部门(组织通讯录 一级/三级约定)
 // 与最近使用 IP/归属地。任一来源失败只记日志留空,不阻塞列表本身。
+// fillUserDeptNames 补充部门展示名(一级/三级约定),用户列表与单用户卡片共用。
+func fillUserDeptNames(users []*model.User) {
+	deptNames, err := service.UserDeptDisplayNames()
+	if err != nil {
+		common.SysError("user dept enrichment failed: " + err.Error())
+		return
+	}
+	for _, u := range users {
+		u.DeptName = deptNames[u.Id]
+	}
+}
+
 func enrichUserListDisplay(users []*model.User) {
 	if len(users) == 0 {
 		return
 	}
-	if deptNames, err := service.UserDeptDisplayNames(); err != nil {
-		common.SysError("user list dept enrichment failed: " + err.Error())
-	} else {
-		for _, u := range users {
-			u.DeptName = deptNames[u.Id]
-		}
-	}
+	fillUserDeptNames(users)
 	ids := make([]int, 0, len(users))
 	for _, u := range users {
 		ids = append(ids, u.Id)
@@ -422,6 +428,8 @@ func GetUser(c *gin.Context) {
 		return
 	}
 	user.AdminPermissions = authz.Capabilities(user.Id, user.Role)
+	// 用户卡片展示部门(一级/三级),与用户列表一致
+	fillUserDeptNames([]*model.User{user})
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

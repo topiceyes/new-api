@@ -112,6 +112,18 @@ export function UserInfoDialog({
             <InfoItem label={t('Username')} value={userInfo.username} />
           </div>
 
+          {/* Department (一级 / 三级) */}
+          {userInfo.dept_name && (
+            <div className='space-y-1.5'>
+              <Label className='text-muted-foreground text-xs'>
+                {t('Department')}
+              </Label>
+              <div className='text-sm font-semibold break-words'>
+                {userInfo.dept_name}
+              </div>
+            </div>
+          )}
+
           {/* Balance Info */}
           <div className='grid grid-cols-2 gap-4'>
             <InfoItem

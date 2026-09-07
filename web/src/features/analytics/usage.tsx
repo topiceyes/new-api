@@ -33,7 +33,8 @@ export function AnalyticsUsage() {
   const { t } = useTranslation()
 
   return (
-    <SectionPageLayout fixedContent>
+    // 长条滚动内容(统计卡+多图表),不能用 fixedContent(overflow-hidden 会裁掉底部)。
+    <SectionPageLayout>
       <SectionPageLayout.Title>{t('Usage Analytics')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <Suspense fallback={null}>

@@ -407,6 +407,8 @@ export interface UserInfo {
   id: number
   username: string
   display_name?: string
+  /** 部门展示名(一级 / 三级,不足三级为所在部门),后端单用户接口补充 */
+  dept_name?: string
   quota: number
   used_quota: number
   request_count: number
