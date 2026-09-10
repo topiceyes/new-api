@@ -23,6 +23,7 @@ import { TokenLimitSection } from '../request-limits/token-limit-section'
 import type { SecuritySettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
 import { AuditSection } from './audit-section'
+import { IPAccessSection } from './ip-access-section'
 
 const SECURITY_SECTIONS = [
   {
@@ -128,6 +129,18 @@ const SECURITY_SECTIONS = [
         defaultValues={{
           'token_setting.max_user_tokens':
             settings['token_setting.max_user_tokens'],
+        }}
+      />
+    ),
+  },
+  {
+    id: 'ip-access',
+    titleKey: 'IP Access Control',
+    build: (settings: SecuritySettings) => (
+      <IPAccessSection
+        defaultValues={{
+          'ip_access.whitelist': settings['ip_access.whitelist'],
+          'ip_access.blacklist': settings['ip_access.blacklist'],
         }}
       />
     ),

@@ -452,6 +452,30 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "ip_access.whitelist", "ip_access.blacklist":
+		var entries []string
+		if err := common.UnmarshalJsonStr(option.Value.(string), &entries); err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "IP 名单必须是 JSON 字符串数组！",
+			})
+			return
+		}
+		if err := system_setting.ValidateIPAccessEntries(entries); err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
+		// 防自杀:黑名单会全站 403(含管理接口),不允许把自己当前的出口 IP 加进去。
+		if option.Key == "ip_access.blacklist" && system_setting.IPAccessEntriesContain(entries, c.ClientIP()) {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "不能把你当前使用的 IP（" + c.ClientIP() + "）加入黑名单，否则你将无法访问任何接口！如确需封禁，请先从其他网络操作。",
+			})
+			return
+		}
 	case "dingtalk.app_key", "dingtalk.app_secret":
 		if strings.TrimSpace(option.Value.(string)) == "" && system_setting.GetDingTalkSettings().NotifyEnabled {
 			c.JSON(http.StatusOK, gin.H{

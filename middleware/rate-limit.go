@@ -9,6 +9,8 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/gin-gonic/gin"
 )
 
@@ -120,14 +122,14 @@ func redisRateLimiter(c *gin.Context, maxRequestNum int, duration int64, mark st
 		return
 	}
 	if !allowed {
-		writeRateLimited(c, ttlSeconds)
+		writeRateLimited(c, ttlSeconds, mark)
 	}
 }
 
 func memoryRateLimiter(c *gin.Context, maxRequestNum int, duration int64, mark string) {
 	key := mark + c.ClientIP()
 	if !inMemoryRateLimiter.Request(key, maxRequestNum, duration) {
-		writeRateLimited(c, duration)
+		writeRateLimited(c, duration, mark)
 		return
 	}
 }
@@ -136,7 +138,9 @@ func memoryRateLimiter(c *gin.Context, maxRequestNum int, duration int64, mark s
 // clients can back off instead of treating the rejection as a fatal error.
 // The in-memory limiter cannot report the remaining window, so callers
 // without a TTL pass the full window duration as a conservative upper bound.
-func writeRateLimited(c *gin.Context, retryAfterSeconds int64) {
+// 同时把触发限流的 IP 记录下来,供管理员在 IP 访问控制里一键加白/加黑。
+func writeRateLimited(c *gin.Context, retryAfterSeconds int64, mark string) {
+	service.RecordRateLimitedIP(c.ClientIP(), mark)
 	if retryAfterSeconds > 0 {
 		c.Header("Retry-After", strconv.FormatInt(retryAfterSeconds, 10))
 	}
@@ -145,15 +149,25 @@ func writeRateLimited(c *gin.Context, retryAfterSeconds int64) {
 }
 
 func rateLimitFactory(maxRequestNum int, duration int64, mark string) func(c *gin.Context) {
+	var limiter func(c *gin.Context)
 	if common.RedisEnabled {
-		return func(c *gin.Context) {
+		limiter = func(c *gin.Context) {
 			redisRateLimiter(c, maxRequestNum, duration, mark)
 		}
+	} else {
+		// It's safe to call multi times.
+		inMemoryRateLimiter.Init(common.RateLimitKeyExpirationDuration)
+		limiter = func(c *gin.Context) {
+			memoryRateLimiter(c, maxRequestNum, duration, mark)
+		}
 	}
-	// It's safe to call multi times.
-	inMemoryRateLimiter.Init(common.RateLimitKeyExpirationDuration)
+	// IP 白名单跳过所有按 IP 的限流(GW/GA/CT/上传下载等)。
 	return func(c *gin.Context) {
-		memoryRateLimiter(c, maxRequestNum, duration, mark)
+		if system_setting.IsIPWhitelisted(c.ClientIP()) {
+			c.Next()
+			return
+		}
+		limiter(c)
 	}
 }
 
@@ -209,7 +223,7 @@ func userRateLimitFactory(maxRequestNum int, duration int64, mark string) func(c
 				c.Abort()
 				return
 			}
-			userRedisRateLimiter(c, maxRequestNum, duration, redisUserRateLimitKey(mark, userID))
+			userRedisRateLimiter(c, maxRequestNum, duration, redisUserRateLimitKey(mark, userID), mark)
 		}
 	}
 	// It's safe to call multi times.
@@ -223,15 +237,15 @@ func userRateLimitFactory(maxRequestNum int, duration int64, mark string) func(c
 		}
 		key := fmt.Sprintf("%s:user:%d", mark, userID)
 		if !inMemoryRateLimiter.Request(key, maxRequestNum, duration) {
-			writeRateLimited(c, duration)
+			writeRateLimited(c, duration, mark)
 			return
 		}
 	}
 }
 
 // userRedisRateLimiter is like redisRateLimiter but accepts a pre-built key
-// (to support user-ID-based keys).
-func userRedisRateLimiter(c *gin.Context, maxRequestNum int, duration int64, key string) {
+// (to support user-ID-based keys). mark 仅用于限流触发记录。
+func userRedisRateLimiter(c *gin.Context, maxRequestNum int, duration int64, key string, mark string) {
 	allowed, _, ttlSeconds, err := redisFixedWindowTake(c.Request.Context(), key, maxRequestNum, duration)
 	if err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("rate limit check failed (key=%s): %v", key, err))
@@ -240,7 +254,7 @@ func userRedisRateLimiter(c *gin.Context, maxRequestNum int, duration int64, key
 		return
 	}
 	if !allowed {
-		writeRateLimited(c, ttlSeconds)
+		writeRateLimited(c, ttlSeconds, mark)
 	}
 }
 

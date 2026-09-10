@@ -128,6 +128,28 @@ api.interceptors.response.use(
       } else if (!skipErrorHandler) {
         toast.error(t('Session expired!'))
       }
+    } else if (status === 429) {
+      if (!skipErrorHandler) {
+        // 后端限流响应带 Retry-After 秒数,换算成友好的等待提示。
+        const retryAfterHeader =
+          error?.response?.headers?.get?.('retry-after') ??
+          error?.response?.headers?.['retry-after']
+        const retryAfterSeconds = Number(retryAfterHeader)
+        if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+          const minutes = Math.ceil(retryAfterSeconds / 60)
+          toast.error(
+            retryAfterSeconds < 120
+              ? t('Too many requests, please try again in {{count}} seconds', {
+                  count: retryAfterSeconds,
+                })
+              : t('Too many requests, please try again in {{count}} minutes', {
+                  count: minutes,
+                })
+          )
+        } else {
+          toast.error(t('Too many requests, please try again later'))
+        }
+      }
     } else if (!skipErrorHandler) {
       const messageKey = getServerErrorMessageKey(error)
       const message = messageKey

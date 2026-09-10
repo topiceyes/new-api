@@ -25,6 +25,7 @@ import type {
   FetchUpstreamRatiosRequest,
   LogCleanupTask,
   NotifyTestResponse,
+  RateLimitedIPListResponse,
   SystemOptionsResponse,
   SystemTaskListResponse,
   SystemTaskResponse,
@@ -59,6 +60,20 @@ export async function runDingTalkLeaveCheck() {
 export async function runFeishuLeaveCheck() {
   const res = await api.post<FeishuLeaveCheckResponse>(
     '/api/feishu/leave-check/run'
+  )
+  return res.data
+}
+
+export async function getRateLimitedIPs() {
+  const res = await api.get<RateLimitedIPListResponse>(
+    '/api/ip_access/rate_limited'
+  )
+  return res.data
+}
+
+export async function deleteRateLimitedIP(ip: string) {
+  const res = await api.delete<{ success: boolean; message: string }>(
+    `/api/ip_access/rate_limited/${encodeURIComponent(ip)}`
   )
   return res.data
 }

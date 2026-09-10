@@ -225,6 +225,14 @@ func SetApiRouter(router *gin.Engine) {
 			rechargeAdminRoute.GET("/requests/:id", controller.GetRechargeRequestDetail)
 		}
 
+		// IP access control (admin) — 限流触发 IP 记录,配合系统设置里的白/黑名单
+		ipAccessRoute := apiRouter.Group("/ip_access")
+		ipAccessRoute.Use(middleware.AdminAuth())
+		{
+			ipAccessRoute.GET("/rate_limited", controller.AdminGetRateLimitedIPs)
+			ipAccessRoute.DELETE("/rate_limited/:ip", controller.AdminDeleteRateLimitedIP)
+		}
+
 		// Security audit (admin) — 安全/行为审计事件查询(observe-only,一期无处置动作)
 		auditRoute := apiRouter.Group("/audit")
 		auditRoute.Use(middleware.AdminAuth())

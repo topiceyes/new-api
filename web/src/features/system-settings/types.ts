@@ -73,6 +73,20 @@ export type FeishuLeaveCheckResponse = {
   data?: FeishuLeaveCheckResult
 }
 
+export type RateLimitedIPRecord = {
+  ip: string
+  hits: number
+  marks: string[]
+  first_seen: number
+  last_seen: number
+}
+
+export type RateLimitedIPListResponse = {
+  success: boolean
+  message: string
+  data?: RateLimitedIPRecord[]
+}
+
 export type ConfirmPaymentComplianceResponse = {
   success: boolean
   message: string
@@ -451,6 +465,8 @@ export type SecuritySettings = {
   'fetch_setting.allowed_ports': number[]
   'fetch_setting.apply_ip_filter_for_domain': boolean
   'token_setting.max_user_tokens': number
+  'ip_access.whitelist': string[]
+  'ip_access.blacklist': string[]
   'audit.enabled': boolean
   'audit.prompt_scan_enabled': boolean
   'audit.store_prompt_mode': string

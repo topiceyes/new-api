@@ -42,6 +42,8 @@ const defaultSecuritySettings: SecuritySettings = {
   'fetch_setting.allowed_ports': [],
   'fetch_setting.apply_ip_filter_for_domain': false,
   'token_setting.max_user_tokens': 1000,
+  'ip_access.whitelist': [],
+  'ip_access.blacklist': [],
   'audit.enabled': false,
   'audit.prompt_scan_enabled': true,
   'audit.store_prompt_mode': 'none',
