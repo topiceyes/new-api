@@ -20,5 +20,22 @@
   "Requests by day of week and hour": "Requests by day of week and hour",
   "Members are attributed to their primary department": "Members are attributed to their primary department",
   "No department data available in the selected range": "No department data available in the selected range",
-  "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders"
+  "Usage analytics is available to admins and department leaders": "Usage analytics is available to admins and department leaders",
+  "Submission failed, please try again": "Submission failed, please try again",
+  "Recharge requests are currently disabled. Please contact an administrator.": "Recharge requests are currently disabled. Please contact an administrator.",
+  "Submit a recharge request with a fixed amount. It takes effect after all approval levels pass.": "Submit a recharge request with a fixed amount. It takes effect after all approval levels pass.",
+  "Unable to submit right now": "Unable to submit right now",
+  "The approval chain could not be resolved for your account.": "The approval chain could not be resolved for your account.",
+  "The amount is fixed by the administrator for every request.": "The amount is fixed by the administrator for every request.",
+  "Describe the purpose, related project, and expected usage...": "Describe the purpose, related project, and expected usage...",
+  "Up to 500 characters.": "Up to 500 characters.",
+  "Failed to load request detail.": "Failed to load request detail.",
+  "Failed to load recharge requests.": "Failed to load recharge requests.",
+  "Failed to load approval tasks.": "Failed to load approval tasks.",
+  "Operation failed, please try again": "Operation failed, please try again",
+  "Please explain why this request is rejected...": "Please explain why this request is rejected...",
+  "Add a comment for the applicant...": "Add a comment for the applicant...",
+  "Allow users to submit fixed-amount recharge requests that require multi-level approval": "Allow users to submit fixed-amount recharge requests that require multi-level approval",
+  "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if a level cannot be resolved for a user, submission is blocked — consider adding a designated-approver level at the end as a fallback.": "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if a level cannot be resolved for a user, submission is blocked — consider adding a designated-approver level at the end as a fallback.",
+  "Search and add one or more approvers for this level.": "Search and add one or more approvers for this level."
 }

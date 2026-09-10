@@ -52,6 +52,7 @@ import { Route as AuthenticatedPlanMonitorBalanceRouteImport } from './routes/_a
 import { Route as AuthenticatedPlanMonitorOverviewRouteImport } from './routes/_authenticated/plan-monitor/overview'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
+import { Route as AuthenticatedRechargeRequestsIndexRouteImport } from './routes/_authenticated/recharge-requests/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
@@ -305,6 +306,12 @@ const AuthenticatedProfileIndexRoute =
     path: '/profile/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRechargeRequestsIndexRoute =
+  AuthenticatedRechargeRequestsIndexRouteImport.update({
+    id: '/recharge-requests/',
+    path: '/recharge-requests/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRedemptionCodesIndexRoute =
   AuthenticatedRedemptionCodesIndexRouteImport.update({
     id: '/redemption-codes/',
@@ -485,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/plan-monitor/': typeof AuthenticatedPlanMonitorIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
+  '/recharge-requests/': typeof AuthenticatedRechargeRequestsIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
@@ -550,6 +558,7 @@ export interface FileRoutesByTo {
   '/plan-monitor': typeof AuthenticatedPlanMonitorIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
+  '/recharge-requests': typeof AuthenticatedRechargeRequestsIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
@@ -619,6 +628,7 @@ export interface FileRoutesById {
   '/_authenticated/plan-monitor/': typeof AuthenticatedPlanMonitorIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
+  '/_authenticated/recharge-requests/': typeof AuthenticatedRechargeRequestsIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
@@ -687,6 +697,7 @@ export interface FileRouteTypes {
     | '/plan-monitor/'
     | '/playground/'
     | '/profile/'
+    | '/recharge-requests/'
     | '/redemption-codes/'
     | '/subscriptions/'
     | '/system-info/'
@@ -752,6 +763,7 @@ export interface FileRouteTypes {
     | '/plan-monitor'
     | '/playground'
     | '/profile'
+    | '/recharge-requests'
     | '/redemption-codes'
     | '/subscriptions'
     | '/system-info'
@@ -820,6 +832,7 @@ export interface FileRouteTypes {
     | '/_authenticated/plan-monitor/'
     | '/_authenticated/playground/'
     | '/_authenticated/profile/'
+    | '/_authenticated/recharge-requests/'
     | '/_authenticated/redemption-codes/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-info/'
@@ -1166,6 +1179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/recharge-requests/': {
+      id: '/_authenticated/recharge-requests/'
+      path: '/recharge-requests'
+      fullPath: '/recharge-requests/'
+      preLoaderRoute: typeof AuthenticatedRechargeRequestsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/redemption-codes/': {
       id: '/_authenticated/redemption-codes/'
       path: '/redemption-codes'
@@ -1435,6 +1455,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlanMonitorIndexRoute: typeof AuthenticatedPlanMonitorIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
+  AuthenticatedRechargeRequestsIndexRoute: typeof AuthenticatedRechargeRequestsIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
@@ -1466,6 +1487,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlanMonitorIndexRoute: AuthenticatedPlanMonitorIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
+  AuthenticatedRechargeRequestsIndexRoute:
+    AuthenticatedRechargeRequestsIndexRoute,
   AuthenticatedRedemptionCodesIndexRoute:
     AuthenticatedRedemptionCodesIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,

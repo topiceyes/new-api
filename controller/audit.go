@@ -49,6 +49,10 @@ var auditContentTemplates = map[string]string{
 
 	"subscription.plan_reset":      "Reset active subscriptions for plan ${plan_id}",
 	"subscription.user_plan_reset": "Reset active plan ${plan_id} subscriptions for user ${target_user_id}",
+
+	"recharge.submit":  "Submitted recharge request ${request_id} (${category}, quota ${quota})",
+	"recharge.approve": "Approved recharge request ${request_id} for user ${target_user_id} (quota ${quota})",
+	"recharge.reject":  "Rejected recharge request ${request_id} for user ${target_user_id}: ${reason}",
 }
 
 // auditContentEN 按 action 模板渲染英文兜底文本；未登记的 action 退回 action 本身。

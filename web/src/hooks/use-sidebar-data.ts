@@ -24,6 +24,7 @@ import {
   FileText,
   FlaskConical,
   Gauge,
+  HandCoins,
   Key,
   LayoutDashboard,
   LineChart,
@@ -118,6 +119,11 @@ export function useSidebarData(): SidebarData {
             title: t('Wallet'),
             url: '/wallet',
             icon: Wallet,
+          },
+          {
+            title: t('Recharge Requests'),
+            url: '/recharge-requests',
+            icon: HandCoins,
           },
           {
             title: t('Profile'),

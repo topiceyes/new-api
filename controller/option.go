@@ -86,6 +86,38 @@ func validateOrgSyncTargetGroup(optionKey string, value string) error {
 	return nil
 }
 
+// validateRechargeApprovalOption 校验充值审批流程配置的新值:在当前配置基础上
+// 合并该键的待写值后整体校验,保证启用状态下的配置始终完整可用。
+func validateRechargeApprovalOption(optionKey string, value string) error {
+	merged := *system_setting.GetRechargeApprovalSettings()
+	switch optionKey {
+	case "recharge_approval.enabled":
+		merged.Enabled = value == "true"
+	case "recharge_approval.quota_usd":
+		quotaUsd, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
+		if err != nil || quotaUsd <= 0 {
+			return fmt.Errorf("充值额度必须是大于 0 的数字！")
+		}
+		if quotaUsd*common.QuotaPerUnit >= float64(common.MaxQuota) {
+			return fmt.Errorf("充值额度超出系统上限！")
+		}
+		merged.QuotaUsd = quotaUsd
+	case "recharge_approval.levels":
+		var levels []system_setting.RechargeApprovalLevel
+		if err := common.UnmarshalJsonStr(value, &levels); err != nil {
+			return fmt.Errorf("审批级别配置不是合法的 JSON！")
+		}
+		merged.Levels = levels
+	}
+	if !merged.Enabled {
+		return nil
+	}
+	if err := merged.Validate(); err != nil {
+		return fmt.Errorf("充值审批流程配置不完整：%s", err.Error())
+	}
+	return nil
+}
+
 func collectModelNamesFromOptionValue(raw string, modelNames map[string]struct{}) {
 	if strings.TrimSpace(raw) == "" {
 		return
@@ -411,6 +443,14 @@ func UpdateOption(c *gin.Context) {
 				})
 				return
 			}
+		}
+	case "recharge_approval.enabled", "recharge_approval.quota_usd", "recharge_approval.levels":
+		if err := validateRechargeApprovalOption(option.Key, option.Value.(string)); err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
 		}
 	case "dingtalk.app_key", "dingtalk.app_secret":
 		if strings.TrimSpace(option.Value.(string)) == "" && system_setting.GetDingTalkSettings().NotifyEnabled {

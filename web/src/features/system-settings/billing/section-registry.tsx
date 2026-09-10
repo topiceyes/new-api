@@ -25,6 +25,7 @@ import { PaymentSettingsSection } from '../integrations/payment-settings-section
 import { RatioSettingsCard } from '../models/ratio-settings-card'
 import type { BillingSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { RechargeApprovalSection } from './recharge-approval-section'
 
 const getModelDefaults = (settings: BillingSettings) => ({
   ModelPrice: settings.ModelPrice,
@@ -198,6 +199,19 @@ const BILLING_SECTIONS = [
           enabled: settings['checkin_setting.enabled'],
           minQuota: settings['checkin_setting.min_quota'],
           maxQuota: settings['checkin_setting.max_quota'],
+        }}
+      />
+    ),
+  },
+  {
+    id: 'recharge-approval',
+    titleKey: 'Recharge Approval',
+    build: (settings: BillingSettings) => (
+      <RechargeApprovalSection
+        defaultValues={{
+          enabled: settings['recharge_approval.enabled'],
+          quotaUsd: settings['recharge_approval.quota_usd'],
+          levels: settings['recharge_approval.levels'],
         }}
       />
     ),

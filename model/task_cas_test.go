@@ -68,6 +68,8 @@ func TestMain(m *testing.M) {
 		&UsageStatDaily{},
 		&UsageStatHourly{},
 		&UsageStatDay{},
+		&RechargeRequest{},
+		&RechargeApprovalStep{},
 	); err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
@@ -111,6 +113,8 @@ func truncateTables(t *testing.T) {
 		DB.Exec("DELETE FROM usage_stat_daily")
 		DB.Exec("DELETE FROM usage_stat_hourly")
 		DB.Exec("DELETE FROM usage_stat_days")
+		DB.Exec("DELETE FROM recharge_requests")
+		DB.Exec("DELETE FROM recharge_approval_steps")
 	})
 }
 

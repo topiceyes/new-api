@@ -303,6 +303,8 @@ func migrateDB() error {
 		&UsageStatDaily{},
 		&UsageStatHourly{},
 		&UsageStatDay{},
+		&RechargeRequest{},
+		&RechargeApprovalStep{},
 	)
 	if err != nil {
 		return err

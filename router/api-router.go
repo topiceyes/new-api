@@ -206,6 +206,25 @@ func SetApiRouter(router *gin.Engine) {
 			planMonitorAdminRoute.GET("/overview", controller.AdminGetPlanMonitorOverview)
 		}
 
+		// Recharge request + multi-level approval — 用户充值申请与多级审批
+		rechargeRoute := apiRouter.Group("/recharge_request")
+		rechargeRoute.Use(middleware.UserAuth())
+		{
+			rechargeRoute.GET("/config", controller.GetRechargeRequestConfig)
+			rechargeRoute.POST("/", middleware.CriticalRateLimit(), controller.SubmitRechargeRequest)
+			rechargeRoute.GET("/self", controller.GetMyRechargeRequests)
+			rechargeRoute.GET("/approvals", controller.GetMyRechargeApprovalTasks)
+			rechargeRoute.GET("/:id", controller.GetRechargeRequestDetail)
+			rechargeRoute.POST("/:id/approve", controller.ApproveRechargeRequest)
+			rechargeRoute.POST("/:id/reject", controller.RejectRechargeRequest)
+		}
+		rechargeAdminRoute := apiRouter.Group("/recharge_request/admin")
+		rechargeAdminRoute.Use(middleware.AdminAuth())
+		{
+			rechargeAdminRoute.GET("/requests", controller.AdminGetRechargeRequests)
+			rechargeAdminRoute.GET("/requests/:id", controller.GetRechargeRequestDetail)
+		}
+
 		// Security audit (admin) — 安全/行为审计事件查询(observe-only,一期无处置动作)
 		auditRoute := apiRouter.Group("/audit")
 		auditRoute.Use(middleware.AdminAuth())

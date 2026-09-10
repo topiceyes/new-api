@@ -395,6 +395,10 @@ export type BillingSettings = {
   'checkin_setting.enabled': boolean
   'checkin_setting.min_quota': number
   'checkin_setting.max_quota': number
+  // 充值申请多级审批:levels 为 JSON 字符串 [{type,dept_level?|user_ids?}]
+  'recharge_approval.enabled': boolean
+  'recharge_approval.quota_usd': number
+  'recharge_approval.levels': string
 }
 
 export type OperationsSettings = {
