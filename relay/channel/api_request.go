@@ -327,12 +327,22 @@ var channelHeaderPresets = map[string]channelHeaderPreset{
 		acceptLanguage: "zh-CN,zh;q=0.9,en;q=0.8",
 	},
 	"claude-cli": {
-		userAgent:      "claude-cli/2.1.0 (external, cli)",
+		userAgent:      "claude-cli/2.1.266 (external, cli)",
 		accept:         "application/json",
 		acceptLanguage: "en-US,en;q=0.9",
 	},
 	"codex-cli": {
-		userAgent:      "codex-cli/0.46.0",
+		userAgent:      "codex_cli_rs/0.153.4",
+		accept:         "application/json",
+		acceptLanguage: "en-US,en;q=0.9",
+	},
+	"workbuddy": {
+		userAgent:      "workbuddy-ai/5.4.2",
+		accept:         "application/json",
+		acceptLanguage: "zh-CN,zh;q=0.9,en;q=0.8",
+	},
+	"hermes": {
+		userAgent:      "HermesAgent/2026.9.7",
 		accept:         "application/json",
 		acceptLanguage: "en-US,en;q=0.9",
 	},

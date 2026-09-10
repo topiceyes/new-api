@@ -4383,16 +4383,24 @@ export function ChannelMutateDrawer({
                                       }}
                                       items={[
                                         {
-                                          value: 'claude-cli::claude-cli/2.1.0 (external, cli)',
+                                          value: 'claude-cli::claude-cli/2.1.266 (external, cli)',
                                           label: 'Claude Code',
                                         },
                                         {
-                                          value: 'codex-cli::codex-cli/0.46.0',
+                                          value: 'codex-cli::codex_cli_rs/0.153.4',
                                           label: 'Codex CLI',
                                         },
                                         {
                                           value: 'kimicli::KimiCLI/1.6',
                                           label: 'Kimi CLI',
+                                        },
+                                        {
+                                          value: 'workbuddy::workbuddy-ai/5.4.2',
+                                          label: 'WorkBuddy',
+                                        },
+                                        {
+                                          value: 'hermes::HermesAgent/2026.9.7',
+                                          label: 'Hermes',
                                         },
                                       ]}
                                     >
@@ -4403,14 +4411,20 @@ export function ChannelMutateDrawer({
                                       </SelectTrigger>
                                       <SelectContent alignItemWithTrigger={false}>
                                         <SelectGroup>
-                                          <SelectItem value='claude-cli::claude-cli/2.1.0 (external, cli)'>
+                                          <SelectItem value='claude-cli::claude-cli/2.1.266 (external, cli)'>
                                             Claude Code
                                           </SelectItem>
-                                          <SelectItem value='codex-cli::codex-cli/0.46.0'>
+                                          <SelectItem value='codex-cli::codex_cli_rs/0.153.4'>
                                             Codex CLI
                                           </SelectItem>
                                           <SelectItem value='kimicli::KimiCLI/1.6'>
                                             Kimi CLI
+                                          </SelectItem>
+                                          <SelectItem value='workbuddy::workbuddy-ai/5.4.2'>
+                                            WorkBuddy
+                                          </SelectItem>
+                                          <SelectItem value='hermes::HermesAgent/2026.9.7'>
+                                            Hermes
                                           </SelectItem>
                                         </SelectGroup>
                                       </SelectContent>
