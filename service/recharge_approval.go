@@ -14,7 +14,9 @@ import (
 // 部门主管取自 org 快照成员的 LeaderDeptIds(OrgDepartment.LeaderUserIds
 // 只有飞书抓取器填充,不能用);designated 级 = 配置的指定用户。
 // 规则:排除申请人本人(不能自审)、跳过未绑定本地账号的主管;
-// 任一级解析结果为空即整个解析失败,提交被阻断(宁缺毋滥)。
+// 目标部门没有可用主管时沿部门链继续向上递归,直到有主管为止;
+// 整条链都没有可用主管时兜底到 root 管理员(rechargeRootFallbackUserId);
+// 兜底也不可用时该级解析失败,提交被阻断(宁缺毋滥)。
 
 // 查找函数做成包级 seam,便于无数据库的单测(仿 admin_alert.go)。
 var (
@@ -28,6 +30,9 @@ var (
 
 // rechargeMaxDeptDepth 部门链上溯的安全上限,防快照数据成环时死循环。
 const rechargeMaxDeptDepth = 16
+
+// rechargeRootFallbackUserId 部门主管链完全解析不到人时的兜底审批人:root 管理员。
+const rechargeRootFallbackUserId = 1
 
 // orgUnionIdColumn 返回该 provider 下 users 表存 unionId 的字段值。
 func orgUnionIdColumn(provider string, user *model.User) string {
@@ -55,66 +60,106 @@ func deptLeaderUnionIds(members []model.OrgMember, deptId string) []string {
 	return unionIds
 }
 
-// walkDeptUp 从 deptId 沿 ParentId 上溯 steps 层,返回目标部门;链不够长返回空串。
-func walkDeptUp(deptByDeptId map[string]model.OrgDepartment, deptId string, steps int) string {
-	visited := map[string]struct{}{}
+// walkDeptUpAtMost 从 deptId 沿 ParentId 上溯至多 steps 层,链不够长时停在最顶层部门。
+// 起点部门不在快照或部门链成环时返回空串。
+func walkDeptUpAtMost(deptByDeptId map[string]model.OrgDepartment, deptId string, steps int) string {
+	if _, ok := deptByDeptId[deptId]; !ok {
+		return ""
+	}
+	visited := map[string]struct{}{deptId: {}}
 	current := deptId
 	for i := 0; i < steps; i++ {
-		if _, ok := visited[current]; ok {
-			return ""
+		parent := deptByDeptId[current].ParentId
+		if parent == "" {
+			break // 已到最顶层
 		}
-		visited[current] = struct{}{}
-		dept, ok := deptByDeptId[current]
-		if !ok || dept.ParentId == "" {
-			return ""
+		if _, ok := visited[parent]; ok {
+			return "" // 成环,快照数据异常
 		}
-		current = dept.ParentId
+		if _, ok := deptByDeptId[parent]; !ok {
+			break // 父部门不在快照,停在当前部门
+		}
+		visited[parent] = struct{}{}
+		current = parent
 	}
 	return current
 }
 
 // resolveDeptLeaderLevel 解析一个 dept_leader 级:主部门上溯 k-1 层后的主管们。
-func resolveDeptLeaderLevel(provider string, applicantUnionId string, primaryDeptId string,
+// 目标层级超出部门链长度时退到最顶层部门;目标部门没有可用主管(未配置、
+// 全是申请人本人或未绑定账号)时沿 ParentId 继续向上递归,直到有主管为止;
+// 整条链都没有可用主管时兜底到 root 管理员。
+func resolveDeptLeaderLevel(provider string, applicantUserId int, applicantUnionId string, primaryDeptId string,
 	deptLevel int, deptByDeptId map[string]model.OrgDepartment, members []model.OrgMember,
 	memberByUnionId map[string]model.OrgMember) ([]model.ResolvedRechargeApprover, error) {
 
-	targetDeptId := walkDeptUp(deptByDeptId, primaryDeptId, deptLevel-1)
+	targetDeptId := walkDeptUpAtMost(deptByDeptId, primaryDeptId, deptLevel-1)
 	if targetDeptId == "" {
-		return nil, fmt.Errorf("组织架构中没有第 %d 级部门(部门链不够长)", deptLevel)
+		return nil, errors.New("申请人的部门不在组织架构快照中或部门数据成环,请联系管理员")
 	}
-	targetDept := deptByDeptId[targetDeptId]
-	unionIds := deptLeaderUnionIds(members, targetDeptId)
-	if len(unionIds) == 0 {
-		return nil, fmt.Errorf("部门「%s」没有配置主管", targetDept.Name)
-	}
-	userIdByUnionId, err := rechargeGetUserIdsByUnionIds(provider, unionIds)
-	if err != nil {
-		return nil, err
-	}
-	approvers := make([]model.ResolvedRechargeApprover, 0, len(unionIds))
-	for _, unionId := range unionIds {
-		if unionId == applicantUnionId {
-			continue // 不能自审
+
+	visited := map[string]struct{}{}
+	current := targetDeptId
+	for depth := 0; depth < rechargeMaxDeptDepth; depth++ {
+		if _, ok := visited[current]; ok {
+			break
 		}
-		userId := userIdByUnionId[unionId]
-		if userId <= 0 {
-			continue // 主管未绑定本地账号,无法登录审批
+		visited[current] = struct{}{}
+		unionIds := deptLeaderUnionIds(members, current)
+		if len(unionIds) > 0 {
+			userIdByUnionId, err := rechargeGetUserIdsByUnionIds(provider, unionIds)
+			if err != nil {
+				return nil, err
+			}
+			approvers := make([]model.ResolvedRechargeApprover, 0, len(unionIds))
+			for _, unionId := range unionIds {
+				if unionId == applicantUnionId {
+					continue // 不能自审
+				}
+				userId := userIdByUnionId[unionId]
+				if userId <= 0 {
+					continue // 主管未绑定本地账号,无法登录审批
+				}
+				name := unionId
+				if m, ok := memberByUnionId[unionId]; ok && m.Name != "" {
+					name = m.Name
+				}
+				approvers = append(approvers, model.ResolvedRechargeApprover{
+					UserId:    userId,
+					UnionId:   unionId,
+					Name:      name,
+					LevelType: system_setting.RechargeLevelTypeDeptLeader,
+				})
+			}
+			if len(approvers) > 0 {
+				return approvers, nil
+			}
 		}
-		name := unionId
-		if m, ok := memberByUnionId[unionId]; ok && m.Name != "" {
-			name = m.Name
+		dept, ok := deptByDeptId[current]
+		if !ok || dept.ParentId == "" {
+			break
 		}
-		approvers = append(approvers, model.ResolvedRechargeApprover{
-			UserId:    userId,
-			UnionId:   unionId,
-			Name:      name,
-			LevelType: system_setting.RechargeLevelTypeDeptLeader,
-		})
+		current = dept.ParentId
 	}
-	if len(approvers) == 0 {
-		return nil, fmt.Errorf("部门「%s」的主管都无法审批(未绑定账号或为申请人本人)", targetDept.Name)
+
+	// 整条部门链都没有可用主管,兜底到 root 管理员。
+	if applicantUserId == rechargeRootFallbackUserId {
+		return nil, errors.New("部门链上没有配置主管,且兜底审批人(root 管理员)不能审批自己的申请,请联系管理员调整审批流程")
 	}
-	return approvers, nil
+	root, err := rechargeGetUserById(rechargeRootFallbackUserId)
+	if err != nil || root == nil || root.Id == 0 {
+		return nil, errors.New("部门链上没有配置主管,且兜底审批人(root 管理员)不存在,请联系管理员调整审批流程")
+	}
+	name := root.Username
+	if root.DisplayName != "" {
+		name = root.DisplayName
+	}
+	return []model.ResolvedRechargeApprover{{
+		UserId:    root.Id,
+		UnionId:   "", // 通知按 userId 兜底查绑定,与 designated 一致
+		Name:      name,
+		LevelType: system_setting.RechargeLevelTypeDeptLeader,
+	}}, nil
 }
 
 // resolveDesignatedLevel 解析一个 designated 级:配置的指定用户。
@@ -220,7 +265,7 @@ func ResolveApprovalChain(applicantUserId int, levels []system_setting.RechargeA
 		var err error
 		switch level.Type {
 		case system_setting.RechargeLevelTypeDeptLeader:
-			approvers, err = resolveDeptLeaderLevel(provider, applicantUnionId, primaryDeptId,
+			approvers, err = resolveDeptLeaderLevel(provider, applicantUserId, applicantUnionId, primaryDeptId,
 				level.DeptLevel, deptByDeptId, members, memberByUnionId)
 		case system_setting.RechargeLevelTypeDesignated:
 			approvers, err = resolveDesignatedLevel(applicantUserId, level.UserIds)

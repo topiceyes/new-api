@@ -128,7 +128,6 @@
   "Fixed recharge amount (USD)": "Fixed recharge amount (USD)",
   "Every approved request credits exactly this amount.": "Every approved request credits exactly this amount.",
   "Approval Levels": "Approval Levels",
-  "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if a level cannot be resolved for a user, submission is blocked — consider adding a designated-approver level at the end as a fallback.": "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if a level cannot be resolved for a user, submission is blocked — consider adding a designated-approver level at the end as a fallback.",
   "Approver Type": "Approver Type",
   "Department Level (1-5)": "Department Level (1-5)",
   "1 = direct department leader, 2 = parent department leader, ...": "1 = direct department leader, 2 = parent department leader, ...",
@@ -138,5 +137,8 @@
   "At least one approval level is required before enabling submissions.": "At least one approval level is required before enabling submissions.",
   "Search users by keyword...": "Search users by keyword...",
   "No matching users": "No matching users",
-  "Save recharge approval settings": "Save recharge approval settings"
+  "Save recharge approval settings": "Save recharge approval settings",
+  "Please describe in at least 10 characters": "Please describe in at least 10 characters",
+  "At least 10 characters, up to 500 characters.": "At least 10 characters, up to 500 characters.",
+  "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if the target department has no leader, the nearest ancestor department with a leader is used, falling back to the root administrator.": "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if the target department has no leader, the nearest ancestor department with a leader is used, falling back to the root administrator."
 }

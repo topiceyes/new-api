@@ -36,6 +36,8 @@
   "Please explain why this request is rejected...": "Please explain why this request is rejected...",
   "Add a comment for the applicant...": "Add a comment for the applicant...",
   "Allow users to submit fixed-amount recharge requests that require multi-level approval": "Allow users to submit fixed-amount recharge requests that require multi-level approval",
-  "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if a level cannot be resolved for a user, submission is blocked — consider adding a designated-approver level at the end as a fallback.": "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if a level cannot be resolved for a user, submission is blocked — consider adding a designated-approver level at the end as a fallback.",
-  "Search and add one or more approvers for this level.": "Search and add one or more approvers for this level."
+  "Search and add one or more approvers for this level.": "Search and add one or more approvers for this level.",
+  "Please describe in at least 10 characters": "Please describe in at least 10 characters",
+  "At least 10 characters, up to 500 characters.": "At least 10 characters, up to 500 characters.",
+  "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if the target department has no leader, the nearest ancestor department with a leader is used, falling back to the root administrator.": "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if the target department has no leader, the nearest ancestor department with a leader is used, falling back to the root administrator."
 }

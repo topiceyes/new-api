@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CircleAlert } from 'lucide-react'
+import { useMemo } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -60,12 +61,24 @@ import type { RechargeCategory } from '../types'
 
 const SKELETON_KEYS = ['sk-1', 'sk-2', 'sk-3']
 
-const schema = z.object({
-  category: z.enum(['project_delivery', 'tech_research']),
-  detail: z.string().trim().min(1).max(500),
-})
+const DETAIL_MIN_LENGTH = 10
+const DETAIL_MAX_LENGTH = 500
 
-type Values = z.infer<typeof schema>
+const buildSchema = (t: (key: string) => string) =>
+  z.object({
+    category: z.enum(['project_delivery', 'tech_research']),
+    detail: z
+      .string()
+      .trim()
+      .min(DETAIL_MIN_LENGTH, {
+        message: t('Please describe in at least 10 characters'),
+      })
+      .max(DETAIL_MAX_LENGTH, {
+        message: t('Up to 500 characters.'),
+      }),
+  })
+
+type Values = z.infer<ReturnType<typeof buildSchema>>
 
 export function ApplyForm() {
   const { t } = useTranslation()
@@ -80,6 +93,8 @@ export function ApplyForm() {
     },
   })
   const config = configQuery.data
+
+  const schema = useMemo(() => buildSchema(t), [t])
 
   const form = useForm<Values>({
     resolver: zodResolver(schema) as unknown as Resolver<Values>,
@@ -222,7 +237,7 @@ export function ApplyForm() {
                     />
                   </FormControl>
                   <FormDescription>
-                    {t('Up to 500 characters.')}
+                    {t('At least 10 characters, up to 500 characters.')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

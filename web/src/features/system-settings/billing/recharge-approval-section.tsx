@@ -386,7 +386,7 @@ export function RechargeApprovalSection({
               <div className='text-sm font-medium'>{t('Approval Levels')}</div>
               <p className='text-muted-foreground mt-0.5 text-xs'>
                 {t(
-                  'Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if a level cannot be resolved for a user, submission is blocked — consider adding a designated-approver level at the end as a fallback.'
+                  'Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if the target department has no leader, the nearest ancestor department with a leader is used, falling back to the root administrator.'
                 )}
               </p>
             </div>

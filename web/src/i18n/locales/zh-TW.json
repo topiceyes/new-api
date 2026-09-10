@@ -5687,7 +5687,6 @@
     "Fixed recharge amount (USD)": "固定儲值金額(美元)",
     "Every approved request credits exactly this amount.": "每筆通過的申請按此金額入帳。",
     "Approval Levels": "審批級別",
-    "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if a level cannot be resolved for a user, submission is blocked — consider adding a designated-approver level at the end as a fallback.": "各級按順序審批,同級任一人通過即可。部門主管級別依賴組織架構同步;若某使用者的某級無法解析,提交將被阻斷——建議在末尾增加一級指定審批人作為兜底。",
     "Approver Type": "審批人類型",
     "Department Level (1-5)": "部門層級(1-5)",
     "1 = direct department leader, 2 = parent department leader, ...": "1 = 所在部門主管,2 = 上一級部門主管,以此類推",
@@ -5697,6 +5696,9 @@
     "At least one approval level is required before enabling submissions.": "啟用提交前至少需要設定一級審批。",
     "Search users by keyword...": "按關鍵字搜尋使用者...",
     "No matching users": "無匹配使用者",
-    "Save recharge approval settings": "儲存儲值審批設定"
+    "Save recharge approval settings": "儲存儲值審批設定",
+    "Please describe in at least 10 characters": "請至少填寫 10 個字的具體資訊",
+    "At least 10 characters, up to 500 characters.": "至少 10 個字,最多 500 字。",
+    "Levels are approved in order; any single approver at a level can pass it. Department-leader levels require organization structure sync; if the target department has no leader, the nearest ancestor department with a leader is used, falling back to the root administrator.": "審批按級別依序進行,同級任一審批人通過即可。部門主管級別需要開啟組織架構同步;目標部門沒有主管時,自動向上遞迴到最近的有主管的上級部門,整條鏈都沒有時兜底到 root 管理員。"
   }
 }

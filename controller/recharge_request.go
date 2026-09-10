@@ -18,6 +18,9 @@ import (
 // rechargeDetailMaxRunes 申请具体信息的长度上限。
 const rechargeDetailMaxRunes = 500
 
+// rechargeDetailMinRunes 申请具体信息的长度下限,避免一句话敷衍的审批材料。
+const rechargeDetailMinRunes = 10
+
 // rechargeChainLevel 审批链预览中的一级。
 type rechargeChainLevel struct {
 	Level     int                              `json:"level"`
@@ -97,6 +100,10 @@ func SubmitRechargeRequest(c *gin.Context) {
 	}
 	if body.Detail == "" {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "请填写具体信息"})
+		return
+	}
+	if utf8.RuneCountInString(body.Detail) < rechargeDetailMinRunes {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "具体信息至少填写 10 个字"})
 		return
 	}
 	if utf8.RuneCountInString(body.Detail) > rechargeDetailMaxRunes {

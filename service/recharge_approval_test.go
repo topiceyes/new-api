@@ -31,13 +31,15 @@ func resetRechargeSeams(t *testing.T) {
 	})
 }
 
-// stubOrgSnapshot 三层部门树: 1(全体) -> 2(研发,主管 u-l1) -> 3(后端,主管 u-l2);
-// 申请人 u-app 在部门 3;u-l3 是部门 1 的主管但未绑定本地账号。
+// stubOrgSnapshot 三层部门树: 1(全体) -> 2(研发,主管 u-l2) -> 3(后端,主管 u-l1);
+// 申请人 u-app 在部门 3;u-l3 是部门 1 的主管但未绑定本地账号;
+// 用户 1 是 root 管理员,作为全链无可用主管时的兜底审批人。
 func stubOrgSnapshot(t *testing.T) {
 	t.Helper()
 	rechargeActiveOrgProvider = func() string { return model.OrgProviderDingTalk }
 	rechargeGetUserById = func(id int) (*model.User, error) {
 		users := map[int]*model.User{
+			1:   {Id: 1, Username: "root", DisplayName: "汪利辉"},
 			100: {Id: 100, Username: "app", DingTalkId: "u-app"},
 			201: {Id: 201, Username: "leader1", DisplayName: "主管一", DingTalkId: "u-l1"},
 			202: {Id: 202, Username: "leader2", DingTalkId: "u-l2"},
@@ -104,16 +106,89 @@ func TestResolveApprovalChainDeptLeaderLevels(t *testing.T) {
 	assert.Equal(t, 202, chain[1][0].UserId)
 }
 
-func TestResolveApprovalChainDropsUnboundLeader(t *testing.T) {
+func TestResolveApprovalChainWalksUpPastUnboundLeader(t *testing.T) {
 	resetRechargeSeams(t)
 	stubOrgSnapshot(t)
 
-	// 第 3 级 = 部门 1 的主管 u-l3,但他未绑定本地账号 → 该级为空,解析失败
+	// 第 3 级目标部门 1 的主管 u-l3 未绑定本地账号,链已到顶 → 兜底 root 管理员
+	chain, err := ResolveApprovalChain(100, []system_setting.RechargeApprovalLevel{
+		{Type: system_setting.RechargeLevelTypeDeptLeader, DeptLevel: 3},
+	})
+	require.NoError(t, err)
+	require.Len(t, chain, 1)
+	require.Len(t, chain[0], 1)
+	assert.Equal(t, rechargeRootFallbackUserId, chain[0][0].UserId)
+	assert.Equal(t, "汪利辉", chain[0][0].Name)
+}
+
+func TestResolveApprovalChainClampsLevelBeyondChain(t *testing.T) {
+	resetRechargeSeams(t)
+	stubOrgSnapshot(t)
+
+	// 第 5 级超出三层部门链:退到最顶层部门 1,主管未绑定 → 兜底 root 管理员
+	chain, err := ResolveApprovalChain(100, []system_setting.RechargeApprovalLevel{
+		{Type: system_setting.RechargeLevelTypeDeptLeader, DeptLevel: 5},
+	})
+	require.NoError(t, err)
+	require.Len(t, chain, 1)
+	assert.Equal(t, rechargeRootFallbackUserId, chain[0][0].UserId)
+}
+
+func TestResolveApprovalChainWalksUpPastLeaderlessDept(t *testing.T) {
+	resetRechargeSeams(t)
+	stubOrgSnapshot(t)
+	// 后端组没有主管:第 1 级应向上递归到研发部主管 u-l2
+	rechargeGetOrgMembers = func(provider string) ([]model.OrgMember, error) {
+		return []model.OrgMember{
+			{Provider: provider, UnionId: "u-app", Name: "申请人", DeptIds: `["3"]`, LeaderDeptIds: `[]`},
+			{Provider: provider, UnionId: "u-l2", Name: "主管二", DeptIds: `["1"]`, LeaderDeptIds: `["2"]`},
+		}, nil
+	}
+
+	chain, err := ResolveApprovalChain(100, []system_setting.RechargeApprovalLevel{
+		{Type: system_setting.RechargeLevelTypeDeptLeader, DeptLevel: 1},
+	})
+	require.NoError(t, err)
+	require.Len(t, chain, 1)
+	require.Len(t, chain[0], 1)
+	assert.Equal(t, 202, chain[0][0].UserId)
+	assert.Equal(t, "主管二", chain[0][0].Name)
+}
+
+func TestResolveApprovalChainRootFallbackMissing(t *testing.T) {
+	resetRechargeSeams(t)
+	stubOrgSnapshot(t)
+	// root 管理员不存在:全链无可用主管时该级解析失败
+	rechargeGetUserById = func(id int) (*model.User, error) {
+		if id == 100 {
+			return &model.User{Id: 100, Username: "app", DingTalkId: "u-app"}, nil
+		}
+		return nil, nil
+	}
+
 	_, err := ResolveApprovalChain(100, []system_setting.RechargeApprovalLevel{
 		{Type: system_setting.RechargeLevelTypeDeptLeader, DeptLevel: 3},
 	})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "第 1 级审批人解析失败")
+	assert.Contains(t, err.Error(), "兜底审批人")
+}
+
+func TestResolveApprovalChainRootFallbackSkipsSelf(t *testing.T) {
+	resetRechargeSeams(t)
+	stubOrgSnapshot(t)
+	// 申请人就是 root 管理员且链上无可用主管:不能自审,解析失败
+	rechargeGetUserById = func(id int) (*model.User, error) {
+		if id == 1 {
+			return &model.User{Id: 1, Username: "root", DingTalkId: "u-app"}, nil
+		}
+		return nil, nil
+	}
+
+	_, err := ResolveApprovalChain(1, []system_setting.RechargeApprovalLevel{
+		{Type: system_setting.RechargeLevelTypeDeptLeader, DeptLevel: 3},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "兜底审批人")
 }
 
 func TestResolveApprovalChainSelfExclusion(t *testing.T) {
@@ -130,15 +205,23 @@ func TestResolveApprovalChainSelfExclusion(t *testing.T) {
 		if id == 201 {
 			return &model.User{Id: 201, Username: "leader1", DingTalkId: "u-l1"}, nil
 		}
+		if u, ok := map[int]*model.User{
+			1:   {Id: 1, Username: "root", DisplayName: "汪利辉"},
+			202: {Id: 202, Username: "leader2", DingTalkId: "u-l2"},
+		}[id]; ok {
+			return u, nil
+		}
 		return nil, nil
 	}
 
-	// 唯一主管是自己 → 自我排除后该级为空
-	_, err := ResolveApprovalChain(201, []system_setting.RechargeApprovalLevel{
+	// 唯一主管是自己 → 自我排除后向上递归到研发部主管 u-l2
+	chain, err := ResolveApprovalChain(201, []system_setting.RechargeApprovalLevel{
 		{Type: system_setting.RechargeLevelTypeDeptLeader, DeptLevel: 1},
 	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "无法审批")
+	require.NoError(t, err)
+	require.Len(t, chain, 1)
+	require.Len(t, chain[0], 1)
+	assert.Equal(t, 202, chain[0][0].UserId)
 }
 
 func TestResolveApprovalChainDesignated(t *testing.T) {
@@ -195,14 +278,27 @@ func TestResolveApprovalChainApplicantNotInSnapshot(t *testing.T) {
 	assert.Contains(t, err.Error(), "不在组织架构快照中")
 }
 
-func TestWalkDeptUpCycleGuard(t *testing.T) {
-	// 快照数据成环:2 -> 3 -> 2,上溯不能死循环
+func TestWalkDeptUpAtMost(t *testing.T) {
 	deptByDeptId := map[string]model.OrgDepartment{
+		"1": {DeptId: "1", ParentId: ""},
+		"2": {DeptId: "2", ParentId: "1"},
+		"3": {DeptId: "3", ParentId: "2"},
+	}
+	// 正常上溯;链不够长时停在最顶层
+	assert.Equal(t, "3", walkDeptUpAtMost(deptByDeptId, "3", 0))
+	assert.Equal(t, "2", walkDeptUpAtMost(deptByDeptId, "3", 1))
+	assert.Equal(t, "1", walkDeptUpAtMost(deptByDeptId, "3", 2))
+	assert.Equal(t, "1", walkDeptUpAtMost(deptByDeptId, "3", 10))
+	// 起点不在快照
+	assert.Equal(t, "", walkDeptUpAtMost(deptByDeptId, "9", 1))
+
+	// 快照数据成环:2 -> 3 -> 2,上溯不能死循环
+	cyclic := map[string]model.OrgDepartment{
 		"2": {DeptId: "2", ParentId: "3"},
 		"3": {DeptId: "3", ParentId: "2"},
 	}
-	assert.Equal(t, "", walkDeptUp(deptByDeptId, "2", 10))
-	assert.Equal(t, "3", walkDeptUp(deptByDeptId, "2", 1))
+	assert.Equal(t, "3", walkDeptUpAtMost(cyclic, "2", 1))
+	assert.Equal(t, "", walkDeptUpAtMost(cyclic, "2", 10))
 }
 
 func TestRechargeQuotaFromUsd(t *testing.T) {
