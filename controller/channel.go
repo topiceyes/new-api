@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -1486,13 +1487,14 @@ func CopyChannel(c *gin.Context) {
 
 // MultiKeyManageRequest represents the request for multi-key management operations
 type MultiKeyManageRequest struct {
-	ChannelId int    `json:"channel_id"`
-	Action    string `json:"action"`              // "disable_key", "enable_key", "delete_key", "delete_disabled_keys", "get_key_status", "get_sticky_bindings", "release_sticky_binding"
-	KeyIndex  *int   `json:"key_index,omitempty"` // for disable_key, enable_key, and delete_key actions
-	TokenId   int    `json:"token_id,omitempty"`  // for release_sticky_binding action
-	Page      int    `json:"page,omitempty"`      // for get_key_status pagination
-	PageSize  int    `json:"page_size,omitempty"` // for get_key_status pagination
-	Status    *int   `json:"status,omitempty"`    // for get_key_status filtering: 1=enabled, 2=manual_disabled, 3=auto_disabled, nil=all
+	ChannelId int     `json:"channel_id"`
+	Action    string  `json:"action"`              // "disable_key", "enable_key", "delete_key", "delete_disabled_keys", "get_key_status", "get_sticky_bindings", "release_sticky_binding", "update_key_note"
+	KeyIndex  *int    `json:"key_index,omitempty"` // for disable_key, enable_key, delete_key, and update_key_note actions
+	TokenId   int     `json:"token_id,omitempty"`  // for release_sticky_binding action
+	Note      *string `json:"note,omitempty"`      // for update_key_note action
+	Page      int     `json:"page,omitempty"`      // for get_key_status pagination
+	PageSize  int     `json:"page_size,omitempty"` // for get_key_status pagination
+	Status    *int    `json:"status,omitempty"`    // for get_key_status filtering: 1=enabled, 2=manual_disabled, 3=auto_disabled, nil=all
 }
 
 // StickyBindingItem 粘性绑定列表单条(含令牌/用户名与 key 预览,供管理端展示)。
@@ -1527,7 +1529,23 @@ type KeyStatus struct {
 	Status       int    `json:"status"` // 1: enabled, 2: disabled
 	DisabledTime int64  `json:"disabled_time,omitempty"`
 	Reason       string `json:"reason,omitempty"`
-	KeyPreview   string `json:"key_preview"` // first 10 chars of key for identification
+	KeyPreview   string `json:"key_preview"`    // 脱敏预览(头尾片段),用于辨识 key 来源
+	Note         string `json:"note,omitempty"` // 管理员给该 key 的备注
+}
+
+// multiKeyNoteMaxRunes 单个 key 备注的长度上限。
+const multiKeyNoteMaxRunes = 100
+
+// maskMultiKeyPreview 生成 key 脱敏预览:长 key 保留头 6 尾 4(同前缀的
+// key 靠尾部区分),短 key 按原有前 10 字符规则。
+func maskMultiKeyPreview(key string) string {
+	if len(key) >= 20 {
+		return key[:6] + "…" + key[len(key)-4:]
+	}
+	if len(key) > 10 {
+		return key[:10] + "..."
+	}
+	return key
 }
 
 // ManageMultiKeys handles multi-key management operations
@@ -1571,6 +1589,12 @@ func ManageMultiKeys(c *gin.Context) {
 		}
 		if request.TokenId != 0 {
 			auditPayload["token_id"] = request.TokenId
+		}
+		if request.KeyIndex != nil {
+			auditPayload["key_index"] = *request.KeyIndex
+		}
+		if request.Note != nil {
+			auditPayload["note"] = *request.Note
 		}
 		recordManageAudit(c, "channel.multi_key_manage", auditPayload)
 	}
@@ -1628,10 +1652,10 @@ func ManageMultiKeys(c *gin.Context) {
 				}
 			}
 
-			// Create key preview (first 10 chars)
-			keyPreview := key
-			if len(key) > 10 {
-				keyPreview = key[:10] + "..."
+			// Create key preview (masked, head + tail)
+			var note string
+			if channel.ChannelInfo.MultiKeyNotes != nil {
+				note = channel.ChannelInfo.MultiKeyNotes[i]
 			}
 
 			allKeyStatusList = append(allKeyStatusList, KeyStatus{
@@ -1639,7 +1663,8 @@ func ManageMultiKeys(c *gin.Context) {
 				Status:       status,
 				DisabledTime: disabledTime,
 				Reason:       reason,
-				KeyPreview:   keyPreview,
+				KeyPreview:   maskMultiKeyPreview(key),
+				Note:         note,
 			})
 		}
 
@@ -1873,6 +1898,7 @@ func ManageMultiKeys(c *gin.Context) {
 		var newStatusList = make(map[int]int)
 		var newDisabledTime = make(map[int]int64)
 		var newDisabledReason = make(map[int]string)
+		var newNotes = make(map[int]string)
 
 		newIndex := 0
 		for i, key := range keys {
@@ -1899,6 +1925,11 @@ func ManageMultiKeys(c *gin.Context) {
 					newDisabledReason[newIndex] = r
 				}
 			}
+			if channel.ChannelInfo.MultiKeyNotes != nil {
+				if n, exists := channel.ChannelInfo.MultiKeyNotes[i]; exists {
+					newNotes[newIndex] = n
+				}
+			}
 			newIndex++
 		}
 
@@ -1916,6 +1947,7 @@ func ManageMultiKeys(c *gin.Context) {
 		channel.ChannelInfo.MultiKeyStatusList = newStatusList
 		channel.ChannelInfo.MultiKeyDisabledTime = newDisabledTime
 		channel.ChannelInfo.MultiKeyDisabledReason = newDisabledReason
+		channel.ChannelInfo.MultiKeyNotes = newNotes
 
 		err = channel.Update()
 		if err != nil {
@@ -1939,6 +1971,7 @@ func ManageMultiKeys(c *gin.Context) {
 		var newStatusList = make(map[int]int)
 		var newDisabledTime = make(map[int]int64)
 		var newDisabledReason = make(map[int]string)
+		var newNotes = make(map[int]string)
 
 		newIndex := 0
 		for i, key := range keys {
@@ -1968,6 +2001,11 @@ func ManageMultiKeys(c *gin.Context) {
 						}
 					}
 				}
+				if channel.ChannelInfo.MultiKeyNotes != nil {
+					if n, exists := channel.ChannelInfo.MultiKeyNotes[i]; exists {
+						newNotes[newIndex] = n
+					}
+				}
 				newIndex++
 			}
 		}
@@ -1986,6 +2024,7 @@ func ManageMultiKeys(c *gin.Context) {
 		channel.ChannelInfo.MultiKeyStatusList = newStatusList
 		channel.ChannelInfo.MultiKeyDisabledTime = newDisabledTime
 		channel.ChannelInfo.MultiKeyDisabledReason = newDisabledReason
+		channel.ChannelInfo.MultiKeyNotes = newNotes
 
 		err = channel.Update()
 		if err != nil {
@@ -2002,6 +2041,51 @@ func ManageMultiKeys(c *gin.Context) {
 			"data":    deletedCount,
 		})
 		return
+
+	case "update_key_note":
+		if request.KeyIndex == nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "未指定密钥索引",
+			})
+			return
+		}
+		keyIndex := *request.KeyIndex
+		if keyIndex < 0 || keyIndex >= channel.ChannelInfo.MultiKeySize {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "密钥索引超出范围",
+			})
+			return
+		}
+		if request.Note == nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "未提供备注内容",
+			})
+			return
+		}
+		note := strings.TrimSpace(*request.Note)
+		if utf8.RuneCountInString(note) > multiKeyNoteMaxRunes {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": fmt.Sprintf("备注最多 %d 个字", multiKeyNoteMaxRunes),
+			})
+			return
+		}
+		if note == "" {
+			delete(channel.ChannelInfo.MultiKeyNotes, keyIndex)
+		} else {
+			if channel.ChannelInfo.MultiKeyNotes == nil {
+				channel.ChannelInfo.MultiKeyNotes = make(map[int]string)
+			}
+			channel.ChannelInfo.MultiKeyNotes[keyIndex] = note
+		}
+		if err := channel.Update(); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": "备注已更新"})
 
 	case "get_sticky_bindings":
 		setting := channel.GetSetting()
@@ -2041,12 +2125,7 @@ func ManageMultiKeys(c *gin.Context) {
 				item.TokenName = fmt.Sprintf("#%d", b.TokenId)
 			}
 			if b.KeyIndex >= 0 && b.KeyIndex < len(keys) {
-				key := keys[b.KeyIndex]
-				if len(key) > 10 {
-					item.KeyPreview = key[:10] + "..."
-				} else {
-					item.KeyPreview = key
-				}
+				item.KeyPreview = maskMultiKeyPreview(keys[b.KeyIndex])
 			}
 			if status, ok := channel.ChannelInfo.MultiKeyStatusList[b.KeyIndex]; ok {
 				item.KeyStatus = status

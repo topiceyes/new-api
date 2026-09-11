@@ -290,6 +290,41 @@ func writeRechargeDecideError(c *gin.Context, err error) {
 	}
 }
 
+// UrgeRechargeRequest 申请人催批:最多 3 次,间隔 10 分钟;成功后 IM 提醒
+// 当前级审批人尽快登录平台审批。
+func UrgeRechargeRequest(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "无效的参数"})
+		return
+	}
+	userId := c.GetInt("id")
+	req, err := model.UrgeRechargeRequest(id, userId)
+	if err != nil {
+		var cooldown *model.ErrRechargeUrgeCooldown
+		switch {
+		case errors.As(err, &cooldown):
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+		case errors.Is(err, model.ErrRechargeRequestNotFound),
+			errors.Is(err, model.ErrRechargeRequestStatusInvalid),
+			errors.Is(err, model.ErrRechargeUrgeNotApplicant),
+			errors.Is(err, model.ErrRechargeUrgeLimit):
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": err.Error()})
+		default:
+			common.SysError("urge recharge request failed: " + err.Error())
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "操作失败,请稍后重试"})
+		}
+		return
+	}
+	recordUserSecurityAudit(c, userId, "recharge.urge", map[string]interface{}{
+		"request_id": id, "urge_count": req.UrgeCount,
+	})
+	go service.NotifyRechargeUrge(req)
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": gin.H{
+		"urge_count": req.UrgeCount, "urge_max": model.RechargeUrgeMax,
+	}})
+}
+
 func AdminGetRechargeRequests(c *gin.Context) {
 	requests, total, err := model.GetAllRechargeRequests(
 		strings.TrimSpace(c.Query("status")),

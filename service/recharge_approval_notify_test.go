@@ -103,3 +103,30 @@ func TestRechargeNotifyProviderFallback(t *testing.T) {
 	rechargeActiveOrgProvider = func() string { return model.OrgProviderDingTalk }
 	assert.Equal(t, model.OrgProviderDingTalk, rechargeNotifyProvider())
 }
+
+// 通知正文里的申请人称呼:优先 display_name 真名,查不到回退 username 快照。
+func TestRechargeApplicantName(t *testing.T) {
+	originalGetUser := getUserByIdForRechargeNotify
+	t.Cleanup(func() {
+		getUserByIdForRechargeNotify = originalGetUser
+	})
+
+	getUserByIdForRechargeNotify = func(id int) (*model.User, error) {
+		if id == 1 {
+			return &model.User{Id: 1, DisplayName: "张三", Username: "zhangsan"}, nil
+		}
+		if id == 2 {
+			return &model.User{Id: 2, DisplayName: "", Username: "lisi"}, nil
+		}
+		return nil, assert.AnError
+	}
+
+	req := &model.RechargeRequest{UserId: 1, Username: "zhangsan"}
+	assert.Equal(t, "张三", rechargeApplicantName(req))
+
+	req = &model.RechargeRequest{UserId: 2, Username: "lisi"}
+	assert.Equal(t, "lisi", rechargeApplicantName(req))
+
+	req = &model.RechargeRequest{UserId: 3, Username: "wangwu"}
+	assert.Equal(t, "wangwu", rechargeApplicantName(req))
+}

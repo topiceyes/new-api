@@ -91,6 +91,13 @@ export async function rejectRechargeRequest(
   return res.data
 }
 
+export async function urgeRechargeRequest(
+  id: number
+): Promise<ApiResponse<{ urge_count: number; urge_max: number }>> {
+  const res = await api.post(`${BASE}/${id}/urge`)
+  return res.data
+}
+
 export interface AdminRechargeRequestParams {
   status?: RechargeRequestStatus | ''
   category?: RechargeCategory | ''

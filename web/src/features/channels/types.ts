@@ -227,6 +227,7 @@ export interface KeyStatus {
   disabled_time?: number
   reason?: string
   key_preview?: string
+  note?: string
 }
 
 export type MultiKeyConfirmAction = {
@@ -316,8 +317,10 @@ export interface MultiKeyManageParams {
     | 'delete_disabled_keys'
     | 'get_sticky_bindings'
     | 'release_sticky_binding'
+    | 'update_key_note'
   key_index?: number
   token_id?: number
+  note?: string
   page?: number
   page_size?: number
   status?: number // 1=enabled, 2=manual_disabled, 3=auto_disabled

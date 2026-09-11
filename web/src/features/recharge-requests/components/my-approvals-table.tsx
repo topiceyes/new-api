@@ -145,7 +145,9 @@ export function MyApprovalsTable() {
               <div className='flex items-start justify-between gap-2'>
                 <div className='min-w-0 space-y-1'>
                   <div className='flex flex-wrap items-center gap-2'>
-                    <span className='text-sm font-medium'>{task.username}</span>
+                    <span className='text-sm font-medium'>
+                      {task.display_name || task.username}
+                    </span>
                     <Badge variant='outline'>
                       {t(CATEGORY_LABEL_KEY[task.category])}
                     </Badge>
@@ -231,7 +233,7 @@ export function MyApprovalsTable() {
           target
             ? t('Request #{{id}} from {{username}}', {
                 id: target.task.id,
-                username: target.task.username,
+                username: target.task.display_name || target.task.username,
               })
             : undefined
         }

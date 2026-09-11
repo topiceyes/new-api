@@ -494,6 +494,22 @@ export async function deleteDisabledMultiKeys(
   }) as Promise<{ success: boolean; message?: string; data?: number }>
 }
 
+/**
+ * Update the note of a specific key in multi-key channel
+ */
+export async function updateMultiKeyNote(
+  channelId: number,
+  keyIndex: number,
+  note: string
+): Promise<{ success: boolean; message?: string }> {
+  return manageMultiKeys({
+    channel_id: channelId,
+    action: 'update_key_note',
+    key_index: keyIndex,
+    note,
+  }) as Promise<{ success: boolean; message?: string }>
+}
+
 // ============================================================================
 // Tag Operations
 // ============================================================================

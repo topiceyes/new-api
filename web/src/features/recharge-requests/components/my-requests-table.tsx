@@ -16,9 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { ErrorState } from '@/components/error-state'
 import { Badge } from '@/components/ui/badge'
@@ -35,7 +36,7 @@ import {
 import { formatQuotaWithCurrency } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
 
-import { listMyRechargeRequests } from '../api'
+import { listMyRechargeRequests, urgeRechargeRequest } from '../api'
 import { CATEGORY_LABEL_KEY } from '../constants'
 import { RechargeStatusBadge } from './badges'
 import { Pager } from './pager'
@@ -43,10 +44,13 @@ import { RequestDetailDialog } from './request-detail-dialog'
 
 const PAGE_SIZE = 10
 
+const URGE_MAX = 3
+
 const SKELETON_KEYS = ['sk-1', 'sk-2', 'sk-3', 'sk-4']
 
 export function MyRequestsTable() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [detailId, setDetailId] = useState<number | null>(null)
 
@@ -58,6 +62,27 @@ export function MyRequestsTable() {
       return res.data
     },
     placeholderData: (prev) => prev,
+  })
+
+  const urgeMutation = useMutation({
+    mutationFn: urgeRechargeRequest,
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success(
+          t('Approvers have been reminded to approve on the platform', {
+            count: res.data.urge_count,
+          })
+        )
+        void queryClient.invalidateQueries({
+          queryKey: ['recharge-my-requests'],
+        })
+      } else {
+        toast.error(res.message || t('Failed to send reminder'))
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || t('Failed to send reminder'))
+    },
   })
 
   const items = listQuery.data?.items ?? []
@@ -114,7 +139,7 @@ export function MyRequestsTable() {
                 <TableHead className='h-9 min-w-[160px] text-xs'>
                   {t('Reject Reason')}
                 </TableHead>
-                <TableHead className='h-9 w-[90px] pr-4 text-xs'>
+                <TableHead className='h-9 w-[130px] pr-4 text-xs'>
                   {t('Actions')}
                 </TableHead>
               </TableRow>
@@ -153,13 +178,36 @@ export function MyRequestsTable() {
                       : '-'}
                   </TableCell>
                   <TableCell className='py-3 pr-4 align-middle'>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setDetailId(item.id)}
-                    >
-                      {t('Detail')}
-                    </Button>
+                    <div className='flex justify-end gap-1'>
+                      {item.status === 'pending' && (
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          disabled={
+                            urgeMutation.isPending ||
+                            item.urge_count >= URGE_MAX
+                          }
+                          title={
+                            item.urge_count >= URGE_MAX
+                              ? t('Urge limit reached')
+                              : t('Urge approvers ({{used}}/{{max}} used)', {
+                                  used: item.urge_count,
+                                  max: URGE_MAX,
+                                })
+                          }
+                          onClick={() => urgeMutation.mutate(item.id)}
+                        >
+                          {t('Urge')} ({item.urge_count}/{URGE_MAX})
+                        </Button>
+                      )}
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => setDetailId(item.id)}
+                      >
+                        {t('Detail')}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

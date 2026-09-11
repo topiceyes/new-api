@@ -217,6 +217,7 @@ func SetApiRouter(router *gin.Engine) {
 			rechargeRoute.GET("/:id", controller.GetRechargeRequestDetail)
 			rechargeRoute.POST("/:id/approve", controller.ApproveRechargeRequest)
 			rechargeRoute.POST("/:id/reject", controller.RejectRechargeRequest)
+			rechargeRoute.POST("/:id/urge", middleware.CriticalRateLimit(), controller.UrgeRechargeRequest)
 		}
 		rechargeAdminRoute := apiRouter.Group("/recharge_request/admin")
 		rechargeAdminRoute.Use(middleware.AdminAuth())

@@ -20,6 +20,12 @@ const (
 	RechargeRequestStatusRejected = "rejected"
 )
 
+// 催批限制:每条申请最多催 3 次,两次催批至少间隔 10 分钟(防连点刷屏)。
+const (
+	RechargeUrgeMax             = 3
+	RechargeUrgeCooldownSeconds = 600
+)
+
 const (
 	RechargeCategoryProjectDelivery = "project_delivery"
 	RechargeCategoryTechResearch    = "tech_research"
@@ -37,6 +43,8 @@ var (
 	ErrRechargeRequestStatusInvalid = errors.New("申请状态已变更,请刷新后重试")
 	ErrRechargeNotApprover          = errors.New("你不是当前级别的审批人")
 	ErrRechargePendingExists        = errors.New("你已有一条待审批的充值申请,请等待审批完成")
+	ErrRechargeUrgeNotApplicant     = errors.New("只有申请人本人可以催批")
+	ErrRechargeUrgeLimit            = errors.New("催批次数已达上限(3 次)")
 )
 
 func IsValidRechargeCategory(category string) bool {
@@ -57,6 +65,11 @@ type RechargeRequest struct {
 	RejectReason string  `json:"reject_reason" gorm:"type:text"`
 	CreateTime   int64   `json:"create_time" gorm:"bigint"`
 	CompleteTime int64   `json:"complete_time" gorm:"bigint"`
+	UrgeCount    int     `json:"urge_count"`                   // 已催批次数(上限 RechargeUrgeMax)
+	LastUrgeTime int64   `json:"last_urge_time" gorm:"bigint"` // 最近一次催批(Unix 秒)
+	// DisplayName 申请人真名,查询时从 users.display_name 回填(非持久化);
+	// 用户已删或未写真名时为空,调用方回退 Username。
+	DisplayName string `json:"display_name,omitempty" gorm:"-"`
 }
 
 func (RechargeRequest) TableName() string {
@@ -238,11 +251,53 @@ func PendingRechargeSteps(requestId int, level int) ([]RechargeApprovalStep, err
 	return steps, err
 }
 
+// ErrRechargeUrgeCooldown 催批冷却中;message 带剩余等待分钟数。
+type ErrRechargeUrgeCooldown struct {
+	RetryAfterSeconds int
+}
+
+func (e *ErrRechargeUrgeCooldown) Error() string {
+	minutes := (e.RetryAfterSeconds + 59) / 60
+	return fmt.Sprintf("操作太频繁,请 %d 分钟后再催批", minutes)
+}
+
+// UrgeRechargeRequest 申请人催批:行锁下校验(仅本人、仅 pending、上限、冷却)
+// 后自增计数并落最近催批时间,供 controller 在 commit 后发 IM 提醒。
+func UrgeRechargeRequest(requestId int, applicantUserId int) (*RechargeRequest, error) {
+	req := &RechargeRequest{}
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		if err := lockForUpdate(tx).Where("id = ?", requestId).First(req).Error; err != nil {
+			return ErrRechargeRequestNotFound
+		}
+		if req.UserId != applicantUserId {
+			return ErrRechargeUrgeNotApplicant
+		}
+		if req.Status != RechargeRequestStatusPending {
+			return ErrRechargeRequestStatusInvalid
+		}
+		if req.UrgeCount >= RechargeUrgeMax {
+			return ErrRechargeUrgeLimit
+		}
+		now := common.GetTimestamp()
+		if req.LastUrgeTime > 0 && now-req.LastUrgeTime < RechargeUrgeCooldownSeconds {
+			return &ErrRechargeUrgeCooldown{RetryAfterSeconds: int(RechargeUrgeCooldownSeconds - (now - req.LastUrgeTime))}
+		}
+		req.UrgeCount++
+		req.LastUrgeTime = now
+		return tx.Save(req).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
 func GetRechargeRequestById(id int) (*RechargeRequest, error) {
 	req := &RechargeRequest{}
 	if err := DB.Where("id = ?", id).First(req).Error; err != nil {
 		return nil, err
 	}
+	applyRechargeApplicantNames([]*RechargeRequest{req})
 	return req, nil
 }
 
@@ -265,7 +320,36 @@ func GetUserRechargeRequests(userId int, pageInfo *common.PageInfo) (requests []
 	}
 	err = DB.Where("user_id = ?", userId).Order("id desc").
 		Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&requests).Error
+	if err == nil {
+		applyRechargeApplicantNames(requests)
+	}
 	return requests, total, err
+}
+
+// applyRechargeApplicantNames 批量回填申请人真名(users.display_name)。
+// 真名为空(未开组织同步/用户已删)时保持为空,调用方回退 username 快照。
+func applyRechargeApplicantNames(requests []*RechargeRequest) {
+	ids := make([]int, 0, len(requests))
+	for _, r := range requests {
+		if r != nil {
+			ids = append(ids, r.UserId)
+		}
+	}
+	users, err := GetUserIdentitiesByIds(ids)
+	if err != nil {
+		return
+	}
+	names := make(map[int]string, len(users))
+	for _, u := range users {
+		if u.DisplayName != "" {
+			names[u.Id] = u.DisplayName
+		}
+	}
+	for _, r := range requests {
+		if r != nil {
+			r.DisplayName = names[r.UserId]
+		}
+	}
 }
 
 // RechargeApprovalTask 审批人视角的待办/已办条目。
@@ -301,10 +385,16 @@ func GetRechargeApprovalTasks(userId int, pendingOnly bool, pageInfo *common.Pag
 	for _, row := range rows {
 		row.IsActionable = row.Status == RechargeRequestStatusPending && row.MyLevel == row.CurrentLevel && row.MyDecision == RechargeStepPending
 	}
+	requests := make([]*RechargeRequest, len(rows))
+	for i, row := range rows {
+		requests[i] = &row.RechargeRequest
+	}
+	applyRechargeApplicantNames(requests)
 	return rows, total, nil
 }
 
-// GetAllRechargeRequests 管理员全量列表,支持状态/事由/申请人关键字过滤。
+// GetAllRechargeRequests 管理员全量列表,支持状态/事由/申请人关键字过滤
+// (关键字同时匹配 username 快照与 users.display_name 真名)。
 func GetAllRechargeRequests(status string, category string, keyword string, pageInfo *common.PageInfo) (requests []*RechargeRequest, total int64, err error) {
 	base := DB.Model(&RechargeRequest{})
 	if status != "" {
@@ -314,11 +404,15 @@ func GetAllRechargeRequests(status string, category string, keyword string, page
 		base = base.Where("category = ?", category)
 	}
 	if keyword != "" {
-		base = base.Where("username LIKE ?", "%"+keyword+"%")
+		base = base.Where("username LIKE ? OR user_id IN (SELECT id FROM users WHERE display_name LIKE ?)",
+			"%"+keyword+"%", "%"+keyword+"%")
 	}
 	if err = base.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	err = base.Order("id desc").Limit(pageInfo.GetPageSize()).Offset(pageInfo.GetStartIdx()).Find(&requests).Error
+	if err == nil {
+		applyRechargeApplicantNames(requests)
+	}
 	return requests, total, err
 }

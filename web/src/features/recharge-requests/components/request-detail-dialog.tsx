@@ -93,7 +93,9 @@ export function RequestDetailDialog(props: RequestDetailDialogProps) {
             <Label className='text-muted-foreground text-xs'>
               {t('Applicant')}
             </Label>
-            <div className='text-sm font-medium'>{request.username}</div>
+            <div className='text-sm font-medium'>
+              {request.display_name || request.username}
+            </div>
           </div>
           <div className='space-y-1'>
             <Label className='text-muted-foreground text-xs'>

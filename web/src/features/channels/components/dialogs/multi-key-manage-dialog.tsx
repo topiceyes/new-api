@@ -17,7 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQueryClient } from '@tanstack/react-query'
-import { Loader2, RefreshCw, Trash2, Power, PowerOff } from 'lucide-react'
+import {
+  Loader2,
+  RefreshCw,
+  Trash2,
+  Power,
+  PowerOff,
+  Pencil,
+} from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -27,6 +34,7 @@ import { StaticDataTable } from '@/components/data-table'
 import { Dialog } from '@/components/dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -53,6 +61,7 @@ import {
   deleteDisabledMultiKeys,
   getStickyBindings,
   releaseStickyBinding,
+  updateMultiKeyNote,
 } from '../../api'
 import { MULTI_KEY_FILTER_OPTIONS } from '../../constants'
 import {
@@ -62,7 +71,11 @@ import {
   getMultiKeyConfirmMessage,
   isDestructiveAction,
 } from '../../lib'
-import type { KeyStatus, MultiKeyConfirmAction, StickyBindingItem } from '../../types'
+import type {
+  KeyStatus,
+  MultiKeyConfirmAction,
+  StickyBindingItem,
+} from '../../types'
 import { useChannels } from '../channels-provider'
 import { StatisticsCard } from './multi-key-statistics-card'
 import { MultiKeyTableRowActions } from './multi-key-table-row-actions'
@@ -70,6 +83,15 @@ import { MultiKeyTableRowActions } from './multi-key-table-row-actions'
 type MultiKeyManageDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+}
+
+// 与后端 multiKeyNoteMaxRunes 保持一致。
+const NOTE_MAX = 100
+
+type NoteEditingState = {
+  keyIndex: number
+  keyPreview: string
+  note: string
 }
 
 export function MultiKeyManageDialog({
@@ -107,9 +129,7 @@ export function MultiKeyManageDialog({
   const stickyEnabled = (() => {
     if (!currentRow?.setting) return false
     try {
-      return Boolean(
-        JSON.parse(currentRow.setting).sticky_token_key_binding
-      )
+      return Boolean(JSON.parse(currentRow.setting).sticky_token_key_binding)
     } catch {
       return false
     }
@@ -120,6 +140,10 @@ export function MultiKeyManageDialog({
   const [confirmAction, setConfirmAction] =
     useState<MultiKeyConfirmAction | null>(null)
   const [isPerformingAction, setIsPerformingAction] = useState(false)
+
+  // Key note editing
+  const [noteEditing, setNoteEditing] = useState<NoteEditingState | null>(null)
+  const [isSavingNote, setIsSavingNote] = useState(false)
 
   // Reset and load data when dialog opens
   useEffect(() => {
@@ -229,6 +253,31 @@ export function MultiKeyManageDialog({
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
     loadKeyStatus(newPage, pageSize)
+  }
+
+  const handleSaveNote = async () => {
+    if (!currentRow || !noteEditing) return
+    setIsSavingNote(true)
+    try {
+      const response = await updateMultiKeyNote(
+        currentRow.id,
+        noteEditing.keyIndex,
+        noteEditing.note.trim()
+      )
+      if (response.success) {
+        toast.success(response.message || t('Operation successful'))
+        setNoteEditing(null)
+        loadKeyStatus(currentPage, pageSize)
+      } else {
+        toast.error(response.message || t('Operation failed'))
+      }
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : t('Operation failed')
+      )
+    } finally {
+      setIsSavingNote(false)
+    }
   }
 
   const performAction = async () => {
@@ -433,8 +482,7 @@ export function MultiKeyManageDialog({
                       id: 'exclusive',
                       header: t('Type'),
                       className: 'w-24',
-                      cell: (b) =>
-                        b.exclusive ? t('Exclusive') : t('Shared'),
+                      cell: (b) => (b.exclusive ? t('Exclusive') : t('Shared')),
                     },
                     {
                       id: 'idle',
@@ -571,7 +619,7 @@ export function MultiKeyManageDialog({
             ) : (
               <StaticDataTable
                 className='rounded-none border-0'
-                tableClassName='min-w-[800px]'
+                tableClassName='min-w-[980px]'
                 data={keys}
                 getRowKey={(key) => key.index}
                 columns={[
@@ -583,10 +631,47 @@ export function MultiKeyManageDialog({
                     cell: (key) => `#${key.index + 1}`,
                   },
                   {
+                    id: 'key',
+                    header: 'Key',
+                    className: 'w-40',
+                    cellClassName: 'font-mono text-xs',
+                    cell: (key) => key.key_preview || '-',
+                  },
+                  {
                     id: 'status',
                     header: t('Status'),
                     className: 'w-32',
                     cell: (key) => renderStatusBadge(key.status),
+                  },
+                  {
+                    id: 'note',
+                    header: t('Note'),
+                    className: 'min-w-[160px]',
+                    cell: (key) => (
+                      <div className='flex items-center gap-1'>
+                        <span
+                          className='max-w-[220px] truncate text-sm'
+                          title={key.note || undefined}
+                        >
+                          {key.note || (
+                            <span className='text-muted-foreground'>-</span>
+                          )}
+                        </span>
+                        <Button
+                          variant='ghost'
+                          size='icon-sm'
+                          onClick={() =>
+                            setNoteEditing({
+                              keyIndex: key.index,
+                              keyPreview: key.key_preview || '',
+                              note: key.note || '',
+                            })
+                          }
+                        >
+                          <Pencil className='h-3.5 w-3.5' />
+                        </Button>
+                      </div>
+                    ),
                   },
                   {
                     id: 'reason',
@@ -662,6 +747,56 @@ export function MultiKeyManageDialog({
         isLoading={isPerformingAction}
         handleConfirm={performAction}
       />
+
+      {/* Key Note Edit Dialog */}
+      <Dialog
+        open={noteEditing !== null}
+        onOpenChange={(open) => !open && setNoteEditing(null)}
+        title={t('Edit Key Note')}
+        description={
+          noteEditing
+            ? `#${noteEditing.keyIndex + 1} ${noteEditing.keyPreview}`
+            : undefined
+        }
+        contentClassName='max-w-md'
+      >
+        <div className='space-y-4'>
+          <Input
+            autoFocus
+            value={noteEditing?.note ?? ''}
+            maxLength={NOTE_MAX}
+            placeholder={t('e.g. source or owner of this key')}
+            onChange={(e) =>
+              setNoteEditing((prev) =>
+                prev ? { ...prev, note: e.target.value } : prev
+              )
+            }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void handleSaveNote()
+            }}
+          />
+          <div className='flex items-center justify-between'>
+            <span className='text-muted-foreground text-xs'>
+              {noteEditing?.note.length ?? 0}/{NOTE_MAX}
+            </span>
+            <div className='flex gap-2'>
+              <Button variant='outline' onClick={() => setNoteEditing(null)}>
+                {t('Cancel')}
+              </Button>
+              <Button
+                onClick={() => void handleSaveNote()}
+                disabled={isSavingNote}
+              >
+                {isSavingNote ? (
+                  <Loader2 className='h-4 w-4 animate-spin' />
+                ) : (
+                  t('Save')
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Dialog>
     </>
   )
 }

@@ -2,6 +2,7 @@
   "User-Agent header sent to the upstream provider for this channel. Explicit header overrides still take precedence": "User-Agent header sent to the upstream provider for this channel. Explicit header overrides still take precedence",
   "Allow users to sign in with DingTalk": "Allow users to sign in with DingTalk",
   "Continue with DingTalk": "Continue with DingTalk",
+  "e.g. source or owner of this key": "e.g. source or owner of this key",
   "Failed to start DingTalk login": "Failed to start DingTalk login",
   "Default API requests-per-minute limit applied to every newly registered user, shared across all their tokens. 0 means unlimited. Does not affect existing users; an explicit per-user RPM always wins": "Default API requests-per-minute limit applied to every newly registered user, shared across all their tokens. 0 means unlimited. Does not affect existing users; an explicit per-user RPM always wins",
   "Maximum API requests per minute for this user, shared across all tokens. Requests over the limit are rejected with 429. 0 means unlimited": "Maximum API requests per minute for this user, shared across all tokens. Requests over the limit are rejected with 429. 0 means unlimited",
@@ -35,6 +36,7 @@
   "Operation failed, please try again": "Operation failed, please try again",
   "Please explain why this request is rejected...": "Please explain why this request is rejected...",
   "Add a comment for the applicant...": "Add a comment for the applicant...",
+  "Search by name or username...": "Search by name or username...",
   "Allow users to submit fixed-amount recharge requests that require multi-level approval": "Allow users to submit fixed-amount recharge requests that require multi-level approval",
   "Search and add one or more approvers for this level.": "Search and add one or more approvers for this level.",
   "Please describe in at least 10 characters": "Please describe in at least 10 characters",
@@ -48,5 +50,7 @@
   "IPs and CIDR ranges permanently blocked from the entire site with 403. One entry per line.": "IPs and CIDR ranges permanently blocked from the entire site with 403. One entry per line.",
   "IPs that recently hit a rate limit (429). Add them to the whitelist or blacklist with one click.": "IPs that recently hit a rate limit (429). Add them to the whitelist or blacklist with one click.",
   "Failed to remove record": "Failed to remove record",
-  "This IP is already in the list": "This IP is already in the list"
+  "This IP is already in the list": "This IP is already in the list",
+  "Approvers have been reminded to approve on the platform": "Approvers have been reminded to approve on the platform",
+  "Failed to send reminder": "Failed to send reminder"
 }

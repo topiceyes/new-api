@@ -40,6 +40,9 @@ export interface RechargeRequest {
   reject_reason: string
   create_time: number
   complete_time: number
+  urge_count: number
+  last_urge_time: number
+  display_name?: string
 }
 
 export interface ApprovalStep {

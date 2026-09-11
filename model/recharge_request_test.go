@@ -196,3 +196,46 @@ func TestGetRechargeApprovalTasks(t *testing.T) {
 	assert.EqualValues(t, 1, total)
 	assert.Equal(t, RechargeStepApproved, decided[0].MyDecision)
 }
+
+// 申请人真名回填:列表/详情/审批任务返回 users.display_name 真名,
+// 未写真名的用户保持为空由前端回退 username;管理端关键字按真名也能命中。
+func TestRechargeApplicantDisplayNameEnriched(t *testing.T) {
+	truncateTables(t)
+	applicant, chain := seedRechargeChain(t)
+	plain := &User{Username: "plain", AffCode: "plain"}
+	require.NoError(t, DB.Create(plain).Error)
+	require.NoError(t, DB.Model(&User{}).Where("id = ?", applicant.Id).Update("display_name", "张三").Error)
+
+	req1 := newTestRechargeRequest(applicant)
+	require.NoError(t, CreateRechargeRequest(req1, chain))
+	req2 := newTestRechargeRequest(plain)
+	require.NoError(t, CreateRechargeRequest(req2, chain))
+
+	pageInfo := &common.PageInfo{Page: 1, PageSize: 20}
+	requests, _, err := GetAllRechargeRequests("", "", "", pageInfo)
+	require.NoError(t, err)
+	names := map[int]string{}
+	for _, r := range requests {
+		names[r.UserId] = r.DisplayName
+	}
+	assert.Equal(t, "张三", names[applicant.Id])
+	assert.Empty(t, names[plain.Id])
+
+	detail, err := GetRechargeRequestById(req1.Id)
+	require.NoError(t, err)
+	assert.Equal(t, "张三", detail.DisplayName)
+
+	tasks, _, err := GetRechargeApprovalTasks(chain[0][0].UserId, true, pageInfo)
+	require.NoError(t, err)
+	taskNames := map[int]string{}
+	for _, task := range tasks {
+		taskNames[task.Id] = task.DisplayName
+	}
+	assert.Equal(t, "张三", taskNames[req1.Id])
+	assert.Empty(t, taskNames[req2.Id])
+
+	searched, total, err := GetAllRechargeRequests("", "", "张三", pageInfo)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	assert.Equal(t, req1.Id, searched[0].Id)
+}

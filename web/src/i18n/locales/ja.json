@@ -1514,6 +1514,7 @@
     "Duration Value": "期間値",
     "Dynamic Pricing": "ダイナミック価格設定",
     "e.g. ¥ or HK$": "例: ¥ または HK$",
+    "e.g. source or owner of this key": "e.g. source or owner of this key",
     "e.g. 401, 403, 429, 500-599": "例：401, 403, 429, 500-599",
     "e.g. 8 means 1 USD = 8 units": "例: 8 は 1 USD = 8 単位 を意味します",
     "e.g. Basic Plan": "例：ベーシックプラン",
@@ -1579,6 +1580,7 @@
     "Edit discount tier": "割引ティアを編集",
     "Edit FAQ": "FAQ を編集",
     "Edit group": "グループを編集",
+    "Edit Key Note": "Edit Key Note",
     "Edit group rate limit": "グループレート制限を編集",
     "Edit JSON object directly. Suitable for simple parameter overrides.": "JSONオブジェクトを直接編集します。シンプルなパラメータオーバーライドに適しています。",
     "Edit JSON text directly. Format will be validated on save.": "JSONテキストを直接編集します。保存時にフォーマットが検証されます。",
@@ -5679,7 +5681,7 @@
     "Add a comment for the applicant...": "Add a comment for the applicant...",
     "All Statuses": "All Statuses",
     "All Categories": "All Categories",
-    "Search by username...": "Search by username...",
+    "Search by name or username...": "Search by name or username...",
     "No recharge requests found.": "No recharge requests found.",
     "Recharge Approval": "Recharge Approval",
     "Enable recharge requests": "Enable recharge requests",
@@ -5719,6 +5721,11 @@
     "No rate-limited IPs recorded": "No rate-limited IPs recorded",
     "Record removed": "Record removed",
     "Failed to remove record": "Failed to remove record",
-    "This IP is already in the list": "This IP is already in the list"
+    "This IP is already in the list": "This IP is already in the list",
+    "Urge": "Urge",
+    "Urge limit reached": "Urge limit reached",
+    "Urge approvers ({{used}}/{{max}} used)": "Urge approvers ({{used}}/{{max}} used)",
+    "Approvers have been reminded to approve on the platform": "Approvers have been reminded to approve on the platform",
+    "Failed to send reminder": "Failed to send reminder"
   }
 }

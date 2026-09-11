@@ -154,7 +154,7 @@ export function AdminRequestsTable() {
                     {item.id}
                   </TableCell>
                   <TableCell className='py-3 align-middle text-sm'>
-                    {item.username}
+                    {item.display_name || item.username}
                   </TableCell>
                   <TableCell className='py-3 align-middle'>
                     <Badge variant='outline'>
@@ -251,7 +251,7 @@ export function AdminRequestsTable() {
             aria-hidden='true'
           />
           <Input
-            placeholder={t('Search by username...')}
+            placeholder={t('Search by name or username...')}
             value={keywordInput}
             onChange={(e) => setKeywordInput(e.target.value)}
             onKeyDown={(e) => {

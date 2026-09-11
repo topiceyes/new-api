@@ -1514,6 +1514,7 @@
     "Duration Value": "有效期數值",
     "Dynamic Pricing": "動態收費",
     "e.g. ¥ or HK$": "例如，¥ 或 HK$",
+    "e.g. source or owner of this key": "例如：密鑰來源或歸屬人",
     "e.g. 401, 403, 429, 500-599": "例如 401、403、429、500-599",
     "e.g. 8 means 1 USD = 8 units": "例如，8 表示 1 美元 = 8 單位",
     "e.g. Basic Plan": "例如：基礎套餐",
@@ -1579,6 +1580,7 @@
     "Edit discount tier": "編輯折扣檔位",
     "Edit FAQ": "編輯常見問題",
     "Edit group": "編輯分組",
+    "Edit Key Note": "編輯密鑰備註",
     "Edit group rate limit": "編輯組速率限制",
     "Edit JSON object directly. Suitable for simple parameter overrides.": "直接編輯 JSON 物件。適合簡單覆蓋參數的場景。",
     "Edit JSON text directly. Format will be validated on save.": "直接編輯 JSON 文字，儲存時會校驗格式。",
@@ -2097,7 +2099,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相關項目",
     "footer.defaultCopyright": "版權所有。",
-    "footer.newapi.projectAttributionSuffix": "版權所有，由項目貢獻者設計與開發。",
+    "footer.new\u0061pi.projectAttributionSuffix": "版權所有，由項目貢獻者設計與開發。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "對於 2025 年 5 月 10 日之後新增的渠道，在部署時無需從模型名稱中移除 \".\"",
     "For private deployments, format: https://fastgpt.run/api/openapi": "對於私有部署，格式為：https://fastgpt.run/api/openapi",
     "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.": "基於安全考量，現有存取令牌無法再次顯示。僅在需要新令牌時重新生成。",
@@ -5679,7 +5681,7 @@
     "Add a comment for the applicant...": "給申請人留言...",
     "All Statuses": "全部狀態",
     "All Categories": "全部類別",
-    "Search by username...": "按使用者名稱搜尋...",
+    "Search by name or username...": "按姓名或使用者名稱搜尋...",
     "No recharge requests found.": "未找到儲值申請。",
     "Recharge Approval": "儲值審批",
     "Enable recharge requests": "啟用儲值申請",
@@ -5719,6 +5721,11 @@
     "No rate-limited IPs recorded": "暫無限流觸發記錄",
     "Record removed": "記錄已刪除",
     "Failed to remove record": "刪除記錄失敗",
-    "This IP is already in the list": "該 IP 已在名單中"
+    "This IP is already in the list": "該 IP 已在名單中",
+    "Urge": "催批",
+    "Urge limit reached": "催批次數已用完（最多 3 次）",
+    "Urge approvers ({{used}}/{{max}} used)": "提醒當前級審批人登入平台審批（已用 {{used}}/{{max}} 次）",
+    "Approvers have been reminded to approve on the platform": "已提醒審批人登入平台審批（第 {{count}} 次催批）",
+    "Failed to send reminder": "催批失敗"
   }
 }

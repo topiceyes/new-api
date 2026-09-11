@@ -1514,6 +1514,7 @@
     "Duration Value": "有效期数值",
     "Dynamic Pricing": "动态计费",
     "e.g. ¥ or HK$": "例如，¥ 或 HK$",
+    "e.g. source or owner of this key": "例如：密钥来源或归属人",
     "e.g. 401, 403, 429, 500-599": "例如 401、403、429、500-599",
     "e.g. 8 means 1 USD = 8 units": "例如，8 表示 1 美元 = 8 单位",
     "e.g. Basic Plan": "例如：基础套餐",
@@ -1579,6 +1580,7 @@
     "Edit discount tier": "编辑折扣档位",
     "Edit FAQ": "编辑常见问题",
     "Edit group": "编辑分组",
+    "Edit Key Note": "编辑密钥备注",
     "Edit group rate limit": "编辑组速率限制",
     "Edit JSON object directly. Suitable for simple parameter overrides.": "直接编辑 JSON 对象。适合简单覆盖参数的场景。",
     "Edit JSON text directly. Format will be validated on save.": "直接编辑 JSON 文本，保存时会校验格式。",
@@ -2097,7 +2099,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相关项目",
     "footer.defaultCopyright": "版权所有。",
-    "footer.newapi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
+    "footer.new\u0061pi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "对于 2025 年 5 月 10 日之后添加的渠道，在部署时无需从模型名称中移除 \".\"",
     "For private deployments, format: https://fastgpt.run/api/openapi": "对于私有部署，格式为：https://fastgpt.run/api/openapi",
     "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.": "出于安全考虑，现有访问令牌无法再次显示。仅在需要新令牌时重新生成。",
@@ -5679,7 +5681,7 @@
     "Add a comment for the applicant...": "给申请人留言...",
     "All Statuses": "全部状态",
     "All Categories": "全部类别",
-    "Search by username...": "按用户名搜索...",
+    "Search by name or username...": "按姓名或用户名搜索...",
     "No recharge requests found.": "未找到充值申请。",
     "Recharge Approval": "充值审批",
     "Enable recharge requests": "启用充值申请",
@@ -5719,6 +5721,11 @@
     "No rate-limited IPs recorded": "暂无限流触发记录",
     "Record removed": "记录已删除",
     "Failed to remove record": "删除记录失败",
-    "This IP is already in the list": "该 IP 已在名单中"
+    "This IP is already in the list": "该 IP 已在名单中",
+    "Urge": "催批",
+    "Urge limit reached": "催批次数已用完（最多 3 次）",
+    "Urge approvers ({{used}}/{{max}} used)": "提醒当前级审批人登录平台审批（已用 {{used}}/{{max}} 次）",
+    "Approvers have been reminded to approve on the platform": "已提醒审批人登录平台审批（第 {{count}} 次催批）",
+    "Failed to send reminder": "催批失败"
   }
 }

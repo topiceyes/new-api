@@ -3,21 +3,5 @@
   "AppKey": "AppKey",
   "AppSecret": "AppSecret",
   "CorpId": "CorpId",
-  "AgentId": "AgentId",
-  "IP Access Control": "IP Access Control",
-  "Whitelisted IPs skip all IP-based rate limits; blacklisted IPs are blocked from the entire site. One IP or CIDR range per line.": "Whitelisted IPs skip all IP-based rate limits; blacklisted IPs are blocked from the entire site. One IP or CIDR range per line.",
-  "Save IP access control": "Save IP access control",
-  "IP Whitelist": "IP Whitelist",
-  "IPs and CIDR ranges that bypass all IP-based rate limits (login, global web/API, etc.). One entry per line.": "IPs and CIDR ranges that bypass all IP-based rate limits (login, global web/API, etc.). One entry per line.",
-  "IP Blacklist": "IP Blacklist",
-  "IPs and CIDR ranges permanently blocked from the entire site with 403. One entry per line.": "IPs and CIDR ranges permanently blocked from the entire site with 403. One entry per line.",
-  "Rate-limited IP Records": "Rate-limited IP Records",
-  "IPs that recently hit a rate limit (429). Add them to the whitelist or blacklist with one click.": "IPs that recently hit a rate limit (429). Add them to the whitelist or blacklist with one click.",
-  "Rate limit buckets": "Rate limit buckets",
-  "First seen": "First seen",
-  "Last seen": "Last seen",
-  "No rate-limited IPs recorded": "No rate-limited IPs recorded",
-  "Record removed": "Record removed",
-  "Failed to remove record": "Failed to remove record",
-  "This IP is already in the list": "This IP is already in the list"
+  "AgentId": "AgentId"
 }
